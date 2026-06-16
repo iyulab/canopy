@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 import path from "node:path";
 import { createRequire } from "node:module";
-import { mkdir, copyFile, readdir } from "node:fs/promises";
+import { mkdir, copyFile, readdir, readFile } from "node:fs/promises";
 import { build } from "./index.js";
 import { emitSite } from "./emit.js";
 import { readVault, writeFiles, copyAssets } from "./fs-bundle.js";
+import { parseBuildArgs } from "./cli-args.js";
 
 const require = createRequire(import.meta.url);
 
@@ -31,21 +32,27 @@ async function copyKatexAssets(outDir: string): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  const [command, vaultArg, outArg] = process.argv.slice(2);
-  if (command !== "build" || vaultArg === undefined) {
-    console.error("Usage: canopy build <vault-dir> [out-dir]");
+  const args = parseBuildArgs(process.argv.slice(2));
+  if (!args.ok) {
+    console.error(args.error);
     process.exitCode = 1;
     return;
   }
 
-  const vault = path.resolve(vaultArg);
-  const outDir = path.resolve(outArg ?? "site");
+  const vault = path.resolve(args.vault);
+  const outDir = path.resolve(args.out);
+  // A host (e.g. Textree) injects its own design tokens so the published site matches the app;
+  // absent the flag, emitSite falls back to canopy's built-in tokens.
+  const tokens = args.tokensCssPath
+    ? await readFile(path.resolve(args.tokensCssPath), "utf8")
+    : undefined;
 
   const documents = await readVault(vault);
   const bundle = await build({ documents });
   const files = emitSite(bundle, {
-    siteTitle: path.basename(vault),
+    siteTitle: args.siteTitle ?? path.basename(vault),
     stylesheets: ["tokens.css", "styles.css", "assets/katex.css"],
+    tokens,
   });
 
   await writeFiles(outDir, files);

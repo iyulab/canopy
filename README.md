@@ -39,11 +39,14 @@ npm install @iyulab/canopy
 Build a folder of markdown into a static site:
 
 ```sh
-npx canopy build <vault-dir> [out-dir]
+npx canopy build <vault-dir> [out-dir] [options]
 ```
 
 - `<vault-dir>` — the folder of markdown notes to publish.
 - `[out-dir]` — where to write the site bundle (defaults to `./site`).
+- `--site-title <title>` — override the site title (defaults to the vault folder name).
+- `--tokens-css <path>` — inject a CSS file of design tokens (written as `tokens.css`) so the
+  published site matches a host app's theme. Without it, canopy's built-in tokens are used.
 
 Markdown files become `.html`; every other file (images, etc.) is copied alongside, mirroring the
 folder layout. Hidden directories (`.git`, `.obsidian`, `.textree`, …) are skipped. KaTeX styles and

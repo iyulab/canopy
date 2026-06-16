@@ -18,6 +18,11 @@ export function toSitePath(sourcePath: string): string {
  * `/repo/`), where `/notes/idea.html` would break. Both arguments are site
  * paths like "notes/idea.html". Pure and deterministic; reused by navigation
  * and assets, not just wikilinks.
+ *
+ * Each path segment is URL-encoded so a filename with a space (or other
+ * URL-unsafe character) yields a valid href — "deep dive.html" becomes
+ * "deep%20dive.html" — which static hosts serve correctly. The output file is
+ * still written under its raw name; only the link is encoded.
  */
 export function relativeHref(from: string, to: string): string {
   const fromDir = from.split("/").slice(0, -1);
@@ -31,6 +36,10 @@ export function relativeHref(from: string, to: string): string {
     shared += 1;
   }
   const up = fromDir.length - shared;
-  const segments = [...Array.from({ length: up }, () => ".."), ...toParts.slice(shared)];
-  return segments.join("/") || (toParts[toParts.length - 1] ?? "");
+  const segments = [
+    ...Array.from({ length: up }, () => ".."),
+    ...toParts.slice(shared),
+  ];
+  const relative = segments.length > 0 ? segments : [toParts[toParts.length - 1] ?? ""];
+  return relative.map((segment) => encodeURIComponent(segment)).join("/");
 }

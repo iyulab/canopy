@@ -43,4 +43,11 @@ describe("relativeHref", () => {
   it("links a page to itself by filename", () => {
     expect(relativeHref("notes/idea.html", "notes/idea.html")).toBe("idea.html");
   });
+
+  it("URL-encodes segments with spaces (valid on static hosts)", () => {
+    expect(relativeHref("index.html", "guide/deep dive.html")).toBe(
+      "guide/deep%20dive.html",
+    );
+    expect(relativeHref("guide/deep dive.html", "index.html")).toBe("../index.html");
+  });
 });

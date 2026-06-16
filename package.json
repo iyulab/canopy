@@ -20,7 +20,8 @@
     "check": "tsc --noEmit",
     "lint": "biome lint ./src",
     "test": "vitest run",
-    "build": "tsc -p tsconfig.build.json"
+    "build": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "npm run build"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.0",

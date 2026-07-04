@@ -6,6 +6,7 @@ import { build } from "./index.js";
 import { emitSite } from "./emit.js";
 import { readVault, writeFiles, copyAssets } from "./fs-bundle.js";
 import { parseBuildArgs } from "./cli-args.js";
+import { bundleUsesKatex, KATEX_STYLESHEET } from "./katex.js";
 
 const require = createRequire(import.meta.url);
 
@@ -49,14 +50,25 @@ async function main(): Promise<void> {
 
   const documents = await readVault(vault);
   const bundle = await build({ documents });
+
+  // Gate KaTeX assets on actual usage: a math-free site would otherwise carry
+  // the stylesheet + ~20 woff2 fonts as dead payload (often most of its bytes).
+  const usesKatex = bundleUsesKatex(bundle);
+  const stylesheets = ["tokens.css", "styles.css"];
+  if (usesKatex) {
+    stylesheets.push(KATEX_STYLESHEET);
+  }
+
   const files = emitSite(bundle, {
     siteTitle: args.siteTitle ?? path.basename(vault),
-    stylesheets: ["tokens.css", "styles.css", "assets/katex.css"],
+    stylesheets,
     tokens,
   });
 
   await writeFiles(outDir, files);
-  await copyKatexAssets(outDir);
+  if (usesKatex) {
+    await copyKatexAssets(outDir);
+  }
   const assetCount = await copyAssets(vault, outDir);
 
   console.log(

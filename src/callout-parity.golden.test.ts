@@ -31,12 +31,25 @@ const spec = JSON.parse(
  * Ordered callouts in a rendered page. The transform emits
  * `<blockquote class="callout callout-{core}">` followed by the title
  * paragraph; fixture inputs contain no authored HTML, so the markers are
- * unforgeable here.
+ * unforgeable here. The title paragraph is always a single text node (the
+ * transform truncates at the first inline construct — pinned by the
+ * markup-* cases), so `[^<]*` captures it fully; entities are decoded so
+ * expected titles read as source text (see entity-lt-in-title).
  */
+function decodeEntities(text: string): string {
+  return text
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => String.fromCodePoint(Number.parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec: string) => String.fromCodePoint(Number(dec)))
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, "&");
+}
+
 function classifyPublished(html: string): GoldenCallout[] {
   const out: GoldenCallout[] = [];
   const re = /<blockquote class="callout callout-([a-z]+)">\s*<p class="callout-title">([^<]*)<\/p>/g;
-  for (const m of html.matchAll(re)) out.push({ type: m[1] as string, title: m[2] as string });
+  for (const m of html.matchAll(re)) out.push({ type: m[1] as string, title: decodeEntities(m[2] as string) });
   return out;
 }
 

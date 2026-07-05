@@ -35,8 +35,10 @@ import remarkWikiLink, { type WikiContext } from "./remark-wikilink.js";
  */
 
 // The callout transform (remark-callout) emits classed blockquotes/titles.
-// Sanitize strips unknown classes, so allow exactly the callout set — no
-// other class (and no raw-HTML class) gets through.
+// Sanitize strips unknown classes, so allow exactly the callout set,
+// element-scoped. The allowlist is origin-agnostic: authored raw HTML
+// carrying these exact classes keeps them (styling-only, no script
+// surface); every other class is stripped.
 const sanitizeSchema = {
   ...defaultSchema,
   attributes: {

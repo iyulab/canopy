@@ -45,3 +45,48 @@ describe("remark-callout", () => {
     expect(html).toContain("<strong>bold</strong>");
   });
 });
+
+/**
+ * Negative coverage for the sanitize schema extension: allowing the callout
+ * classes must not widen the raw-HTML surface beyond those exact,
+ * element-scoped class names. Pins measured pipeline behavior.
+ */
+describe("remark-callout sanitize surface", () => {
+  it("strips scripts inside a callout body", async () => {
+    const html = await renderMarkdown("> [!note] t\n> <script>alert(1)</script> body");
+    expect(html).toContain('<p class="callout-title">t</p>');
+    expect(html).not.toContain("<script>");
+    expect(html).not.toContain("alert(1)");
+  });
+
+  it("strips event handlers inside a callout body", async () => {
+    const html = await renderMarkdown('> [!note]\n> <em onclick="alert(1)">em</em> and <img src=x onerror="alert(1)"> body');
+    expect(html).toContain("<em>em</em>");
+    expect(html).toContain('<img src="x">');
+    expect(html).not.toContain("onclick");
+    expect(html).not.toContain("onerror");
+  });
+
+  it("strips classes outside the callout allowlist", async () => {
+    const html = await renderMarkdown('<blockquote class="callout-evil pwned">x</blockquote>');
+    expect(html).not.toContain("callout-evil");
+    expect(html).not.toContain("pwned");
+  });
+
+  it("scopes the allowed classes to their elements", async () => {
+    // callout-* is allowed on <blockquote> only, callout-title on <p> only.
+    const forgedDiv = await renderMarkdown('<div class="callout-title">not a p</div>');
+    expect(forgedDiv).not.toContain("callout-title");
+    const forgedP = await renderMarkdown('<p class="callout callout-note">styled?</p>');
+    expect(forgedP).not.toContain("callout-note");
+  });
+
+  it("lets authored blockquotes carry the exact callout classes (styling-only)", async () => {
+    // The allowlist is origin-agnostic: authors can hand-write the classes
+    // the transform emits. That yields styling only (no script surface), so
+    // it is accepted rather than fought.
+    const html = await renderMarkdown('<blockquote class="callout callout-danger"><p class="callout-title">Fake</p><p>body</p></blockquote>');
+    expect(html).toContain('<blockquote class="callout callout-danger">');
+    expect(html).toContain('<p class="callout-title">Fake</p>');
+  });
+});

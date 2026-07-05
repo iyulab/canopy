@@ -11,6 +11,7 @@ import rehypeKatex from "rehype-katex";
 import rehypeShiki from "@shikijs/rehype";
 import rehypeStringify from "rehype-stringify";
 import { parseFrontmatter } from "./frontmatter.js";
+import remarkMathSubset from "./remark-math-subset.js";
 import remarkWikiLink, { type WikiContext } from "./remark-wikilink.js";
 
 /**
@@ -35,6 +36,9 @@ const processor = unified()
   .use(remarkParse)
   .use(remarkGfm)
   .use(remarkMath)
+  // Conservative math subset: currency-safe guards on single-$ spans and
+  // standalone-line $$..$$ promotion to display math (see remark-math-subset).
+  .use(remarkMathSubset)
   .use(remarkWikiLink)
   .use(remarkRehype, { allowDangerousHtml: true })
   .use(rehypeRaw)

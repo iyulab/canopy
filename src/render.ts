@@ -12,6 +12,7 @@ import rehypeShiki from "@shikijs/rehype";
 import rehypeStringify from "rehype-stringify";
 import { parseFrontmatter } from "./frontmatter.js";
 import remarkMathSubset from "./remark-math-subset.js";
+import remarkCallout from "./remark-callout.js";
 import remarkWikiLink, { type WikiContext } from "./remark-wikilink.js";
 
 /**
@@ -32,6 +33,22 @@ import remarkWikiLink, { type WikiContext } from "./remark-wikilink.js";
  * stylesheet (katex CSS) bundled into the site shell to display correctly;
  * that lands with the asset pipeline (C26).
  */
+
+// The callout transform (remark-callout) emits classed blockquotes/titles.
+// Sanitize strips unknown classes, so allow exactly the callout set — no
+// other class (and no raw-HTML class) gets through.
+const sanitizeSchema = {
+  ...defaultSchema,
+  attributes: {
+    ...defaultSchema.attributes,
+    blockquote: [
+      ...(defaultSchema.attributes?.blockquote ?? []),
+      ["className", "callout", "callout-note", "callout-tip", "callout-warning", "callout-danger", "callout-quote"],
+    ],
+    p: [...(defaultSchema.attributes?.p ?? []), ["className", "callout-title"]],
+  },
+} as typeof defaultSchema;
+
 const processor = unified()
   .use(remarkParse)
   .use(remarkGfm)
@@ -39,10 +56,14 @@ const processor = unified()
   // Conservative math subset: currency-safe guards on single-$ spans and
   // standalone-line $$..$$ promotion to display math (see remark-math-subset).
   .use(remarkMathSubset)
+  // Callout convention (`> [!type]`): top-level blockquotes become styled
+  // callouts (see remark-callout). Runs before remark-rehype so the classes
+  // ride through as hProperties.
+  .use(remarkCallout)
   .use(remarkWikiLink)
   .use(remarkRehype, { allowDangerousHtml: true })
   .use(rehypeRaw)
-  .use(rehypeSanitize, defaultSchema)
+  .use(rehypeSanitize, sanitizeSchema)
   // rehype-slug runs *after* sanitize so heading ids are not clobbered with a
   // "user-content-" prefix; this keeps `[[note#heading]]` fragments matching.
   .use(rehypeSlug)

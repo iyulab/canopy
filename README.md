@@ -130,6 +130,25 @@ The exact tokenization (including known edge divergences from line-based editor 
 by `src/math-parity.golden.json`; downstream editors keep a byte-identical copy and assert the
 `editor` column against their scanner, so both sides of the parity move only on purpose.
 
+### Callouts
+
+Top-level blockquotes that open with the `> [!type]` convention render as
+styled callouts:
+
+```md
+> [!tip] Optional title
+> Body in regular markdown.
+```
+
+Five core styles ship: `note`, `tip`, `warning`, `danger`, `quote`. Common
+aliases map onto them (`info` → note, `error` → danger, …) and unknown types
+fall back to `note`, so nothing breaks. The displayed title is the text after
+the marker, or the typed word itself. Fold suffixes (`[!type]-` / `[!type]+`)
+are accepted and ignored — content is always visible. Nested blockquotes stay
+plain quotes. Recognition semantics are pinned in
+`src/callout-parity.golden.json`; downstream editors keep a byte-identical
+copy to stay aligned.
+
 ### Theming
 
 The output reads a small set of CSS custom properties (see `tokens.css` in the output, or

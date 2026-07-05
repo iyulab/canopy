@@ -36,6 +36,12 @@ export const CANOPY_TOKENS = `:root {
   --accent-hover: #3a5be0;
   --border: rgba(0, 0, 0, 0.1);
   --border-strong: rgba(0, 0, 0, 0.18);
+  /* Callout accents — same names as the consuming app's tokens so injection stays drop-in. */
+  --callout-note: #2f6fed;    --callout-note-bg: rgba(47, 111, 237, 0.08);
+  --callout-tip: #0a8a57;     --callout-tip-bg: rgba(10, 138, 87, 0.08);
+  --callout-warning: #b45309; --callout-warning-bg: rgba(180, 83, 9, 0.08);
+  --callout-danger: #c0392b;  --callout-danger-bg: rgba(192, 57, 43, 0.08);
+  --callout-quote: #6a707c;   --callout-quote-bg: rgba(106, 112, 124, 0.08);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -49,6 +55,12 @@ export const CANOPY_TOKENS = `:root {
     --accent-hover: #859dff;
     --border: rgba(255, 255, 255, 0.1);
     --border-strong: rgba(255, 255, 255, 0.18);
+    /* Callout accents — same names as the consuming app's tokens so injection stays drop-in. */
+    --callout-note: #6d8bff;    --callout-note-bg: rgba(109, 139, 255, 0.12);
+    --callout-tip: #34d399;     --callout-tip-bg: rgba(52, 211, 153, 0.12);
+    --callout-warning: #f0b350; --callout-warning-bg: rgba(240, 179, 80, 0.12);
+    --callout-danger: #ff6b5e;  --callout-danger-bg: rgba(255, 107, 94, 0.12);
+    --callout-quote: #9aa0aa;   --callout-quote-bg: rgba(154, 160, 170, 0.12);
   }
 }
 `;

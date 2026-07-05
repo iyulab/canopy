@@ -104,11 +104,31 @@ interface SiteBundle {
 ### Markdown support
 
 - CommonMark + GitHub Flavored Markdown (tables, strikethrough, task lists, autolinks)
-- Math with KaTeX (`$inline$` and `$$display$$`)
+- Math with KaTeX (`$inline$` and `$$display$$`) — see the deliberate deviations below
 - Syntax highlighting with Shiki (light/dark dual theme via `prefers-color-scheme`)
 - Wikilinks: `[[note]]`, `[[note|alias]]`, `[[note#heading]]` — resolved tree-wide to relative links,
   with a backlink graph. Unresolved links degrade to plain text.
 - Raw HTML is sanitized: safe authoring tags survive, scripts and injection vectors are stripped.
+
+#### Math: a conservative subset of remark-math
+
+Canopy narrows vanilla remark-math in two deliberate ways, so prose about money never silently
+becomes a formula and display intent survives publishing:
+
+- **Currency-safe inline math.** A `$..$` span is *not* math when the opening `$` is followed by
+  whitespace, the closing `$` is preceded by whitespace, or the closing `$` is immediately followed
+  by a digit. Vanilla remark-math renders `costs $5 and $10 total` with "5 and " as a formula;
+  canopy keeps it literal text. Escaping follows backslash-run parity (`\$` is literal, `\\$x$` is a
+  backslash then math).
+- **Standalone `$$..$$` lines are display math.** remark-math only treats the fenced
+  `$$` … `$$` (delimiters on their own lines) form as display and reads a single `$$x+y$$` line as
+  *inline* math. Canopy promotes a paragraph consisting solely of standalone `$$..$$` lines to
+  display blocks — matching what the author meant and how conservative line-based editors render it.
+  A `$$..$$` mixed into a sentence stays inline.
+
+The exact tokenization (including known edge divergences from line-based editor scanners) is pinned
+by `src/math-parity.golden.json`; downstream editors keep a byte-identical copy and assert the
+`editor` column against their scanner, so both sides of the parity move only on purpose.
 
 ### Theming
 

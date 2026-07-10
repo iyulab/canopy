@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { renderPage, pageTitle } from "./shell.js";
+import { renderPage, pageTitle, renderContentsPage } from "./shell.js";
 import type { RenderedPage } from "./contract.js";
 import type { NavNode } from "./navigation.js";
 
@@ -67,5 +67,35 @@ describe("renderPage", () => {
     const html = renderPage(page({ frontmatter: { title: "<x> & 'y'" } }), nav);
     expect(html).toContain("<title>&lt;x&gt; &amp; &#39;y&#39;</title>");
     expect(html).not.toContain("<title><x>");
+  });
+});
+
+describe("renderContentsPage", () => {
+  const contentsNav: NavNode[] = [
+    { label: "notes", children: [{ label: "Idea", sitePath: "notes/idea.html", children: [] }] },
+    { label: "Welcome", sitePath: "Welcome.html", children: [] },
+  ];
+
+  it("renders a complete root document linking every page", () => {
+    const html = renderContentsPage(contentsNav);
+    expect(html).toMatch(/^<!doctype html>/);
+    expect(html).toContain("<h1>Contents</h1>");
+    expect(html).toContain('class="canopy-contents"');
+    // Hrefs are relative to the root, so they are the site paths verbatim.
+    expect(html).toContain('href="notes/idea.html"');
+    expect(html).toContain('href="Welcome.html"');
+  });
+
+  it("titles the document with the site title when provided", () => {
+    const html = renderContentsPage(contentsNav, { siteTitle: "My Vault" });
+    expect(html).toContain("<title>Contents · My Vault</title>");
+    const bare = renderContentsPage(contentsNav);
+    expect(bare).toContain("<title>Contents</title>");
+  });
+
+  it("renders a valid document for an empty site", () => {
+    const html = renderContentsPage([]);
+    expect(html).toMatch(/^<!doctype html>/);
+    expect(html).toContain("<h1>Contents</h1>");
   });
 });

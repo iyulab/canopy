@@ -118,3 +118,23 @@ ${renderBacklinks(page.backlinks, page.sitePath)}
 </html>
 `;
 }
+
+/**
+ * Render the synthetic root contents page: the navigation tree as a landing
+ * page, wrapped in the same shell as every other page. Emitted by `emitSite`
+ * when a site has no root index page of its own, so the site root (and the
+ * sidebar site-title link, which always targets `index.html`) resolves.
+ */
+export function renderContentsPage(
+  navigation: NavNode[],
+  options: ShellOptions = {},
+): string {
+  const page: RenderedPage = {
+    sourcePath: "",
+    sitePath: "index.html",
+    frontmatter: { title: "Contents" },
+    html: `<h1>Contents</h1><div class="canopy-contents">${renderNavList(navigation, "index.html")}</div>`,
+    backlinks: [],
+  };
+  return renderPage(page, navigation, options);
+}

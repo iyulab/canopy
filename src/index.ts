@@ -18,7 +18,7 @@ export { renderMarkdown, renderDocument } from "./render.js";
 export { buildNavigation } from "./navigation.js";
 export type { NavEntry, NavNode } from "./navigation.js";
 export { buildLinkIndex } from "./links.js";
-export { renderPage, pageTitle, type ShellOptions } from "./shell.js";
+export { renderPage, pageTitle, renderContentsPage, type ShellOptions } from "./shell.js";
 export { emitSite, type EmitOptions } from "./emit.js";
 export { CANOPY_TOKENS } from "./tokens.js";
 export { BASE_CSS } from "./styles.js";

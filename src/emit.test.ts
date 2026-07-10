@@ -45,4 +45,41 @@ describe("emitSite", () => {
     const index = files.find((f) => f.path === "index.html");
     expect(index?.contents).toContain('href="assets/katex.css"');
   });
+
+  it("synthesizes a root contents index when the tree has no index.md", async () => {
+    const bundle = await build({
+      documents: [
+        { path: "Welcome.md", content: "# Welcome" },
+        { path: "notes/idea.md", content: "# Idea" },
+      ],
+    });
+    const files = emitSite(bundle);
+    const paths = files.map((f) => f.path).sort();
+    expect(paths).toEqual([
+      "Welcome.html",
+      "index.html",
+      "notes/idea.html",
+      "styles.css",
+      "tokens.css",
+    ]);
+    const index = files.find((f) => f.path === "index.html");
+    expect(index?.contents).toContain("<h1>Contents</h1>");
+    expect(index?.contents).toContain('href="Welcome.html"');
+  });
+
+  it("keeps the author's index.md as the root page instead of synthesizing", async () => {
+    const bundle = await build({
+      documents: [{ path: "index.md", content: "# My Home" }],
+    });
+    const roots = emitSite(bundle).filter((f) => f.path === "index.html");
+    expect(roots).toHaveLength(1);
+    expect(roots[0]?.contents).toContain("My Home");
+    expect(roots[0]?.contents).not.toContain('class="canopy-contents"');
+  });
+
+  it("emits a valid contents index for an empty tree", async () => {
+    const bundle = await build({ documents: [] });
+    const index = emitSite(bundle).find((f) => f.path === "index.html");
+    expect(index?.contents).toMatch(/^<!doctype html>/);
+  });
 });

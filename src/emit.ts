@@ -1,5 +1,5 @@
 import type { SiteBundle, OutputFile } from "./contract.js";
-import { renderPage, type ShellOptions } from "./shell.js";
+import { renderContentsPage, renderPage, type ShellOptions } from "./shell.js";
 import { BASE_CSS } from "./styles.js";
 import { CANOPY_TOKENS } from "./tokens.js";
 
@@ -32,6 +32,15 @@ export function emitSite(
     path: page.sitePath,
     contents: renderPage(page, bundle.navigation, shell),
   }));
+
+  // A site with no root index page gets a synthetic contents landing page,
+  // so the site root (and every page's site-title link) always resolves.
+  if (!bundle.pages.some((page) => page.sitePath === "index.html")) {
+    files.push({
+      path: "index.html",
+      contents: renderContentsPage(bundle.navigation, shell),
+    });
+  }
 
   files.push({ path: "tokens.css", contents: options.tokens ?? CANOPY_TOKENS });
   files.push({ path: "styles.css", contents: BASE_CSS });

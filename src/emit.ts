@@ -35,7 +35,7 @@ export function emitSite(
 
   // A site with no root index page gets a synthetic contents landing page,
   // so the site root (and every page's site-title link) always resolves.
-  if (!bundle.pages.some((page) => page.sitePath === "index.html")) {
+  if (!bundle.pages.some((page) => page.sitePath.toLowerCase() === "index.html")) {
     files.push({
       path: "index.html",
       contents: renderContentsPage(bundle.navigation, shell),

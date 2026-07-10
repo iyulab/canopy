@@ -82,4 +82,15 @@ describe("emitSite", () => {
     const index = emitSite(bundle).find((f) => f.path === "index.html");
     expect(index?.contents).toMatch(/^<!doctype html>/);
   });
+
+  it("does not synthesize over a root index page that differs only by case", async () => {
+    const bundle = await build({
+      documents: [{ path: "Index.md", content: "# My Real Home" }],
+    });
+    const files = emitSite(bundle);
+    const indexish = files.filter((f) => f.path.toLowerCase() === "index.html");
+    expect(indexish).toHaveLength(1);
+    expect(indexish[0]?.contents).toContain("My Real Home");
+    expect(indexish[0]?.contents).not.toContain("<h1>Contents</h1>");
+  });
 });

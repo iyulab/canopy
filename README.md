@@ -3,8 +3,8 @@
 > Your markdown tree, blooming into a static site on the web.
 
 **Canopy** is a publishing renderer that turns a tree of markdown notes into a static website.
-It maps your folder structure into navigation, wikilinks into hyperlinks, and frontmatter into metadata,
-producing a **deployable site bundle in a single build**.
+It maps your folder structure into navigation, the links between your notes into hyperlinks, and
+frontmatter into metadata, producing a **deployable site bundle in a single build**.
 
 Just as a tree's canopy is the layer seen from the outside, Canopy renders the **public face** of your note tree.
 
@@ -13,7 +13,8 @@ Just as a tree's canopy is the layer seen from the outside, Canopy renders the *
 ## What it does
 
 - **Input** — markdown + frontmatter + folder tree
-- **Output** — a static site bundle (HTML · assets · navigation · backlink graph · site shell)
+- **Output** — a static site bundle (HTML · assets · navigation · backlink graph · per-page
+  outline · site shell)
 - **Stateless build** — the same input always yields the same output
 
 ## Design principles
@@ -25,6 +26,12 @@ Just as a tree's canopy is the layer seen from the outside, Canopy renders the *
   Canopy never touches the source.
 - **Self-hostable.** Being open source (MIT), you can render it yourself and deploy anywhere
   (GitHub Pages, Cloudflare Pages, etc.).
+
+Canopy is a shared core with more than one consumer, so the boundary around it is load-bearing.
+[docs/SCOPE.md](docs/SCOPE.md) states what canopy owns, what it deliberately leaves to its callers,
+and the test for deciding which side a proposed feature falls on — worth reading before opening a
+feature request. [CONTRIBUTING.md](CONTRIBUTING.md) covers development; [CHANGELOG.md](CHANGELOG.md)
+tracks what changed.
 
 ---
 
@@ -45,12 +52,57 @@ npx canopy build <vault-dir> [out-dir] [options]
 - `<vault-dir>` — the folder of markdown notes to publish.
 - `[out-dir]` — where to write the site bundle (defaults to `./site`).
 - `--site-title <title>` — override the site title (defaults to the vault folder name).
+- `--site-description <text>` — fill `<meta name="description">`, used by link previews.
+- `--lang <tag>` — BCP 47 language tag for `<html lang>` (defaults to `en`). Worth setting for
+  any non-English vault: assistive technology reads pronunciation rules from it.
+- `--site-icon <path>` — vault-relative favicon, linked from every page. Linked relatively, so
+  it resolves from a sub-path — where the browser's implicit `/favicon.ico` guess fails. The
+  build fails if the path is missing or excluded, rather than shipping a broken link.
 - `--tokens-css <path>` — inject a CSS file of design tokens (written as `tokens.css`) so the
   published site matches a host app's theme. Without it, canopy's built-in tokens are used.
+- `--exclude <pattern>` — leave part of the vault unpublished. Repeatable. Accepts a directory
+  (`drafts` or `drafts/**`, matching it and everything beneath), an extension at any depth
+  (`*.tmp`), or one exact path (`notes/scratch.md`). Applies to markdown and assets alike.
+- `--nav <path>` — a JSON file giving the navigation order and labels (see below). Without it,
+  navigation is derived from the folder structure.
+
+### Navigation
+
+By default the sidebar follows the folder structure: folders before pages, each alphabetical,
+folder labels taken from directory names. That suits a vault with no order of its own.
+
+`--nav` supplies one where there is. Array order is display order — nothing is re-sorted — and
+a label overrides the directory name a URL happens to use:
+
+```json
+{
+  "items": [
+    { "label": "Home", "path": "index.md" },
+    { "label": "Guide", "items": [
+      { "path": "guide/install" },
+      { "path": "guide/first-steps" }
+    ]},
+    { "label": "Release notes", "path": "releases/index.md", "items": [
+      { "path": "releases/2026-08" },
+      { "path": "releases/2026-04" }
+    ]}
+  ]
+}
+```
+
+An item is a page (`path`) or a group (`items`); a group may carry both, which makes its label
+link to that page. Paths may be written with or without an extension. `label` is optional and
+falls back to the page's frontmatter title, then its filename — so a spec only has to name what
+it wants to override.
+
+Pages the spec omits are left out of the navigation and reported, rather than dropped silently
+or appended: whether an omission is deliberate is yours to decide, not canopy's. A spec that is
+malformed fails the build, naming the position.
 
 Markdown files become `.html`; every other file (images, etc.) is copied alongside, mirroring the
-folder layout. Hidden directories (`.git`, `.obsidian`, `.textree`, …) are skipped. KaTeX styles and
-fonts are bundled into `assets/` so math renders without a network dependency.
+folder layout. Dot-prefixed directories (`.git`, editor and note-app config directories, build
+caches) are skipped, along with `node_modules`. KaTeX styles and fonts are bundled into `assets/`
+so math renders without a network dependency.
 
 ## Library API
 
@@ -88,18 +140,25 @@ interface SourceDocument {
 }
 interface SourceTree {
   documents: SourceDocument[];
+  nav?: NavSpec;   // optional order and labels; see Navigation above
 }
 ```
 
-There is no pre-built tree, no app-specific metadata, and no hidden config — the hierarchy is derived
-from the document paths alone. The build produces:
+There is no pre-built tree, no app-specific metadata, and no hidden config. Without `nav` the
+hierarchy is derived from the document paths alone; `nav` supplies an order for document sets that
+have one, and says nothing about where that order came from. The build produces:
 
 ```ts
 interface SiteBundle {
-  pages: RenderedPage[]; // { sourcePath, sitePath, frontmatter, html, backlinks }
-  navigation: NavNode[]; // folder/page tree derived from the paths
+  pages: RenderedPage[];   // { sourcePath, sitePath, frontmatter, html, backlinks, outline }
+  navigation: NavNode[];   // from `nav` when given, else derived from the paths
+  navReport?: AppliedNav;  // pages a spec omitted, spec paths that matched nothing
 }
 ```
+
+Each page also carries an `outline` — its `h2`/`h3` headings with the ids the body already uses,
+which the shell renders as an on-this-page contents list. Pages with fewer than two headings get
+none, since a one-line contents list says nothing the page does not already show.
 
 ### Markdown support
 
@@ -108,6 +167,10 @@ interface SiteBundle {
 - Syntax highlighting with Shiki (light/dark dual theme via `prefers-color-scheme`)
 - Wikilinks: `[[note]]`, `[[note|alias]]`, `[[note#heading]]` — resolved tree-wide to relative links,
   with a backlink graph. Unresolved links degrade to plain text.
+- Markdown links to other notes (`[text](note.md)`, including the reference-style
+  `[text][id]` form) resolve the same way, relative to the linking document, and count in the
+  backlink graph. Absolute URLs, root-absolute paths (`/help/x.png`), bare fragments, and
+  targets that were not published are left exactly as written.
 - Raw HTML is sanitized: safe authoring tags survive, scripts and injection vectors are stripped.
 
 #### Math: a conservative subset of remark-math

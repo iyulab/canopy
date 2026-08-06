@@ -1,9 +1,27 @@
 {
   "name": "@iyulab/canopy",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Publishing renderer: turn a tree of markdown notes into a static website.",
   "type": "module",
   "license": "MIT",
+  "keywords": [
+    "markdown",
+    "static-site-generator",
+    "publishing",
+    "wikilinks",
+    "notes"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iyulab/canopy.git"
+  },
+  "bugs": {
+    "url": "https://github.com/iyulab/canopy/issues"
+  },
+  "homepage": "https://github.com/iyulab/canopy#readme",
+  "engines": {
+    "node": ">=22"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -14,7 +32,9 @@
     "canopy": "./dist/cli.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "CHANGELOG.md",
+    "docs/SCOPE.md"
   ],
   "scripts": {
     "check": "tsc --noEmit",
@@ -44,6 +64,7 @@
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.1.2",
     "unified": "^11.0.5",
+    "unist-util-visit": "^5.1.0",
     "vfile": "^6.0.3",
     "yaml": "^2.9.0"
   }

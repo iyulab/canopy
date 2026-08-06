@@ -3,6 +3,8 @@ import { toSitePath } from "./site-path.js";
 import { renderDocument } from "./render.js";
 import { buildNavigation, type NavEntry } from "./navigation.js";
 import { buildLinkIndex } from "./links.js";
+import { applyNavSpec } from "./nav-spec.js";
+import { extractOutline } from "./outline.js";
 
 export type {
   SourceDocument,
@@ -18,7 +20,16 @@ export { renderMarkdown, renderDocument } from "./render.js";
 export { buildNavigation } from "./navigation.js";
 export type { NavEntry, NavNode } from "./navigation.js";
 export { buildLinkIndex } from "./links.js";
+export {
+  parseNavSpec,
+  applyNavSpec,
+  NavSpecError,
+  type NavSpec,
+  type NavSpecItem,
+  type AppliedNav,
+} from "./nav-spec.js";
 export { renderPage, pageTitle, renderContentsPage, type ShellOptions } from "./shell.js";
+export { extractOutline, isOutlineUseful, type OutlineItem } from "./outline.js";
 export { emitSite, type EmitOptions } from "./emit.js";
 export { CANOPY_TOKENS } from "./tokens.js";
 export { BASE_CSS } from "./styles.js";
@@ -48,6 +59,7 @@ export async function build(tree: SourceTree): Promise<SiteBundle> {
       const sitePath = toSitePath(doc.path);
       const { frontmatter, html, outgoing } = await renderDocument(doc.content, {
         resolve: (target) => index.resolve(target),
+        isPage: (candidate) => index.has(candidate),
         fromSitePath: sitePath,
       });
       return { sourcePath: doc.path, sitePath, frontmatter, html, outgoing };
@@ -72,11 +84,16 @@ export async function build(tree: SourceTree): Promise<SiteBundle> {
     backlinks: (backlinksByTarget.get(page.sitePath) ?? []).sort((a, b) =>
       a.sitePath.localeCompare(b.sitePath),
     ),
+    outline: extractOutline(page.html),
   }));
 
   const entries: NavEntry[] = pages.map((page) => ({
     sitePath: page.sitePath,
     title: titleOf(page.frontmatter),
   }));
+  if (tree.nav !== undefined) {
+    const applied = applyNavSpec(tree.nav, entries);
+    return { pages, navigation: applied.nodes, navReport: applied };
+  }
   return { pages, navigation: buildNavigation(entries) };
 }

@@ -8,7 +8,12 @@ describe("parseBuildArgs", () => {
       vault: "myvault",
       out: "site",
       siteTitle: undefined,
+      siteDescription: undefined,
+      lang: undefined,
+      siteIcon: undefined,
+      navPath: undefined,
       tokensCssPath: undefined,
+      exclude: [],
     });
   });
 
@@ -44,6 +49,32 @@ describe("parseBuildArgs", () => {
     expect(
       parseBuildArgs(["build", "v", "--site-title", "X"]),
     ).toMatchObject({ ok: true, vault: "v", out: "site", siteTitle: "X" });
+  });
+
+  it("parses the document metadata flags", () => {
+    expect(
+      parseBuildArgs([
+        "build",
+        "v",
+        "--lang",
+        "ko-KR",
+        "--site-icon",
+        "assets/favicon.png",
+        "--site-description",
+        "Product help",
+      ]),
+    ).toMatchObject({
+      ok: true,
+      lang: "ko-KR",
+      siteIcon: "assets/favicon.png",
+      siteDescription: "Product help",
+    });
+  });
+
+  it("collects --exclude, which may be repeated", () => {
+    expect(
+      parseBuildArgs(["build", "v", "--exclude", "drafts/**", "--exclude", "*.tmp"]),
+    ).toMatchObject({ ok: true, vault: "v", exclude: ["drafts/**", "*.tmp"] });
   });
 
   it("rejects a missing vault", () => {

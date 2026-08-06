@@ -10,6 +10,8 @@
  */
 
 import type { NavNode } from "./navigation.js";
+import type { NavSpec, AppliedNav } from "./nav-spec.js";
+import type { OutlineItem } from "./outline.js";
 
 /** A single markdown source document in the tree. */
 export interface SourceDocument {
@@ -23,9 +25,21 @@ export interface SourceDocument {
   content: string;
 }
 
-/** The full input: a flat set of markdown documents. */
+/**
+ * The full input: a flat set of markdown documents, and optionally the order to
+ * present them in.
+ *
+ * `nav` stays optional and additive: without it the hierarchy still comes from
+ * the document paths alone, so the generic contract is unchanged for callers
+ * that have no order of their own to express.
+ */
 export interface SourceTree {
   documents: SourceDocument[];
+  /**
+   * Navigation order and labels. Canopy applies it and knows nothing about
+   * where it came from — hand-written or generated are the same here.
+   */
+  nav?: NavSpec;
 }
 
 /** A page that links to another page, recorded as a backlink. */
@@ -48,13 +62,27 @@ export interface RenderedPage {
   html: string;
   /** Pages that link to this one, sorted by site path. */
   backlinks: Backlink[];
+  /**
+   * The page's heading structure, in document order — the contents list a
+   * reader uses to see what a long page holds. Derived from the rendered HTML,
+   * so the ids match the anchors already in it.
+   */
+  outline: OutlineItem[];
 }
 
 /** The full output: a deployable static site bundle. */
 export interface SiteBundle {
   pages: RenderedPage[];
-  /** Navigation tree derived from the page paths. */
+  /** Navigation tree: from a supplied `nav` spec, else derived from the paths. */
   navigation: NavNode[];
+  /**
+   * How a supplied spec lined up with the build — which pages it left out, and
+   * which of its paths matched nothing. Present only when a spec was given.
+   *
+   * Reported rather than acted on: whether an omitted page is an oversight or a
+   * deliberate exclusion is the caller's judgment, not canopy's.
+   */
+  navReport?: AppliedNav;
 }
 
 /** A single text file to write into the deployed site directory. */

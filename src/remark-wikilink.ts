@@ -15,6 +15,12 @@ import { relativeHref } from "./site-path.js";
 export interface WikiContext {
   /** Resolve a wikilink target to a site path, or undefined when unresolved. */
   resolve(target: string): string | undefined;
+  /**
+   * True when a site path is a page in this build. Used by markdown-link
+   * rewriting, which addresses documents by path rather than by name — see
+   * `LinkIndex.has` for why the two must not share `resolve`.
+   */
+  isPage(sitePath: string): boolean;
   /** Site path of the document being rendered, for relative hrefs. */
   fromSitePath: string;
 }

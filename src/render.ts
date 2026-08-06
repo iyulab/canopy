@@ -14,6 +14,7 @@ import { parseFrontmatter } from "./frontmatter.js";
 import remarkMathSubset from "./remark-math-subset.js";
 import remarkCallout from "./remark-callout.js";
 import remarkWikiLink, { type WikiContext } from "./remark-wikilink.js";
+import remarkMarkdownLink from "./remark-markdown-link.js";
 
 /**
  * The markdown -> HTML pipeline:
@@ -63,6 +64,11 @@ const processor = unified()
   // ride through as hProperties.
   .use(remarkCallout)
   .use(remarkWikiLink)
+  // Runs after remark-wikilink: that plugin turns `[[note]]` into mdast link
+  // nodes whose urls are already site-relative, and this one only rewrites urls
+  // it can resolve *inside the vault* — a resolved href like `../notes/idea.html`
+  // is not a vault path, so wikilink output passes through untouched.
+  .use(remarkMarkdownLink)
   .use(remarkRehype, { allowDangerousHtml: true })
   .use(rehypeRaw)
   .use(rehypeSanitize, sanitizeSchema)

@@ -7,8 +7,8 @@ import { CANOPY_TOKENS } from "./tokens.js";
 export interface EmitOptions extends ShellOptions {
   /**
    * Design-token stylesheet to write as `tokens.css`. A consumer passes its
-   * own tokens here (e.g. textree's `tokens.css`) so the published site
-   * matches its app exactly; defaults to canopy's built-in tokens.
+   * own tokens here so the published site matches its look exactly; defaults
+   * to canopy's built-in tokens.
    */
   tokens?: string;
 }

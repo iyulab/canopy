@@ -3,12 +3,12 @@
  *
  * Canopy stays app-agnostic by defining a *vocabulary* of semantic custom
  * properties (colors, type, spacing) rather than importing any app's
- * stylesheet. These defaults let a site look good standalone; a consumer
- * (e.g. textree) can inject its own token stylesheet at publish time — see
- * `emitSite`'s `tokens` option — to make the published site match its app
- * exactly. The names mirror textree's `tokens.css` so that injection is a
- * drop-in, fulfilling the single-source-of-truth principle across both repos
- * without coupling canopy to textree's internals.
+ * stylesheet. These defaults let a site look good standalone; a consumer can
+ * inject its own token stylesheet at publish time — see `emitSite`'s `tokens`
+ * option — to make the published site match its own look exactly. Because the
+ * vocabulary is semantic rather than canopy-specific, a consumer that already
+ * names its design tokens this way injects them as a drop-in, keeping one
+ * source of truth for the palette without coupling canopy to that consumer.
  *
  * Dark mode follows `prefers-color-scheme` so static sites adapt with no JS.
  */

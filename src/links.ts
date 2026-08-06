@@ -9,6 +9,17 @@
 export interface LinkIndex {
   /** Resolve a target to its site path, or undefined when unresolved. */
   resolve(target: string): string | undefined;
+  /**
+   * True when `sitePath` is a page in this build, matched exactly (case
+   * insensitively).
+   *
+   * Distinct from `resolve`, and deliberately so: `resolve` implements wikilink
+   * semantics, where a bare name may match a note anywhere in the tree. A
+   * markdown link is a *path* relative to the document containing it, so it must
+   * be checked against that one location and no other — `[x](notes.md)` next to
+   * a `notes.md` means that file, never a same-named note in another folder.
+   */
+  has(sitePath: string): boolean;
 }
 
 function normalizeTarget(target: string): string {
@@ -39,6 +50,8 @@ export function buildLinkIndex(sitePaths: readonly string[]): LinkIndex {
     );
   }
 
+  const exact = new Set(sitePaths.map((p) => p.toLowerCase()));
+
   return {
     resolve(target) {
       const norm = normalizeTarget(target);
@@ -46,6 +59,9 @@ export function buildLinkIndex(sitePaths: readonly string[]): LinkIndex {
         return byPath.get(norm);
       }
       return byName.get(norm)?.[0];
+    },
+    has(sitePath) {
+      return exact.has(sitePath.toLowerCase());
     },
   };
 }

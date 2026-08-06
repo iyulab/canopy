@@ -1,0 +1,66 @@
+# Changelog
+
+Notable changes to canopy. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+Canopy is a shared core with more than one consumer, so this file is part of its contract:
+what changed in the rendering, the CLI surface, or the theming vocabulary is what callers
+plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
+of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
+
+## [0.1.0] — 2026-08-06
+
+First published release. Development before it is recorded here in one block rather than
+reconstructed as versions that never shipped.
+
+### Added
+
+- Markdown rendering: CommonMark + GFM, KaTeX math over a currency-safe subset, Shiki
+  syntax highlighting with a light/dark dual theme, and `> [!type]` callouts
+- Wikilinks (`[[note]]`, `[[note|alias]]`, `[[note#heading]]`) resolved tree-wide to
+  relative hrefs, with a backlink graph
+- Navigation tree derived from document paths alone, or supplied by a caller via `--nav`
+  (library: `SourceTree.nav`). Array order is display order and is never re-sorted, and labels
+  override the directory names that URLs use — a release log can read newest-first, a guide in
+  teaching order. Pages a spec omits are reported, not silently dropped; a malformed spec fails
+  the build naming the position
+- Site shell: complete HTML documents with a sidebar, content, and backlinks — all internal
+  links relative, so a site works from any sub-path
+- Per-page outline: each page's `h2`/`h3` headings, carried on `RenderedPage.outline` and
+  rendered as an on-this-page contents list. Plain anchors to ids the body already has, so it
+  needs no script; pages with fewer than two headings get none
+- Design-token vocabulary (`tokens.css`), overridable by a caller via `emitSite`'s `tokens`
+  option or the CLI's `--tokens-css`
+- `canopy build <vault-dir> [out-dir]` CLI with `--site-title`, `--site-description`,
+  `--lang`, `--site-icon`, `--nav`, `--tokens-css`, and `--exclude`
+- Document metadata: `--lang` sets `<html lang>` (a wrong or missing declaration is a WCAG
+  3.1.1 failure, not a cosmetic one), `--site-icon` links a favicon relatively so it resolves
+  from a sub-path, and `--site-description` fills `<meta name="description">`. An icon path
+  that is missing or excluded fails the build instead of shipping a broken link
+- `--exclude <pattern>` (repeatable) keeps drafts, archives, and generated scratch out of a
+  published site while leaving them visible in the vault — a dot-prefix would hide them from
+  the file explorer too, which is a different intention. Applies to markdown and assets
+  alike, and prunes at the directory so an excluded tree is never walked
+- Synthetic contents page when a tree has no root index
+- `docs/SCOPE.md` — canopy's role, its non-goals, and the test for whether a proposed
+  feature belongs here
+
+### Fixed
+
+- Markdown links pointing inside the vault are rewritten to the published page, matching
+  what wikilinks already did. Previously `[text](note.md)` shipped the source path and
+  404'd while `[[note]]` to the same target worked, and only the wikilink appeared in the
+  backlink graph. Reference-style links (`[text][id]`) are covered too. Links that are not
+  confidently inside the vault — absolute URLs, root-absolute paths, bare fragments, paths
+  escaping the root, and targets that were never published — are left exactly as written.
+- Test suite no longer fails intermittently. Each test file gets its own worker and so pays
+  Shiki's ~11s highlighter warm-up separately; run in parallel those warm-ups contended for
+  cores until 5-7 files crossed the timeout, with the failing set varying between runs.
+  Test files now run serially.
+
+### Notes
+
+- Raw HTML in markdown is sanitized: safe authoring tags survive, injection vectors are
+  stripped
+- Dot-prefixed directories and `node_modules` are excluded from a vault walk. The rule is
+  categorical rather than a list of known tool names, and now has tests pinning that

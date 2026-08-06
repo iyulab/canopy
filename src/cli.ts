@@ -4,7 +4,8 @@ import { createRequire } from "node:module";
 import { mkdir, copyFile, readdir, readFile } from "node:fs/promises";
 import { build } from "./index.js";
 import { emitSite } from "./emit.js";
-import { readVault, writeFiles, copyAssets } from "./fs-bundle.js";
+import { parseNavSpec, type NavSpec } from "./nav-spec.js";
+import { readVault, writeFiles, copyAssets, listFiles } from "./fs-bundle.js";
 import { parseBuildArgs } from "./cli-args.js";
 import { bundleUsesKatex, KATEX_STYLESHEET } from "./katex.js";
 
@@ -42,14 +43,58 @@ async function main(): Promise<void> {
 
   const vault = path.resolve(args.vault);
   const outDir = path.resolve(args.out);
-  // A host (e.g. Textree) injects its own design tokens so the published site matches the app;
+  // A caller may inject its own design tokens so the published site matches its look;
   // absent the flag, emitSite falls back to canopy's built-in tokens.
   const tokens = args.tokensCssPath
     ? await readFile(path.resolve(args.tokensCssPath), "utf8")
     : undefined;
 
-  const documents = await readVault(vault);
-  const bundle = await build({ documents });
+  // The icon is copied by the asset pass, so it has to survive `--exclude` and
+  // actually exist. Checking here turns a silently-broken <link> — which only
+  // shows up as a missing tab icon after deploy — into a build failure naming
+  // the path.
+  if (args.siteIcon !== undefined) {
+    const iconRel = args.siteIcon.replace(/\\/g, "/").replace(/^\/+/, "");
+    const published = await listFiles(vault, args.exclude);
+    if (!published.includes(iconRel)) {
+      console.error(
+        `--site-icon: "${iconRel}" is not a published vault file (missing, or excluded)`,
+      );
+      process.exitCode = 1;
+      return;
+    }
+  }
+
+  let nav: NavSpec | undefined;
+  if (args.navPath !== undefined) {
+    try {
+      nav = parseNavSpec(await readFile(path.resolve(args.navPath), "utf8"));
+    } catch (error) {
+      // A spec is hand-edited, so a mistake in it is an authoring error: name the
+      // file and the position rather than letting a half-applied order look like
+      // canopy ignoring what it was given.
+      console.error(
+        `--nav ${args.navPath}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      process.exitCode = 1;
+      return;
+    }
+  }
+
+  const documents = await readVault(vault, args.exclude);
+  const bundle = await build({ documents, ...(nav ? { nav } : {}) });
+
+  // Report rather than fail: an omitted page may be deliberate, and canopy does
+  // not know which. Saying so is what keeps the omission from being silent.
+  for (const missing of bundle.navReport?.missing ?? []) {
+    console.warn(`--nav: "${missing}" matches no page`);
+  }
+  const unplaced = bundle.navReport?.unplaced ?? [];
+  if (unplaced.length > 0) {
+    console.warn(
+      `--nav: ${unplaced.length} page(s) not in the spec, so not in the navigation: ${unplaced.join(", ")}`,
+    );
+  }
 
   // Gate KaTeX assets on actual usage: a math-free site would otherwise carry
   // the stylesheet + ~20 woff2 fonts as dead payload (often most of its bytes).
@@ -59,17 +104,22 @@ async function main(): Promise<void> {
     stylesheets.push(KATEX_STYLESHEET);
   }
 
+  // The icon path was validated above; copyAssets mirrors it into the output at
+  // the same path, so the shell only needs to know where to point.
   const files = emitSite(bundle, {
     siteTitle: args.siteTitle ?? path.basename(vault),
     stylesheets,
     tokens,
+    ...(args.lang ? { lang: args.lang } : {}),
+    ...(args.siteIcon ? { iconPath: args.siteIcon.replace(/\\/g, "/") } : {}),
+    ...(args.siteDescription ? { description: args.siteDescription } : {}),
   });
 
   await writeFiles(outDir, files);
   if (usesKatex) {
     await copyKatexAssets(outDir);
   }
-  const assetCount = await copyAssets(vault, outDir);
+  const assetCount = await copyAssets(vault, outDir, args.exclude);
 
   console.log(
     `canopy: ${bundle.pages.length} page(s), ${assetCount} asset(s) -> ${outDir}`,

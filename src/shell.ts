@@ -1,12 +1,20 @@
 import type { RenderedPage, Backlink } from "./contract.js";
 import type { NavNode } from "./navigation.js";
 import { relativeHref } from "./site-path.js";
+import { isOutlineUseful, type OutlineItem } from "./outline.js";
 
 /** Options controlling the site shell wrapped around each page. */
 export interface ShellOptions {
   /** Site name, shown in the sidebar header and document title. */
   siteTitle?: string;
-  /** Document language for the <html lang> attribute. Defaults to "en". */
+  /**
+   * BCP 47 language tag for the <html lang> attribute. Defaults to "en".
+   *
+   * Worth setting for any non-English vault: assistive technology picks
+   * pronunciation rules from it, and browsers use it for translation offers,
+   * hyphenation, and font fallback. A page whose declared language is wrong is
+   * an accessibility failure (WCAG 3.1.1), not a cosmetic one.
+   */
   lang?: string;
   /**
    * Stylesheet site paths to link in <head>, resolved relative to each page.
@@ -14,6 +22,31 @@ export interface ShellOptions {
    * KaTeX stylesheet.
    */
   stylesheets?: string[];
+  /**
+   * Site path of a favicon, linked from every page. Relative like every other
+   * link, so the icon resolves when the site is served from a sub-path — which
+   * is exactly where the browser's implicit `/favicon.ico` guess fails.
+   */
+  iconPath?: string;
+  /** Site description for `<meta name="description">`, used by link previews. */
+  description?: string;
+}
+
+/** MIME type for a favicon, inferred from its extension. */
+function iconType(sitePath: string): string | undefined {
+  const ext = sitePath.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1];
+  switch (ext) {
+    case "svg":
+      return "image/svg+xml";
+    case "png":
+      return "image/png";
+    case "ico":
+      return "image/x-icon";
+    default:
+      // An unrecognized extension still links — browsers sniff the content, and
+      // omitting the hint is better than asserting a type canopy guessed.
+      return undefined;
+  }
 }
 
 function escapeHtml(value: string): string {
@@ -52,6 +85,27 @@ function renderNavList(nodes: NavNode[], from: string): string {
     })
     .join("");
   return `<ul>${items}</ul>`;
+}
+
+/**
+ * The page's own headings as a contents list.
+ *
+ * Plain anchors to ids the page already carries — no script, matching how the
+ * rest of the shell works. Nesting mirrors heading depth so the list reads as
+ * the structure it describes.
+ */
+function renderOutline(outline: OutlineItem[]): string {
+  if (!isOutlineUseful(outline)) {
+    return "";
+  }
+  const top = Math.min(...outline.map((item) => item.level));
+  const items = outline
+    .map((item) => {
+      const depth = item.level - top;
+      return `<li class="canopy-outline-l${depth}"><a href="#${escapeHtml(item.id)}">${escapeHtml(item.text)}</a></li>`;
+    })
+    .join("");
+  return `<nav class="canopy-outline" aria-label="On this page"><ul>${items}</ul></nav>`;
 }
 
 function renderBacklinks(backlinks: Backlink[], from: string): string {
@@ -93,6 +147,17 @@ export function renderPage(
     )
     .join("");
 
+  const description = options.description
+    ? `<meta name="description" content="${escapeHtml(options.description)}">`
+    : "";
+
+  let icon = "";
+  if (options.iconPath) {
+    const type = iconType(options.iconPath);
+    const href = escapeHtml(relativeHref(page.sitePath, options.iconPath));
+    icon = `<link rel="icon"${type ? ` type="${type}"` : ""} href="${href}">`;
+  }
+
   const sidebarHeader = options.siteTitle
     ? `<div class="canopy-site-title"><a href="${escapeHtml(relativeHref(page.sitePath, "index.html"))}">${escapeHtml(options.siteTitle)}</a></div>`
     : "";
@@ -104,12 +169,13 @@ export function renderPage(
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="canopy">
 <title>${escapeHtml(docTitle)}</title>
-${links}
+${description}${icon}${links}
 </head>
 <body>
 <div class="canopy-layout">
 <aside class="canopy-sidebar">${sidebarHeader}<nav>${renderNavList(navigation, page.sitePath)}</nav></aside>
 <main class="canopy-main">
+${renderOutline(page.outline)}
 <article class="canopy-content">${page.html}</article>
 ${renderBacklinks(page.backlinks, page.sitePath)}
 </main>
@@ -135,6 +201,8 @@ export function renderContentsPage(
     frontmatter: { title: "Contents" },
     html: `<h1>Contents</h1><div class="canopy-contents">${renderNavList(navigation, "index.html")}</div>`,
     backlinks: [],
+    // The contents page *is* a navigation list; an outline of it would repeat itself.
+    outline: [],
   };
   return renderPage(page, navigation, options);
 }

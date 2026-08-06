@@ -116,6 +116,34 @@ body {
 .canopy-content .callout > :last-child { margin-bottom: 0; }
 .canopy-content .callout > p { margin: var(--sp-2) 0; }
 
+/* On-this-page outline. Beside the text on a wide screen, above it when there is
+   no room — a plain anchor list, no script, like the rest of the shell. */
+.canopy-outline {
+  margin: 0 0 var(--sp-6);
+  padding: var(--sp-3) var(--sp-4);
+  border-left: 2px solid var(--border);
+  font-size: 0.9em;
+}
+.canopy-outline ul { list-style: none; margin: 0; padding: 0; }
+.canopy-outline li { margin: var(--sp-2) 0; }
+.canopy-outline a { color: var(--text-muted); text-decoration: none; }
+.canopy-outline a:hover { color: var(--accent); text-decoration: underline; }
+.canopy-outline-l1 { padding-left: var(--sp-4); }
+.canopy-outline-l2 { padding-left: var(--sp-6); }
+
+@media (min-width: 75rem) {
+  /* Room for a column beside the text: float the outline out of the flow so the
+     prose keeps its measure instead of narrowing to make space. */
+  .canopy-main { position: relative; }
+  .canopy-outline {
+    position: absolute;
+    top: var(--sp-8);
+    left: calc(100% + var(--sp-6));
+    width: 14rem;
+    margin: 0;
+  }
+}
+
 .canopy-backlinks {
   margin-top: var(--sp-8);
   padding-top: var(--sp-6);

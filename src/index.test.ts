@@ -74,4 +74,155 @@ describe("build", () => {
     const input = { documents: [{ path: "a.md", content: "x [[a]]" }] };
     expect(await build(input)).toEqual(await build(input));
   });
+
+  it("resolves a markdown link and a wikilink to the same target identically", async () => {
+    const bundle = await build({
+      documents: [
+        { path: "a.md", content: "[markdown](b.md) and [[b]]" },
+        { path: "b.md", content: "# B" },
+      ],
+    });
+    const hrefs = [...(bundle.pages[0]?.html ?? "").matchAll(/href="([^"]*)"/g)].map(
+      (m) => m[1],
+    );
+    // The two syntaxes are two ways of writing the same link, so they must not
+    // disagree: before markdown links were rewritten this was ["b.md", "b.html"].
+    expect(hrefs).toEqual(["b.html", "b.html"]);
+  });
+
+  it("counts markdown links as references in the backlink graph", async () => {
+    const bundle = await build({
+      documents: [
+        { path: "wiki.md", content: "---\ntitle: Wiki\n---\n[[target]]" },
+        { path: "md.md", content: "---\ntitle: Md\n---\n[go](target.md)" },
+        { path: "ref.md", content: "---\ntitle: Ref\n---\n[go][t]\n\n[t]: target.md" },
+        { path: "target.md", content: "# Target" },
+      ],
+    });
+    const target = bundle.pages.find((p) => p.sitePath === "target.html");
+    // A link is a reference regardless of which syntax expressed it — including
+    // the reference-style form, whose url lives on a definition node.
+    expect(target?.backlinks.map((b) => b.sitePath)).toEqual([
+      "md.html",
+      "ref.html",
+      "wiki.html",
+    ]);
+  });
+
+  it("leaves links that point outside the vault untouched", async () => {
+    const bundle = await build({
+      documents: [
+        {
+          path: "guide/a.md",
+          content:
+            "[ext](https://example.com/x.md) [abs](/help/x.md) [frag](#top) [mail](mailto:a@b.c)",
+        },
+      ],
+    });
+    const hrefs = [...(bundle.pages[0]?.html ?? "").matchAll(/href="([^"]*)"/g)].map(
+      (m) => m[1],
+    );
+    expect(hrefs).toEqual([
+      "https://example.com/x.md",
+      "/help/x.md",
+      "#top",
+      "mailto:a@b.c",
+    ]);
+  });
+
+  it("keeps a link's fragment when rewriting it", async () => {
+    const bundle = await build({
+      documents: [
+        { path: "a.md", content: "[see](b.md#next-steps)" },
+        { path: "b.md", content: "## Next Steps" },
+      ],
+    });
+    expect(bundle.pages[0]?.html).toContain('href="b.html#next-steps"');
+  });
+
+  it("carries each page's heading outline, with the ids the page uses", async () => {
+    const bundle = await build({
+      documents: [
+        {
+          path: "a.md",
+          content: "# Title\n\n## Getting started\n\ntext\n\n### Details\n\n## Next steps\n",
+        },
+      ],
+    });
+    const page = bundle.pages[0];
+    expect(page?.outline).toEqual([
+      { level: 2, text: "Getting started", id: "getting-started" },
+      { level: 3, text: "Details", id: "details" },
+      { level: 2, text: "Next steps", id: "next-steps" },
+    ]);
+    // The ids must be the ones already in the body, or the anchors go nowhere —
+    // and they are the same ids `[[a#Getting started]]` resolves to.
+    for (const item of page?.outline ?? []) {
+      expect(page?.html).toContain(`id="${item.id}"`);
+    }
+  });
+
+  it("uses a navigation spec's order instead of the derived one", async () => {
+    const documents = [
+      { path: "update-note/2026-04.md", content: "---\ntitle: 2026-04\n---\n# April" },
+      { path: "update-note/2026-08.md", content: "---\ntitle: 2026-08\n---\n# August" },
+    ];
+    const derived = await build({ documents });
+    expect(derived.navigation[0]?.children.map((c) => c.label)).toEqual([
+      "2026-04",
+      "2026-08",
+    ]);
+
+    const specified = await build({
+      documents,
+      nav: {
+        items: [
+          {
+            label: "Release notes",
+            items: [{ path: "update-note/2026-08" }, { path: "update-note/2026-04" }],
+          },
+        ],
+      },
+    });
+    // Newest first, under a display label rather than the directory name.
+    expect(specified.navigation).toEqual([
+      {
+        label: "Release notes",
+        children: [
+          { label: "2026-08", sitePath: "update-note/2026-08.html", children: [] },
+          { label: "2026-04", sitePath: "update-note/2026-04.html", children: [] },
+        ],
+      },
+    ]);
+  });
+
+  it("reports pages a navigation spec left out", async () => {
+    const bundle = await build({
+      documents: [
+        { path: "a.md", content: "# A" },
+        { path: "b.md", content: "# B" },
+      ],
+      nav: { items: [{ path: "a.md" }] },
+    });
+    expect(bundle.navReport?.unplaced).toEqual(["b.html"]);
+    expect(bundle.navReport?.missing).toEqual([]);
+  });
+
+  it("stays deterministic with a navigation spec", async () => {
+    const input = {
+      documents: [{ path: "a.md", content: "# A" }],
+      nav: { items: [{ path: "a.md" }] },
+    };
+    expect(await build(input)).toEqual(await build(input));
+  });
+
+  it("leaves a markdown link to an unpublished document as written", async () => {
+    const bundle = await build({
+      documents: [{ path: "a.md", content: "[missing](ghost.md)" }],
+    });
+    // Same judgment as an unresolved wikilink: do not invent a target. A url that
+    // was never published stays visible as written rather than becoming a
+    // plausible-looking 404.
+    expect(bundle.pages[0]?.html).toContain('href="ghost.md"');
+  });
 });

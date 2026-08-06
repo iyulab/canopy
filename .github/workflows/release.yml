@@ -13,8 +13,8 @@ jobs:
   # into npm that skips the checks.
   verify:
     runs-on: ubuntu-latest
-    # Matches ci.yml: the suite runs test files serially because Shiki's
-    # highlighter warm-up is paid per worker, so wall-clock is what to watch.
+    # Matches ci.yml: well past a healthy run, so a stuck one cannot hold a
+    # runner for the 6h default.
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5

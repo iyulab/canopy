@@ -8,6 +8,23 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [0.1.1] — 2026-08-06
+
+### Fixed
+
+- Syntax-highlighting grammars load on demand instead of as one bundle before the first render.
+  Loading every language canopy ships cost seconds on the first rendered document — measured at
+  3.6s warm and around 7.7s cold — and every caller paid it on every build, however few languages
+  their notes used. Warm-up is now around 0.2-0.4s and each grammar arrives in single-digit
+  milliseconds when a document first names it. Highlighting is unchanged: a language outside the
+  set loaded so far is fetched on demand and highlighted normally.
+- The unknown-language contract is now explicit and tested rather than incidental: a fence naming
+  a language that cannot be resolved renders as a plain code block, exactly as an unlabelled fence
+  does. Any other highlighter failure is a configuration defect and still fails the build.
+- Test files run in parallel again. Serial execution was a mitigation for the warm-up above, and
+  removing the cost removed its reason: the suite runs in about 5s rather than 100s, with the
+  default per-test timeout restored.
+
 ## [0.1.0] — 2026-08-06
 
 First published release. Development before it is recorded here in one block rather than

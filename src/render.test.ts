@@ -51,6 +51,30 @@ describe("renderMarkdown", () => {
     expect(html).toContain("const");
   });
 
+  // How a fence whose language cannot be resolved renders is a contract, not
+  // an accident: highlighting is best-effort, so an unresolvable language
+  // degrades to a plain code block. A typo in a fence must never cost a whole
+  // site build. The next three tests pin that contract from both sides.
+  it("degrades an unknown language to a plain code block", async () => {
+    const html = await renderMarkdown("```not-a-real-lang\nhello <world>\n```");
+    expect(html).toContain('<code class="language-not-a-real-lang">');
+    expect(html).not.toContain("shiki");
+    // The code survives verbatim, still escaped.
+    expect(html).toContain("hello &#x3C;world>");
+  });
+
+  it("leaves a fence with no language as a plain code block", async () => {
+    const html = await renderMarkdown("```\nplain text\n```");
+    expect(html).toContain("<pre><code>plain text");
+    expect(html).not.toContain("shiki");
+  });
+
+  it("highlights a language beyond the ones loaded up front", async () => {
+    const html = await renderMarkdown("```rust\nfn main() { let x: i32 = 1; }\n```");
+    expect(html).toContain("shiki");
+    expect(html).toContain("fn");
+  });
+
   it("is deterministic for the same input", async () => {
     const md = "# Same\n\ntext $a+b$\n\n```ts\nlet y = 2;\n```";
     expect(await renderMarkdown(md)).toBe(await renderMarkdown(md));

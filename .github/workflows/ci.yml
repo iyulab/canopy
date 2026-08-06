@@ -14,11 +14,9 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    # The suite runs test files serially (see vitest.config.ts) because Shiki's
-    # highlighter warm-up is paid per worker and contends for cores. A healthy
-    # run takes a couple of minutes, but that warm-up degrades sharply under
-    # contention, so a slow run here is not automatically a hung one. Without a
-    # ceiling a genuinely stuck run would hold a runner for the 6h default;
+    # A healthy run is a few minutes: the suite itself takes seconds now that
+    # highlighter grammars load on demand, and install and build dominate.
+    # Without a ceiling a stuck run would hold a runner for the 6h default;
     # 20 minutes is well past any healthy run and bounds the damage.
     timeout-minutes: 20
     steps:

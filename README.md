@@ -164,7 +164,10 @@ none, since a one-line contents list says nothing the page does not already show
 
 - CommonMark + GitHub Flavored Markdown (tables, strikethrough, task lists, autolinks)
 - Math with KaTeX (`$inline$` and `$$display$$`) — see the deliberate deviations below
-- Syntax highlighting with Shiki (light/dark dual theme via `prefers-color-scheme`)
+- Syntax highlighting with Shiki (light/dark dual theme via `prefers-color-scheme`). Grammars load
+  on demand, so a build pays only for the languages its notes actually use. A fence naming a
+  language canopy cannot resolve renders as a plain code block, exactly as an unlabelled fence
+  does — a typo in a fence never fails a build.
 - Wikilinks: `[[note]]`, `[[note|alias]]`, `[[note#heading]]` — resolved tree-wide to relative links,
   with a backlink graph. Unresolved links degrade to plain text.
 - Markdown links to other notes (`[text](note.md)`, including the reference-style

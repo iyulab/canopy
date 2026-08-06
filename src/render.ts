@@ -52,6 +52,24 @@ const sanitizeSchema = {
   },
 } as typeof defaultSchema;
 
+/**
+ * Highlighting is best-effort: a fence naming a language Shiki cannot resolve
+ * renders as a plain code block, exactly as a fence with no language does. A
+ * typo in a fence is an authoring slip, and failing a whole site build over one
+ * would be out of proportion to it.
+ *
+ * Only that one failure is absorbed. Anything else Shiki reports is a defect in
+ * canopy's own render configuration, not in the document, so it is rethrown and
+ * fails the build where it can be seen. Shiki distinguishes the two by message
+ * alone; render.test.ts pins the degradation, so if a future Shiki reworded it,
+ * the suite fails rather than the behaviour changing unnoticed.
+ */
+function absorbUnresolvedLanguage(error: unknown): void {
+  const unresolvedLanguage =
+    error instanceof Error && /is not included in this bundle/i.test(error.message);
+  if (!unresolvedLanguage) throw error;
+}
+
 const processor = unified()
   .use(remarkParse)
   .use(remarkGfm)
@@ -78,7 +96,18 @@ const processor = unified()
   .use(rehypeKatex)
   // Dual theme: emits both palettes as CSS variables (--shiki-dark*) so the
   // site stylesheet can switch code blocks with the page's color scheme.
-  .use(rehypeShiki, { themes: { light: "github-light", dark: "github-dark" } })
+  .use(rehypeShiki, {
+    themes: { light: "github-light", dark: "github-dark" },
+    // Grammars load on demand rather than as one bundle. Shiki's default is to
+    // load every language it ships before the first render, which costs seconds
+    // that every caller pays on every build while a vault only ever uses a
+    // handful of languages. Starting empty and loading per language makes the
+    // cost proportional to the content: a grammar arrives in single-digit
+    // milliseconds, and languages nobody writes are never loaded at all.
+    langs: [],
+    lazy: true,
+    onError: absorbUnresolvedLanguage,
+  })
   .use(rehypeStringify)
   .freeze();
 

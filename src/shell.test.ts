@@ -27,6 +27,24 @@ describe("pageTitle", () => {
   it("falls back to the filename stem", () => {
     expect(pageTitle(page())).toBe("idea");
   });
+
+  // An index page is named for what it opens, the same way the navigation tree
+  // names it. A title is the string that leaves the site — the tab, the
+  // bookmark, the search result — so "index" there is the renderer disagreeing
+  // with its own sidebar in the more visible of the two places.
+  it("names the root index page for the site's front, not its filename", () => {
+    expect(pageTitle(page({ sitePath: "index.html" }))).toBe("Home");
+  });
+
+  it("names a folder's index page for the folder it opens", () => {
+    expect(pageTitle(page({ sitePath: "guide/settings/index.html" }))).toBe("settings");
+  });
+
+  it("still prefers a frontmatter title on an index page", () => {
+    expect(
+      pageTitle(page({ sitePath: "index.html", frontmatter: { title: "Welcome" } })),
+    ).toBe("Welcome");
+  });
 });
 
 describe("renderPage", () => {

@@ -8,9 +8,20 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
-## [0.1.1] — 2026-08-06
+## [0.1.1] — 2026-08-07
 
 ### Fixed
+
+- Code blocks no longer render differently the first time a language appears. The syntax
+  highlighter tokenizes differently on its first use of a newly loaded grammar, so the first
+  code block of a site — every site, since a build is a fresh process — came out styled unlike
+  every other one, and two identical blocks in one document could differ. Each grammar is now
+  settled as it loads, which costs work the first render would have done anyway. This restores
+  the guarantee the build rests on: the same input always yields the same output.
+- An index page is titled for what it opens rather than for its filename: the site's front, or
+  the folder it is the front of. `<title>` is the string that leaves a site — the browser tab,
+  the bookmark, the search result, the link preview — and a page the sidebar called "Home" was
+  called "index" there. A frontmatter title still wins, so pages that set one are unchanged.
 
 - Syntax-highlighting grammars load on demand instead of as one bundle before the first render.
   Loading every language canopy ships cost seconds on the first rendered document — measured at

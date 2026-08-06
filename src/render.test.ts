@@ -75,6 +75,16 @@ describe("renderMarkdown", () => {
     expect(html).toContain("fn");
   });
 
+  // In a language nothing else here renders, so this sees a grammar's very
+  // first use. Shiki tokenizes differently the first time with a newly loaded
+  // grammar; without the warm-up in render.ts that would leave the first code
+  // block of a site — every site, since a build is a fresh process — styled
+  // unlike every other one.
+  it("renders a language the same on its first use as on its second", async () => {
+    const md = "```lua\nlocal x = 1\n```";
+    expect(await renderMarkdown(md)).toBe(await renderMarkdown(md));
+  });
+
   it("is deterministic for the same input", async () => {
     const md = "# Same\n\ntext $a+b$\n\n```ts\nlet y = 2;\n```";
     expect(await renderMarkdown(md)).toBe(await renderMarkdown(md));

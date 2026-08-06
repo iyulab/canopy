@@ -8,7 +8,8 @@ import rehypeRaw from "rehype-raw";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import rehypeSlug from "rehype-slug";
 import rehypeKatex from "rehype-katex";
-import rehypeShiki from "@shikijs/rehype";
+import rehypeShikiFromHighlighter from "@shikijs/rehype/core";
+import { createHighlighter } from "shiki";
 import rehypeStringify from "rehype-stringify";
 import { parseFrontmatter } from "./frontmatter.js";
 import remarkMathSubset from "./remark-math-subset.js";
@@ -52,6 +53,40 @@ const sanitizeSchema = {
   },
 } as typeof defaultSchema;
 
+const THEMES = { light: "github-light", dark: "github-dark" } as const;
+
+/**
+ * A highlighter that has tokenized once with every grammar it holds.
+ *
+ * The first tokenization with a newly loaded grammar comes out differently from
+ * every one after it — measured on Shiki 4.2 and still present in 4.4: a
+ * TypeScript `let` is unstyled the first time and a keyword every time after.
+ * Two identical code blocks in one document therefore render differently, and
+ * since a build is a fresh process, the first code block of a site is the one
+ * that gets it wrong.
+ *
+ * That breaks the guarantee the whole build rests on — the same input always
+ * yields the same output — so canopy absorbs it rather than passing it on. Each
+ * grammar is tokenized once against a throwaway string as it is loaded, which
+ * costs a few milliseconds and is work the first real render would have done
+ * anyway. The string has to be non-empty: with nothing to tokenize, nothing
+ * settles.
+ *
+ * This owns the highlighter rather than letting the plugin create one, because
+ * the loading is where the warm-up has to happen and only its owner can see it.
+ */
+async function createWarmedHighlighter() {
+  const highlighter = await createHighlighter({ themes: [...Object.values(THEMES)], langs: [] });
+  const load = highlighter.loadLanguage.bind(highlighter);
+  highlighter.loadLanguage = async (...langs) => {
+    await load(...langs);
+    for (const lang of langs) {
+      if (typeof lang === "string") highlighter.codeToHast("x", { lang, themes: THEMES });
+    }
+  };
+  return highlighter;
+}
+
 /**
  * Highlighting is best-effort: a fence naming a language Shiki cannot resolve
  * renders as a plain code block, exactly as a fence with no language does. A
@@ -70,7 +105,8 @@ function absorbUnresolvedLanguage(error: unknown): void {
   if (!unresolvedLanguage) throw error;
 }
 
-const processor = unified()
+const buildProcessor = async () =>
+  unified()
   .use(remarkParse)
   .use(remarkGfm)
   .use(remarkMath)
@@ -96,24 +132,36 @@ const processor = unified()
   .use(rehypeKatex)
   // Dual theme: emits both palettes as CSS variables (--shiki-dark*) so the
   // site stylesheet can switch code blocks with the page's color scheme.
-  .use(rehypeShiki, {
-    themes: { light: "github-light", dark: "github-dark" },
+  .use(rehypeShikiFromHighlighter, await createWarmedHighlighter(), {
+    themes: THEMES,
     // Grammars load on demand rather than as one bundle. Shiki's default is to
     // load every language it ships before the first render, which costs seconds
     // that every caller pays on every build while a vault only ever uses a
     // handful of languages. Starting empty and loading per language makes the
     // cost proportional to the content: a grammar arrives in single-digit
     // milliseconds, and languages nobody writes are never loaded at all.
-    langs: [],
     lazy: true,
     onError: absorbUnresolvedLanguage,
   })
   .use(rehypeStringify)
   .freeze();
 
+/**
+ * The pipeline, built once and reused.
+ *
+ * It holds no per-document state, which is what keeps the build stateless: the
+ * same input yields the same output. Construction is asynchronous only because
+ * the highlighter is, so it is done once and awaited by every caller.
+ */
+let pipeline: ReturnType<typeof buildProcessor> | undefined;
+function processor() {
+  pipeline ??= buildProcessor();
+  return pipeline;
+}
+
 /** Render a markdown body (no frontmatter, no wikilink resolution) to HTML. */
 export async function renderMarkdown(markdown: string): Promise<string> {
-  const file = await processor.process(markdown);
+  const file = await (await processor()).process(markdown);
   return String(file);
 }
 
@@ -137,7 +185,7 @@ export async function renderDocument(
 ): Promise<RenderedDocument> {
   const { data, body } = parseFrontmatter(raw);
   const file = new VFile({ value: body, data: wiki ? { wiki } : {} });
-  await processor.process(file);
+  await (await processor()).process(file);
   const recorded = file.data.wikiLinks;
   const outgoing = Array.isArray(recorded) ? (recorded as string[]) : [];
   return { frontmatter: data, html: String(file), outgoing };

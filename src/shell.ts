@@ -1,5 +1,5 @@
 import type { RenderedPage, Backlink } from "./contract.js";
-import type { NavNode } from "./navigation.js";
+import { isIndexStem, type NavNode } from "./navigation.js";
 import { relativeHref } from "./site-path.js";
 import { isOutlineUseful, type OutlineItem } from "./outline.js";
 
@@ -64,10 +64,25 @@ function stemOf(sitePath: string): string {
   return file.replace(/\.html$/i, "");
 }
 
-/** Display title for a page: frontmatter title, else its filename stem. */
+/**
+ * Display title for a page: its frontmatter title, else a name derived from
+ * where it sits.
+ *
+ * An index page is named for what it opens rather than for its filename — the
+ * site's home, or the folder it is the front of — which is the same rule the
+ * navigation tree uses for the same page. "index" is a filename convention, and
+ * a document title is the string that leaves the site: it is the browser tab,
+ * the bookmark, the search result, the link preview. Naming one page "Home" in
+ * the sidebar and "index" in the tab is the renderer disagreeing with itself,
+ * in the more visible of the two places.
+ */
 export function pageTitle(page: RenderedPage): string {
   const title = page.frontmatter.title;
-  return typeof title === "string" ? title : stemOf(page.sitePath);
+  if (typeof title === "string") return title;
+  const stem = stemOf(page.sitePath);
+  if (!isIndexStem(stem)) return stem;
+  // The folder an index opens, or — with no folder above it — the site's front.
+  return page.sitePath.split("/").filter(Boolean).at(-2) ?? "Home";
 }
 
 function renderNavList(nodes: NavNode[], from: string): string {

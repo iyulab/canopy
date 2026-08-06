@@ -35,7 +35,14 @@ function emptyFolder(label: string): FolderBuilder {
   return { label, sitePath: undefined, folders: new Map(), pages: [] };
 }
 
-function isIndexStem(stem: string): boolean {
+/**
+ * Is this filename stem an index — the page a folder is entered by?
+ *
+ * Exported because more than navigation has to know: a page's display name
+ * follows from it too, and the two answering differently would name one page
+ * twice.
+ */
+export function isIndexStem(stem: string): boolean {
   return stem.toLowerCase() === "index";
 }
 

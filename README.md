@@ -58,6 +58,13 @@ npx canopy build <vault-dir> [out-dir] [options]
 - `--site-icon <path>` — vault-relative favicon, linked from every page. Linked relatively, so
   it resolves from a sub-path — where the browser's implicit `/favicon.ico` guess fails. The
   build fails if the path is missing or excluded, rather than shipping a broken link.
+- `--site-logo <path>` — vault-relative logo, shown beside the site title in the sidebar
+  header. Linked relatively, so it resolves from a sub-path. The build fails if the path is
+  missing or excluded. Decorative: it carries an empty `alt`, since the site title beside it
+  already names the site.
+- `--home-url <url>` / `--home-label <text>` — a link back to the site this documentation
+  sits beside. Both or neither: link text belongs in the site's own language, so there is no
+  default worth guessing.
 - `--tokens-css <path>` — CSS file appended after canopy's built-in tokens in `tokens.css`. A
   caller may override specific values (leaving the rest intact) or supply the entire vocabulary.
 - `--exclude <pattern>` — leave part of the vault unpublished. Repeatable. Accepts a directory
@@ -236,8 +243,19 @@ copy to stay aligned.
 ### Theming
 
 The output reads a small set of CSS custom properties (see `tokens.css` in the output, or
-`CANOPY_TOKENS`). A consuming app can inject its own design tokens via `emitSite(bundle, { tokens })`
-so the published site matches the app exactly — the same tokens, two surfaces.
+`CANOPY_TOKENS`). A consuming app injects its own via `emitSite(bundle, { tokens })`, and they
+are **appended after** canopy's defaults rather than replacing them — so a caller may restate
+the whole vocabulary to match an app exactly, or override a single value and keep the rest.
+
+Because the defaults end with a `prefers-color-scheme: dark` block, and a media query adds no
+specificity, a bare `:root` override applies to **both** schemes:
+
+```css
+:root { --accent: #0a7c5a; --accent-hover: #096a4d; }
+@media (prefers-color-scheme: dark) {
+  :root { --accent: #4ecfa2; --accent-hover: #6fdcb5; }
+}
+```
 
 ---
 

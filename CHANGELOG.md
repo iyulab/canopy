@@ -8,6 +8,43 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [0.2.0] — 2026-08-07
+
+### Added
+
+- **`--site-logo <path>`** shows a logo beside the site title in the sidebar header. It is
+  vault-relative and validated like `--site-icon` — the build fails if the path is missing or
+  excluded, rather than shipping a broken image. It is decorative, carrying an empty `alt`,
+  since the site title next to it already names the site.
+- **`--home-url <url>` / `--home-label <text>`** add a link back to the site this documentation
+  is published beside. Both or neither: link text has to be written in the site's own language,
+  so there is no default worth guessing. A site setting neither renders exactly as before.
+- `docs/SCOPE.md` now states outright that canopy writes no client-side code: nothing a script
+  could do — a theme toggle, a search box, an analytics beacon, a comment widget — is something
+  canopy implements. This had only ever lived in a code comment; it is now a stated non-goal so
+  the boundary can be pointed at rather than re-argued.
+
+### Changed
+
+- **Caller tokens are now layered over canopy's defaults instead of replacing them.**
+  `--tokens-css` (and `emitSite`'s `tokens` option) used to write `tokens.css` outright, so
+  overriding one custom property discarded the roughly sixty others the shell reads. The
+  caller's stylesheet is now appended after canopy's own, so a one-line override keeps every
+  other default and a caller supplying the full vocabulary is unaffected. Because the defaults
+  end in a `prefers-color-scheme: dark` block, a bare `:root` override now applies to both
+  schemes unless it is scoped to its own media query — see Theming in the README.
+
+  **This is a behaviour change for anyone injecting a partial token stylesheet**: values it
+  never mentioned, which previously fell back to nothing, now render with canopy's defaults.
+  A stylesheet that already restates the entire vocabulary is unaffected.
+
+### Fixed
+
+- A narrow screen no longer opens with the entire navigation stacked above the page content.
+  The sidebar's navigation is now a `<details>` disclosure that ships open — the wide layout is
+  unchanged — with a height cap and a native collapse control below a 40rem viewport width. No
+  JavaScript is involved.
+
 ## [0.1.2] — 2026-08-07
 
 ### Changed

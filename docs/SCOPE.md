@@ -50,6 +50,12 @@ Each of these is a deliberate non-goal, not a gap awaiting a contribution:
 - **Keep state.** The same input yields the same output. No caches, no incremental
   bookkeeping, no build history.
 - **Host or serve.** Output is plain files. Anything about serving them is downstream.
+- **Author client-side code.** Canopy writes no JavaScript. Behaviour a site could
+  get from a script — a theme toggle, a search box, an analytics beacon, a comment
+  widget — is never something canopy implements. What CSS can express (colour scheme
+  following `prefers-color-scheme`, responsive layout, disclosure widgets, syntax
+  colours resolved at build time) is expressed that way; the rest belongs to the
+  caller, which owns the output.
 
 ## Dependency direction
 

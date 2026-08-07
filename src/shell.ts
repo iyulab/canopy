@@ -1,8 +1,8 @@
 import type { RenderedPage, Backlink } from "./contract.js";
-import { isIndexStem, type NavNode } from "./navigation.js";
+import type { NavNode } from "./navigation.js";
 import { relativeHref } from "./site-path.js";
 import { isOutlineUseful, type OutlineItem } from "./outline.js";
-import { declaredTitle } from "./title.js";
+import { declaredTitle, pageName } from "./title.js";
 
 /** Options controlling the site shell wrapped around each page. */
 export interface ShellOptions {
@@ -59,35 +59,15 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
-/** Stem of a site path (filename without extension), for fallback labels. */
-function stemOf(sitePath: string): string {
-  const file = sitePath.split("/").pop() ?? sitePath;
-  return file.replace(/\.html$/i, "");
-}
-
 /**
- * Display title for a page: the name it declares, else a name derived from
- * where it sits.
+ * Display title for a page — the string that leaves the site in the browser tab,
+ * the bookmark, the search result, and the link preview.
  *
- * The declared name — frontmatter, then the opening `h1` — comes from
- * `declaredTitle`, shared with the navigation tree so both call the page the
- * same thing.
- *
- * The positional rules below answer only "this page names itself nowhere". An
- * index page is then named for what it opens rather than for its filename — the
- * site's home, or the folder it is the front of. "index" is a filename
- * convention, and a document title is the string that leaves the site: it is the
- * browser tab, the bookmark, the search result, the link preview. Naming one
- * page "Home" in the sidebar and "index" in the tab is the renderer disagreeing
- * with itself, in the more visible of the two places.
+ * The whole answer lives in `pageName`, shared with both navigation paths, so
+ * the tab and the sidebar cannot call one page two things.
  */
 export function pageTitle(page: RenderedPage): string {
-  const declared = declaredTitle(page.frontmatter, page.html);
-  if (declared !== undefined) return declared;
-  const stem = stemOf(page.sitePath);
-  if (!isIndexStem(stem)) return stem;
-  // The folder an index opens, or — with no folder above it — the site's front.
-  return page.sitePath.split("/").filter(Boolean).at(-2) ?? "Home";
+  return pageName(page.sitePath, declaredTitle(page.frontmatter, page.html));
 }
 
 function renderNavList(nodes: NavNode[], from: string): string {
@@ -134,7 +114,9 @@ function renderBacklinks(backlinks: Backlink[], from: string): string {
   }
   const items = backlinks
     .map((link) => {
-      const label = escapeHtml(link.title ?? stemOf(link.sitePath));
+      // Named by the same ladder as everywhere else, so a page reached through
+      // a backlink is not called something the sidebar never called it.
+      const label = escapeHtml(pageName(link.sitePath, link.title));
       const href = escapeHtml(relativeHref(from, link.sitePath));
       return `<li><a href="${href}">${label}</a></li>`;
     })

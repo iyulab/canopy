@@ -29,6 +29,11 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
 ### Fixed
 
+- A supplied `--nav` spec now names an unlabeled entry exactly as the derived tree would.
+  Previously it fell straight through to the filename, so a folder's front page was labeled
+  "index" in a spec-driven site while the same page was labeled by its folder in a derived one —
+  and 0.1.1's index-page titling reached only the second. A spec supplies an order, not a
+  different vocabulary. A `label` in the spec still wins over everything.
 - Percent-encoded link targets resolve. `[x](a%20b/note.md)` addresses the same document as
   `[x](<a b/note.md>)` and is rewritten the same way; previously only the second was, so the
   first shipped as a `.md` URL that 404s. Canopy writes this encoding itself — every href it

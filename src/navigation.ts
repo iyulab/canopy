@@ -35,16 +35,11 @@ function emptyFolder(label: string): FolderBuilder {
   return { label, sitePath: undefined, folders: new Map(), pages: [] };
 }
 
-/**
- * Is this filename stem an index — the page a folder is entered by?
- *
- * Exported because more than navigation has to know: a page's display name
- * follows from it too, and the two answering differently would name one page
- * twice.
- */
-export function isIndexStem(stem: string): boolean {
-  return stem.toLowerCase() === "index";
-}
+import { isIndexStem, pageName } from "./title.js";
+
+// Re-exported from its home beside the naming ladder: callers reaching for the
+// index rule are usually asking what to call a page.
+export { isIndexStem } from "./title.js";
 
 function byLabel(a: NavNode, b: NavNode): number {
   return a.label.localeCompare(b.label, undefined, { sensitivity: "base" });
@@ -88,20 +83,18 @@ export function buildNavigation(entries: NavEntry[]): NavNode[] {
     const stem = fileSegment.replace(/\.html$/i, "");
     if (isIndexStem(stem) && folder !== root) {
       // A folder's index page links the folder node itself rather than
-      // appearing as a separate "index" child.
+      // appearing as a separate "index" child — and names it, since the folder
+      // node and that page are the one entry a reader clicks. `pageName` gives
+      // back the directory name when the page names itself nowhere, which is
+      // the label the folder already had.
       folder.sitePath = entry.sitePath;
-      // And if that page names itself, the folder answers to that name. The
-      // folder node and the index page are one entry in the sidebar, so a
-      // directory name here and a declared title in the tab would be two names
-      // for the thing the reader clicked once.
-      if (entry.title !== undefined) {
-        folder.label = entry.title;
-      }
+      folder.label = pageName(entry.sitePath, entry.title);
     } else {
-      const label = isIndexStem(stem)
-        ? (entry.title ?? "Home") // root index = home page
-        : (entry.title ?? stem);
-      folder.pages.push({ label, sitePath: entry.sitePath, children: [] });
+      folder.pages.push({
+        label: pageName(entry.sitePath, entry.title),
+        sitePath: entry.sitePath,
+        children: [],
+      });
     }
   }
   return toNodes(root);

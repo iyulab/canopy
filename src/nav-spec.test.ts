@@ -44,6 +44,58 @@ describe("applyNavSpec", () => {
     { sitePath: "update-note/2026-08.html", title: "2026-08" },
   ];
 
+  // A spec-driven tree names pages the same way a derived one does. Two answers
+  // to "what is this page called" is what the naming ladder exists to prevent,
+  // and a spec supplies an order — not a different vocabulary.
+  describe("names an unlabeled entry the way the derived tree would", () => {
+    const indexed: NavEntry[] = [
+      { sitePath: "index.html", title: undefined },
+      { sitePath: "guide/index.html", title: undefined },
+      { sitePath: "guide/orders.html", title: undefined },
+      { sitePath: "설정/index.html", title: "설정" },
+    ];
+
+    it("names a folder's index page for the folder, not 'index'", () => {
+      const { nodes } = applyNavSpec(
+        parseNavSpec(JSON.stringify({ items: [{ path: "guide/index.md" }] })),
+        indexed,
+      );
+      expect(nodes[0]?.label).toBe("guide");
+    });
+
+    it("names the root index page for the site's front", () => {
+      const { nodes } = applyNavSpec(
+        parseNavSpec(JSON.stringify({ items: [{ path: "index.md" }] })),
+        indexed,
+      );
+      expect(nodes[0]?.label).toBe("Home");
+    });
+
+    it("prefers the page's own declared name over the folder", () => {
+      const { nodes } = applyNavSpec(
+        parseNavSpec(JSON.stringify({ items: [{ path: "설정/index.md" }] })),
+        indexed,
+      );
+      expect(nodes[0]?.label).toBe("설정");
+    });
+
+    it("still lets the spec's own label win", () => {
+      const { nodes } = applyNavSpec(
+        parseNavSpec(JSON.stringify({ items: [{ label: "Guide", path: "guide/index.md" }] })),
+        indexed,
+      );
+      expect(nodes[0]?.label).toBe("Guide");
+    });
+
+    it("keeps the filename stem for an ordinary unnamed page", () => {
+      const { nodes } = applyNavSpec(
+        parseNavSpec(JSON.stringify({ items: [{ path: "guide/orders.md" }] })),
+        indexed,
+      );
+      expect(nodes[0]?.label).toBe("orders");
+    });
+  });
+
   it("uses the spec's order verbatim, including reverse-chronological", () => {
     const { nodes } = applyNavSpec(
       parseNavSpec(

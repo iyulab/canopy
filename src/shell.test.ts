@@ -57,6 +57,21 @@ describe("pageTitle", () => {
     expect(pageTitle(page({ sitePath: "index.html", html: "<p>Body</p>" }))).toBe("Home");
   });
 
+  it("names a backlink the same way, never 'index'", () => {
+    const html = renderPage(
+      page({
+        backlinks: [
+          { sitePath: "guide/index.html", title: undefined },
+          { sitePath: "order/list.html", title: "주문 목록" },
+        ],
+      }),
+      nav,
+    );
+    expect(html).toContain(">guide</a>");
+    expect(html).toContain(">주문 목록</a>");
+    expect(html).not.toContain(">index</a>");
+  });
+
   // An index page is named for what it opens, the same way the navigation tree
   // names it. A title is the string that leaves the site — the tab, the
   // bookmark, the search result — so "index" there is the renderer disagreeing

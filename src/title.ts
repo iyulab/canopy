@@ -18,11 +18,12 @@
  * something its own author never wrote, which on a non-English site means the
  * name that reaches the reader is in the wrong language entirely.
  *
- * What is deliberately *not* here is the last rung. "No name at all" is answered
- * differently depending on where the page sits — the site's front page, the
- * front of a folder, or an ordinary page — and that is positional knowledge the
- * navigation tree and the shell each already hold. This function reports only
- * whether the document names itself.
+ * The last rung is positional, and it is here too: a page that names itself
+ * nowhere is named for where it sits. Three callers need that answer — the
+ * shell's `<title>`, the derived navigation tree, and a supplied nav spec — and
+ * when they each carried their own copy they drifted apart, so a spec-driven
+ * site called a folder's front page "index" while a derived one called it by
+ * the folder.
  */
 
 import { extractFirstHeading } from "./outline.js";
@@ -43,4 +44,46 @@ export function declaredTitle(
     return explicit;
   }
   return extractFirstHeading(html);
+}
+
+/**
+ * Is this filename stem an index — the page a folder is entered by?
+ *
+ * Lives beside the naming ladder because that is the only thing it decides: an
+ * index page is named for what it opens rather than for its file. Navigation
+ * imports it from here so the tree and the name cannot answer differently.
+ */
+export function isIndexStem(stem: string): boolean {
+  return stem.toLowerCase() === "index";
+}
+
+/** Stem of a site path — the filename without its extension. */
+function stemOf(sitePath: string): string {
+  const file = sitePath.split("/").pop() ?? sitePath;
+  return file.replace(/\.html$/i, "");
+}
+
+/**
+ * What to call a page: the name it declared, else the name its position gives it.
+ *
+ * `declared` is `declaredTitle`'s answer, passed in rather than recomputed so a
+ * caller holding it already — the navigation tree carries one per entry — does
+ * not rescan a rendered body to ask again.
+ *
+ * The positional rule: an ordinary page is called by its filename, and an index
+ * page by what it opens — the folder it fronts, or, with no folder above it, the
+ * site itself. "index" is a filename convention rather than a name, and it is
+ * the one string that must never reach a reader, since a page's name is what
+ * leaves the site: the sidebar entry, the browser tab, the bookmark, the search
+ * result, the link preview.
+ */
+export function pageName(sitePath: string, declared: string | undefined): string {
+  if (declared !== undefined) {
+    return declared;
+  }
+  const stem = stemOf(sitePath);
+  if (!isIndexStem(stem)) {
+    return stem;
+  }
+  return sitePath.split("/").filter(Boolean).at(-2) ?? "Home";
 }

@@ -1,4 +1,5 @@
 import type { NavEntry, NavNode } from "./navigation.js";
+import { pageName } from "./title.js";
 
 /**
  * An externally supplied navigation order.
@@ -152,8 +153,11 @@ export function applyNavSpec(spec: NavSpec, entries: readonly NavEntry[]): Appli
           placed.add(entry.sitePath);
         }
       }
-      const stem = entry?.sitePath.split("/").pop()?.replace(/\.html$/i, "");
-      const label = item.label ?? entry?.title ?? stem ?? "";
+      // A spec supplies an order, not a different vocabulary: an entry it does
+      // not label is named exactly as the derived tree would name it.
+      const label =
+        item.label ??
+        (entry === undefined ? "" : pageName(entry.sitePath, entry.title));
       nodes.push({
         label,
         ...(entry === undefined ? {} : { sitePath: entry.sitePath }),

@@ -48,6 +48,42 @@ export function parseLinkUrl(url: string): ParsedLinkUrl {
 }
 
 /**
+ * Turn a URL path into the filesystem path it addresses, undoing percent-encoding.
+ *
+ * A link target is a URL, and `a%20b/x.md` and `a b/x.md` are the same file to a
+ * browser — so they must be the same file here too. This matters because canopy
+ * itself writes the encoded form: every href it generates is percent-encoded per
+ * segment, so without this a page could contain canopy's own encoded link to a
+ * document in its sidebar and the author's identical link in the body, with only
+ * one of the two resolving. Editors write the encoded form as well: inserting a
+ * link to a path containing a space produces `%20` without the author typing it.
+ *
+ * Decoded **per segment**, never across the whole path: `%2F` is a slash inside
+ * a single name, not a directory boundary, and decoding it into one would
+ * address a different file than the author wrote.
+ *
+ * Returns `undefined` for a malformed escape (`%zz`, which `decodeURIComponent`
+ * rejects). Guessing at a repair would invent a target; leaving the link alone
+ * keeps a visibly-wrong URL visibly wrong.
+ */
+export function decodeLinkPath(path: string): string | undefined {
+  const segments: string[] = [];
+  for (const segment of path.split("/")) {
+    let decoded: string;
+    try {
+      decoded = decodeURIComponent(segment);
+    } catch {
+      return undefined;
+    }
+    if (decoded.includes("/")) {
+      return undefined;
+    }
+    segments.push(decoded);
+  }
+  return segments.join("/");
+}
+
+/**
  * Resolve a vault-relative path against the directory of the document holding
  * the link, returning a POSIX path from the vault root — or `undefined` when it
  * escapes the vault.
@@ -99,7 +135,13 @@ export function resolveMarkdownLink(
   if (path === "") {
     return undefined;
   }
-  const resolved = resolveRelative(fromSitePath, path);
+  // The target is a URL; the tree is filesystem paths. Cross that boundary
+  // before any comparison, so the two spellings of one path meet as one.
+  const decoded = decodeLinkPath(path);
+  if (decoded === undefined) {
+    return undefined;
+  }
+  const resolved = resolveRelative(fromSitePath, decoded);
   if (resolved === undefined) {
     return undefined;
   }

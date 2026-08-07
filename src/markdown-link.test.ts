@@ -116,4 +116,60 @@ describe("resolveMarkdownLink", () => {
   it("leaves a link that escapes the vault untouched", () => {
     expect(resolveMarkdownLink("index.html", "../outside.md", isPage)).toBeUndefined();
   });
+
+  // Editors write the encoded form when a path contains a space, and canopy
+  // writes it too — every href it generates is percent-encoded. A target it
+  // emits but cannot read back is the renderer contradicting itself.
+  describe("percent-encoded targets", () => {
+    const encodedPages = new Set([
+      "현황 및 통계/daily.html",
+      "현황 및 통계/chart.png",
+      "a b/target.html",
+    ]);
+    const hasPage = (p: string) => encodedPages.has(p);
+
+    it("resolves a target whose directory was encoded", () => {
+      expect(resolveMarkdownLink("src.html", "a%20b/target.md", hasPage)).toBe(
+        "a b/target.html",
+      );
+    });
+
+    it("resolves the same target written with angle brackets", () => {
+      // The two spellings address one file; they must land on one page.
+      expect(resolveMarkdownLink("src.html", "a b/target.md", hasPage)).toBe(
+        "a b/target.html",
+      );
+    });
+
+    it("resolves an encoded non-ASCII directory", () => {
+      const url = "../%ED%98%84%ED%99%A9%20%EB%B0%8F%20%ED%86%B5%EA%B3%84/daily.md";
+      expect(resolveMarkdownLink("guide/api.html", url, hasPage)).toBe(
+        "현황 및 통계/daily.html",
+      );
+    });
+
+    it("resolves an encoded asset path", () => {
+      expect(resolveMarkdownLink("guide/api.html", "../%ED%98%84%ED%99%A9%20%EB%B0%8F%20%ED%86%B5%EA%B3%84/chart.png", hasPage)).toBe(
+        "현황 및 통계/chart.png",
+      );
+    });
+
+    it("leaves a malformed escape exactly as written", () => {
+      // decodeURIComponent throws on "%zz"; guessing at a repair would invent a
+      // target the author never wrote.
+      expect(resolveMarkdownLink("src.html", "a%zzb/target.md", hasPage)).toBeUndefined();
+    });
+
+    it("does not let an encoded slash become a path separator", () => {
+      // "%2F" is a literal slash *inside* a name, not a directory boundary —
+      // decoding it into one would address a different file than the author did.
+      expect(resolveMarkdownLink("src.html", "a%2Fb/target.md", hasPage)).toBeUndefined();
+    });
+
+    it("keeps the fragment untouched", () => {
+      expect(resolveMarkdownLink("src.html", "a%20b/target.md#설정", hasPage)).toBe(
+        "a b/target.html",
+      );
+    });
+  });
 });

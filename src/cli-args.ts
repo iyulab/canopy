@@ -1,8 +1,7 @@
 /**
  * Pure argument parsing for the `canopy build` command. Kept separate from `cli.ts`
  * (which owns IO) so the contract is unit-testable: positional `<vault> [out]` plus the
- * optional `--site-title <title>` and `--tokens-css <path>` flags, which let a caller
- * match the published site to its own design tokens.
+ * optional value and list flags documented in `USAGE` below.
  */
 
 export type BuildArgs =

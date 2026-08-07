@@ -45,9 +45,16 @@ async function main(): Promise<void> {
   const outDir = path.resolve(args.out);
   // A caller may inject its own design tokens so the published site matches its look;
   // absent the flag, emitSite falls back to canopy's built-in tokens.
-  const tokens = args.tokensCssPath
-    ? await readFile(path.resolve(args.tokensCssPath), "utf8")
-    : undefined;
+  let tokens: string | undefined;
+  if (args.tokensCssPath !== undefined) {
+    try {
+      tokens = await readFile(path.resolve(args.tokensCssPath), "utf8");
+    } catch {
+      console.error(`--tokens-css: "${args.tokensCssPath}" could not be read`);
+      process.exitCode = 1;
+      return;
+    }
+  }
 
   // Both are copied by the asset pass, so they have to survive `--exclude` and
   // actually exist. Checking here turns a silently-broken tag — which only shows

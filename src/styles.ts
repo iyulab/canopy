@@ -56,7 +56,7 @@ body {
   flex-direction: column;
   gap: var(--sp-2);
 }
-.canopy-site-title > a { display: flex; align-items: center; gap: var(--sp-2); }
+.canopy-site-title > a:not(.canopy-home) { display: flex; align-items: center; gap: var(--sp-2); }
 /* Capped rather than sized: a brand file supplies whatever it has, and a tall
    logo must not push the navigation off the first screen. */
 .canopy-logo { max-height: 1.75rem; max-width: 100%; width: auto; }
@@ -71,8 +71,13 @@ body {
 .canopy-sidebar span { color: var(--text-muted); }
 
 /* A disclosure that ships open: the desktop layout is unchanged and needs no
-   override, while a narrow screen can collapse the list entirely. */
-.canopy-nav > summary { display: none; }
+   override, while a narrow screen can collapse the list entirely.
+   [open] is load-bearing, not decoration: a reader can close the disclosure on a
+   narrow screen, then cross this breakpoint (e.g. rotating a phone to landscape)
+   with it still closed. Hiding the summary unconditionally would strand them with
+   no control to reopen it — hiding it only while open keeps a closed disclosure's
+   control visible at every width. */
+.canopy-nav[open] > summary { display: none; }
 
 .canopy-main {
   padding: var(--sp-8) var(--sp-6);
@@ -190,7 +195,11 @@ body {
   .canopy-nav > nav { max-height: 40vh; overflow-y: auto; }
   /* The native disclosure marker and nothing else: a visible word would have to
      be written in the site's language, which canopy cannot know — the same reason
-     --home-label has no default. The aria-label carries the meaning. */
+     --home-label has no default. The aria-label carries the meaning.
+     The [open] form is repeated here (rather than left to the rule above) because
+     it is more specific than this selector alone and would otherwise win at every
+     width, hiding the control on narrow screens too. */
+  .canopy-nav[open] > summary,
   .canopy-nav > summary {
     display: list-item;
     list-style-position: inside;

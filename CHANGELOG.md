@@ -42,8 +42,12 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
 - A narrow screen no longer opens with the entire navigation stacked above the page content.
   The sidebar's navigation is now a `<details>` disclosure that ships open — the wide layout is
-  unchanged — with a height cap and a native collapse control below a 40rem viewport width. No
-  JavaScript is involved.
+  unchanged — with a height cap and a native collapse control below a 40rem viewport width. A
+  closed disclosure keeps a visible control at every width, so collapsing it on a narrow screen
+  and then widening the viewport — rotating a phone to landscape, for instance — never strands a
+  reader with the navigation hidden and no way to reopen it. No JavaScript is involved.
+- `--tokens-css` now names the path and exits non-zero when the file cannot be read, instead of
+  a raw stack trace, matching `--nav` and `--site-logo`/`--site-icon`.
 
 ## [0.1.2] — 2026-08-07
 

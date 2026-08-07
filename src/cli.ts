@@ -49,17 +49,21 @@ async function main(): Promise<void> {
     ? await readFile(path.resolve(args.tokensCssPath), "utf8")
     : undefined;
 
-  // The icon is copied by the asset pass, so it has to survive `--exclude` and
-  // actually exist. Checking here turns a silently-broken <link> — which only
-  // shows up as a missing tab icon after deploy — into a build failure naming
-  // the path.
-  if (args.siteIcon !== undefined) {
-    const iconRel = args.siteIcon.replace(/\\/g, "/").replace(/^\/+/, "");
-    const published = await listFiles(vault, args.exclude);
-    if (!published.includes(iconRel)) {
-      console.error(
-        `--site-icon: "${iconRel}" is not a published vault file (missing, or excluded)`,
-      );
+  // Both are copied by the asset pass, so they have to survive `--exclude` and
+  // actually exist. Checking here turns a silently-broken tag — which only shows
+  // up as a missing image after deploy — into a build failure naming the path.
+  const published =
+    args.siteIcon !== undefined || args.siteLogo !== undefined
+      ? await listFiles(vault, args.exclude)
+      : [];
+  for (const [flag, value] of [
+    ["--site-icon", args.siteIcon],
+    ["--site-logo", args.siteLogo],
+  ] as const) {
+    if (value === undefined) continue;
+    const rel = value.replace(/\\/g, "/").replace(/^\/+/, "");
+    if (!published.includes(rel)) {
+      console.error(`${flag}: "${rel}" is not a published vault file (missing, or excluded)`);
       process.exitCode = 1;
       return;
     }
@@ -113,6 +117,9 @@ async function main(): Promise<void> {
     ...(args.lang ? { lang: args.lang } : {}),
     ...(args.siteIcon ? { iconPath: args.siteIcon.replace(/\\/g, "/") } : {}),
     ...(args.siteDescription ? { description: args.siteDescription } : {}),
+    ...(args.siteLogo ? { logoPath: args.siteLogo.replace(/\\/g, "/") } : {}),
+    ...(args.homeUrl ? { homeUrl: args.homeUrl } : {}),
+    ...(args.homeLabel ? { homeLabel: args.homeLabel } : {}),
   });
 
   await writeFiles(outDir, files);

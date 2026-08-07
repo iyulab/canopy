@@ -22,6 +22,12 @@ export type BuildArgs =
       siteDescription?: string;
       /** Path to a JSON navigation spec giving the order and labels. */
       navPath?: string;
+      /** Vault-relative path of a logo shown beside the site title. */
+      siteLogo?: string;
+      /** URL of the site this documentation sits beside. */
+      homeUrl?: string;
+      /** Link text for `homeUrl`, in the site's own language. */
+      homeLabel?: string;
     }
   | { ok: false; error: string };
 
@@ -34,6 +40,9 @@ export const USAGE = [
   "  --site-icon <path>         Vault-relative favicon, linked from every page",
   "  --nav <path>               JSON navigation spec: order and labels",
   "  --tokens-css <path>        Design tokens appended after canopy's defaults",
+  "  --site-logo <path>         Vault-relative logo, shown beside the site title",
+  "  --home-url <url>           Link back to the site this one sits beside",
+  "  --home-label <text>        Link text for --home-url (required with it)",
   "  --exclude <pattern>        Leave a vault path unpublished (repeatable)",
 ].join("\n");
 
@@ -51,6 +60,9 @@ const VALUE_FLAGS = {
   "--site-icon": "siteIcon",
   "--nav": "navPath",
   "--tokens-css": "tokensCssPath",
+  "--site-logo": "siteLogo",
+  "--home-url": "homeUrl",
+  "--home-label": "homeLabel",
 } as const;
 
 /**
@@ -103,6 +115,19 @@ export function parseBuildArgs(argv: string[]): BuildArgs {
   if (vault === undefined) {
     return { ok: false, error: USAGE };
   }
+
+  // Two halves of one thing. Accepting either alone would render a link with no
+  // text, or text that links nowhere — both look like canopy losing an argument.
+  if (single.homeUrl !== undefined && single.homeLabel === undefined) {
+    return {
+      ok: false,
+      error: "--home-url needs --home-label: the link text has to be in the site's language",
+    };
+  }
+  if (single.homeLabel !== undefined && single.homeUrl === undefined) {
+    return { ok: false, error: "--home-label needs --home-url" };
+  }
+
   return {
     ok: true,
     vault,
@@ -113,6 +138,9 @@ export function parseBuildArgs(argv: string[]): BuildArgs {
     siteIcon: single.siteIcon,
     navPath: single.navPath,
     tokensCssPath: single.tokensCssPath,
+    siteLogo: single.siteLogo,
+    homeUrl: single.homeUrl,
+    homeLabel: single.homeLabel,
     exclude,
   };
 }

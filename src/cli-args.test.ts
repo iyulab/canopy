@@ -89,4 +89,32 @@ describe("parseBuildArgs", () => {
     const result = parseBuildArgs(["build", "v", "--site-title"]);
     expect(result.ok).toBe(false);
   });
+
+  it("reads the branding flags", () => {
+    const args = parseBuildArgs([
+      "build", "vault",
+      "--site-logo", "assets/logo.svg",
+      "--home-url", "https://example.test/",
+      "--home-label", "제품 홈",
+    ]);
+    expect(args).toMatchObject({
+      ok: true,
+      siteLogo: "assets/logo.svg",
+      homeUrl: "https://example.test/",
+      homeLabel: "제품 홈",
+    });
+  });
+
+  it("refuses a home URL with no label, since canopy cannot write the link text", () => {
+    const args = parseBuildArgs(["build", "vault", "--home-url", "https://example.test/"]);
+    expect(args).toEqual({
+      ok: false,
+      error: "--home-url needs --home-label: the link text has to be in the site's language",
+    });
+  });
+
+  it("refuses a home label with no URL", () => {
+    const args = parseBuildArgs(["build", "vault", "--home-label", "제품 홈"]);
+    expect(args).toEqual({ ok: false, error: "--home-label needs --home-url" });
+  });
 });

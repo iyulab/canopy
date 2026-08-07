@@ -131,6 +131,27 @@ describe("renderPage", () => {
     expect(html).toContain("<title>&lt;x&gt; &amp; &#39;y&#39;</title>");
     expect(html).not.toContain("<title><x>");
   });
+
+  it("puts the logo and the home link in the sidebar header", () => {
+    const html = renderPage(page({ sitePath: "guide/install.html" }), nav, {
+      siteTitle: "Product Help",
+      logoPath: "assets/logo.svg",
+      homeUrl: "https://example.test/",
+      homeLabel: "제품 홈",
+    });
+    // Relative like every other asset, so it resolves from a sub-path.
+    expect(html).toContain('src="../assets/logo.svg"');
+    // Decorative: the site title beside it already names the site.
+    expect(html).toContain('alt=""');
+    expect(html).toContain('href="https://example.test/"');
+    expect(html).toContain("제품 홈");
+  });
+
+  it("omits the logo and home link when they are not given", () => {
+    const html = renderPage(page(), nav, { siteTitle: "Product Help" });
+    expect(html).not.toContain("canopy-logo");
+    expect(html).not.toContain("canopy-home");
+  });
 });
 
 describe("renderContentsPage", () => {

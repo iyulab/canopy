@@ -52,7 +52,18 @@ body {
 .canopy-site-title {
   font-weight: var(--font-weight-semibold);
   margin-bottom: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
 }
+.canopy-site-title > a { display: flex; align-items: center; gap: var(--sp-2); }
+/* Capped rather than sized: a brand file supplies whatever it has, and a tall
+   logo must not push the navigation off the first screen. */
+.canopy-logo { max-height: 1.75rem; max-width: 100%; width: auto; }
+/* Specificity beats .canopy-sidebar a without !important, which would also
+   override a caller's own stylesheet. */
+.canopy-site-title > .canopy-home { font-weight: 400; font-size: 0.9em; color: var(--text-muted); }
+.canopy-home::before { content: "← "; }
 .canopy-sidebar ul { list-style: none; margin: 0; padding-left: var(--sp-3); }
 .canopy-sidebar > nav > ul { padding-left: 0; }
 .canopy-sidebar a { color: var(--text-normal); text-decoration: none; }

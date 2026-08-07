@@ -31,6 +31,26 @@ export interface ShellOptions {
   iconPath?: string;
   /** Site description for `<meta name="description">`, used by link previews. */
   description?: string;
+  /**
+   * Site path of a logo, shown beside the site title. Relative like every other
+   * link, so it resolves when the site is served from a sub-path.
+   *
+   * Decorative: it renders with an empty `alt`, because the site title next to it
+   * already names the site and a screen reader should not hear the name twice.
+   */
+  logoPath?: string;
+  /**
+   * URL of the site this documentation belongs beside — a product's own front
+   * page. Left exactly as given: it usually points outside the published site,
+   * which canopy has no way to resolve.
+   */
+  homeUrl?: string;
+  /**
+   * Link text for `homeUrl`. Required alongside it — link text has to be written
+   * in the site's own language, and canopy cannot know what that language calls
+   * a home page.
+   */
+  homeLabel?: string;
 }
 
 /** MIME type for a favicon, inferred from its extension. */
@@ -160,9 +180,21 @@ export function renderPage(
     icon = `<link rel="icon"${type ? ` type="${type}"` : ""} href="${href}">`;
   }
 
-  const sidebarHeader = options.siteTitle
-    ? `<div class="canopy-site-title"><a href="${escapeHtml(relativeHref(page.sitePath, "index.html"))}">${escapeHtml(options.siteTitle)}</a></div>`
-    : "";
+  const logo =
+    options.logoPath === undefined
+      ? ""
+      : `<img class="canopy-logo" src="${escapeHtml(relativeHref(page.sitePath, options.logoPath))}" alt="">`;
+  const siteTitleLink = options.siteTitle
+    ? `<a href="${escapeHtml(relativeHref(page.sitePath, "index.html"))}">${logo}${escapeHtml(options.siteTitle)}</a>`
+    : logo;
+  const homeLink =
+    options.homeUrl !== undefined && options.homeLabel !== undefined
+      ? `<a class="canopy-home" href="${escapeHtml(options.homeUrl)}">${escapeHtml(options.homeLabel)}</a>`
+      : "";
+  const sidebarHeader =
+    siteTitleLink === "" && homeLink === ""
+      ? ""
+      : `<div class="canopy-site-title">${siteTitleLink}${homeLink}</div>`;
 
   return `<!doctype html>
 <html lang="${escapeHtml(lang)}">

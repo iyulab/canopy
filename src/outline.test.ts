@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractOutline, isOutlineUseful } from "./outline.js";
+import { extractOutline, extractFirstHeading, isOutlineUseful } from "./outline.js";
 
 describe("extractOutline", () => {
   it("collects h2 and h3 with their ids, in document order", () => {
@@ -59,6 +59,53 @@ describe("extractOutline", () => {
 
   it("returns nothing for a page with no headings", () => {
     expect(extractOutline("<p>Just prose.</p>")).toEqual([]);
+  });
+});
+
+describe("extractFirstHeading", () => {
+  it("reads the document's own title from its first h1", () => {
+    expect(extractFirstHeading('<h1 id="order-list">주문 목록</h1><p>Body</p>')).toBe(
+      "주문 목록",
+    );
+  });
+
+  it("strips inline markup, the same way the outline does", () => {
+    expect(extractFirstHeading('<h1 id="x">Use <code>build()</code> <em>now</em></h1>')).toBe(
+      "Use build() now",
+    );
+  });
+
+  it("decodes entities so the name reads like the heading", () => {
+    expect(extractFirstHeading('<h1 id="x">Tags &amp; &lt;braces&gt;</h1>')).toBe(
+      "Tags & <braces>",
+    );
+  });
+
+  it("takes the first h1 when a document has several", () => {
+    expect(extractFirstHeading('<h1 id="a">First</h1><h1 id="b">Second</h1>')).toBe("First");
+  });
+
+  it("does not take a lower heading for the title", () => {
+    // An h2 is a section of the page, not the page's name.
+    expect(extractFirstHeading('<h2 id="a">Section</h2>')).toBeUndefined();
+  });
+
+  it("finds an h1 that sits below other headings", () => {
+    expect(extractFirstHeading('<h2 id="a">Section</h2><h1 id="b">Title</h1>')).toBe("Title");
+  });
+
+  it("needs no id, unlike an outline entry", () => {
+    // An outline entry must be linkable; a title is text, so an unanchored
+    // heading still names the page.
+    expect(extractFirstHeading("<h1>Plain</h1>")).toBe("Plain");
+  });
+
+  it("ignores an empty h1", () => {
+    expect(extractFirstHeading('<h1 id="x"></h1><h1 id="y">Real</h1>')).toBe("Real");
+  });
+
+  it("returns nothing when the document names itself nowhere", () => {
+    expect(extractFirstHeading("<p>Just prose.</p>")).toBeUndefined();
   });
 });
 

@@ -28,6 +28,35 @@ describe("pageTitle", () => {
     expect(pageTitle(page())).toBe("idea");
   });
 
+  // A document that opens with `# 주문 목록` has already said what it is called.
+  // Reaching past that for the filename names the page something its own author
+  // never wrote — and on a non-English site the filename is usually an ASCII
+  // identifier, so the name that leaves the site is in the wrong language.
+  it("takes the document's own h1 over the filename", () => {
+    expect(pageTitle(page({ html: '<h1 id="order-list">주문 목록</h1>' }))).toBe("주문 목록");
+  });
+
+  it("still prefers frontmatter over the h1", () => {
+    expect(
+      pageTitle(page({ frontmatter: { title: "Explicit" }, html: "<h1>Heading</h1>" })),
+    ).toBe("Explicit");
+  });
+
+  it("names an index page for its h1 rather than for what it opens", () => {
+    // The positional rules ("Home", the folder name) answer "this page has no
+    // name of its own". An h1 is a name of its own, so it wins over both.
+    expect(pageTitle(page({ sitePath: "index.html", html: "<h1>Welcome</h1>" }))).toBe(
+      "Welcome",
+    );
+    expect(
+      pageTitle(page({ sitePath: "guide/settings/index.html", html: "<h1>설정</h1>" })),
+    ).toBe("설정");
+  });
+
+  it("keeps the positional name when an index page has no h1", () => {
+    expect(pageTitle(page({ sitePath: "index.html", html: "<p>Body</p>" }))).toBe("Home");
+  });
+
   // An index page is named for what it opens, the same way the navigation tree
   // names it. A title is the string that leaves the site — the tab, the
   // bookmark, the search result — so "index" there is the renderer disagreeing

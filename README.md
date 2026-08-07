@@ -66,10 +66,28 @@ npx canopy build <vault-dir> [out-dir] [options]
 - `--nav <path>` — a JSON file giving the navigation order and labels (see below). Without it,
   navigation is derived from the folder structure.
 
+### Page names
+
+A page is called by the name it gives itself, in this order:
+
+```
+frontmatter title  →  the opening h1  →  the filename
+```
+
+That one name reaches every place a page is named: the sidebar entry, the `<title>`, and the text
+of each backlink pointing at it. A document opening with `# Order list` is called "Order list"
+without a `title:` line, which matters most where filenames are ASCII identifiers and the prose is
+not — the alternative is a sidebar in one language and documents in another.
+
+A folder's `index` page names the folder it opens, since the two are one entry in the sidebar. A
+page that names itself nowhere keeps its filename, and an index page that names itself nowhere is
+called after what it opens — the site's front, or its folder.
+
 ### Navigation
 
-By default the sidebar follows the folder structure: folders before pages, each alphabetical,
-folder labels taken from directory names. That suits a vault with no order of its own.
+By default the sidebar follows the folder structure: folders before pages, each alphabetical by
+the name above, folder labels taken from directory names. That suits a vault with no order of its
+own.
 
 `--nav` supplies one where there is. Array order is display order — nothing is re-sorted — and
 a label overrides the directory name a URL happens to use:
@@ -92,8 +110,8 @@ a label overrides the directory name a URL happens to use:
 
 An item is a page (`path`) or a group (`items`); a group may carry both, which makes its label
 link to that page. Paths may be written with or without an extension. `label` is optional and
-falls back to the page's frontmatter title, then its filename — so a spec only has to name what
-it wants to override.
+falls back to the page's own name (see above) — so a spec only has to name what it wants to
+override.
 
 Pages the spec omits are left out of the navigation and reported, rather than dropped silently
 or appended: whether an omission is deliberate is yours to decide, not canopy's. A spec that is

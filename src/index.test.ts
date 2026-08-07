@@ -26,9 +26,94 @@ describe("build", () => {
       ],
     });
     expect(bundle.navigation).toEqual([
-      { label: "notes", children: [{ label: "idea", sitePath: "notes/idea.html", children: [] }] },
+      { label: "notes", children: [{ label: "Idea", sitePath: "notes/idea.html", children: [] }] },
       { label: "Home", sitePath: "index.html", children: [] },
     ]);
+  });
+
+  // The name a document gives itself, reaching every place that name is shown.
+  describe("names pages from the heading they open with", () => {
+    it("labels navigation with the h1 instead of the filename", async () => {
+      const bundle = await build({
+        documents: [
+          { path: "order/list.md", content: "# 주문 목록" },
+          { path: "order/detail.md", content: "# 주문 상세" },
+        ],
+      });
+      // Sorted by the name the reader sees, not by the filename behind it —
+      // "목록" before "상세", which the stems ("detail", "list") would reverse.
+      expect(bundle.navigation).toEqual([
+        {
+          label: "order",
+          children: [
+            { label: "주문 목록", sitePath: "order/list.html", children: [] },
+            { label: "주문 상세", sitePath: "order/detail.html", children: [] },
+          ],
+        },
+      ]);
+    });
+
+    it("carries the h1 into backlink text", async () => {
+      const bundle = await build({
+        documents: [
+          { path: "a.md", content: "# 주문 목록\n\nSee [[b]]." },
+          { path: "b.md", content: "# 주문 상세" },
+        ],
+      });
+      expect(bundle.pages.find((p) => p.sitePath === "b.html")?.backlinks).toEqual([
+        { sitePath: "a.html", title: "주문 목록" },
+      ]);
+    });
+
+    it("lets a folder's index page name the folder it opens", async () => {
+      // Otherwise the sidebar would read "order" while the tab of the very same
+      // page reads "주문", which is the renderer disagreeing with itself.
+      const bundle = await build({
+        documents: [
+          { path: "order/index.md", content: "# 주문" },
+          { path: "order/list.md", content: "# 주문 목록" },
+        ],
+      });
+      expect(bundle.navigation).toEqual([
+        {
+          label: "주문",
+          sitePath: "order/index.html",
+          children: [{ label: "주문 목록", sitePath: "order/list.html", children: [] }],
+        },
+      ]);
+    });
+
+    it("keeps the filename when a document names itself nowhere", async () => {
+      const bundle = await build({
+        documents: [{ path: "notes/scratch.md", content: "Just prose, no heading." }],
+      });
+      expect(bundle.navigation).toEqual([
+        {
+          label: "notes",
+          children: [{ label: "scratch", sitePath: "notes/scratch.html", children: [] }],
+        },
+      ]);
+    });
+
+    it("lets a nav spec's own label override the h1", async () => {
+      const bundle = await build({
+        documents: [{ path: "order/list.md", content: "# 주문 목록" }],
+        nav: { items: [{ label: "Orders", path: "order/list" }] },
+      });
+      expect(bundle.navigation).toEqual([
+        { label: "Orders", sitePath: "order/list.html", children: [] },
+      ]);
+    });
+
+    it("fills an unlabeled nav spec entry with the h1", async () => {
+      const bundle = await build({
+        documents: [{ path: "order/list.md", content: "# 주문 목록" }],
+        nav: { items: [{ path: "order/list" }] },
+      });
+      expect(bundle.navigation).toEqual([
+        { label: "주문 목록", sitePath: "order/list.html", children: [] },
+      ]);
+    });
   });
 
   it("resolves wikilinks to relative hrefs and records backlinks", async () => {

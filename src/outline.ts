@@ -70,6 +70,31 @@ export function extractOutline(html: string): OutlineItem[] {
 }
 
 /**
+ * The name a document gives itself in its opening `h1`, or `undefined` when it
+ * gives none.
+ *
+ * This is the other half of the sentence `OUTLINE_LEVELS` starts: `h1` is left
+ * out of the outline *because* it is the page's title rather than a section of
+ * it — so here it is, for whoever has to name the page. Read from the same
+ * rendered HTML, in the same shape, so a page costs no extra parse to name.
+ *
+ * Unlike an outline entry, no `id` is required: an outline entry has to be
+ * linkable, while a title is only text.
+ */
+export function extractFirstHeading(html: string): string | undefined {
+  for (const match of html.matchAll(HEADING)) {
+    if (Number(match[1]) !== 1) {
+      continue;
+    }
+    const text = toText(match[3] ?? "");
+    if (text !== "") {
+      return text;
+    }
+  }
+  return undefined;
+}
+
+/**
  * Whether an outline is worth showing.
  *
  * A single heading is not a structure to navigate — a contents list of one entry

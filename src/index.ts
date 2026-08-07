@@ -5,6 +5,7 @@ import { buildNavigation, type NavEntry } from "./navigation.js";
 import { buildLinkIndex } from "./links.js";
 import { applyNavSpec } from "./nav-spec.js";
 import { extractOutline } from "./outline.js";
+import { declaredTitle } from "./title.js";
 
 export type {
   SourceDocument,
@@ -29,16 +30,12 @@ export {
   type AppliedNav,
 } from "./nav-spec.js";
 export { renderPage, pageTitle, renderContentsPage, type ShellOptions } from "./shell.js";
-export { extractOutline, isOutlineUseful, type OutlineItem } from "./outline.js";
+export { extractOutline, extractFirstHeading, isOutlineUseful, type OutlineItem } from "./outline.js";
+export { declaredTitle } from "./title.js";
 export { emitSite, type EmitOptions } from "./emit.js";
 export { CANOPY_TOKENS } from "./tokens.js";
 export { BASE_CSS } from "./styles.js";
 
-function titleOf(frontmatter: Record<string, unknown>): string | undefined {
-  return typeof frontmatter.title === "string"
-    ? frontmatter.title
-    : undefined;
-}
 
 /**
  * Build a static site bundle from a source tree, in three passes:
@@ -62,7 +59,11 @@ export async function build(tree: SourceTree): Promise<SiteBundle> {
         isPage: (candidate) => index.has(candidate),
         fromSitePath: sitePath,
       });
-      return { sourcePath: doc.path, sitePath, frontmatter, html, outgoing };
+      // Named once, here: the name reaches the navigation, the tab, and every
+      // backlink pointing at this page, and re-deriving it per reference would
+      // rescan the body once per inbound link.
+      const title = declaredTitle(frontmatter, html);
+      return { sourcePath: doc.path, sitePath, frontmatter, html, outgoing, title };
     }),
   );
 
@@ -71,7 +72,7 @@ export async function build(tree: SourceTree): Promise<SiteBundle> {
   for (const page of rendered) {
     for (const target of page.outgoing) {
       const list = backlinksByTarget.get(target) ?? [];
-      list.push({ sitePath: page.sitePath, title: titleOf(page.frontmatter) });
+      list.push({ sitePath: page.sitePath, title: page.title });
       backlinksByTarget.set(target, list);
     }
   }
@@ -87,9 +88,9 @@ export async function build(tree: SourceTree): Promise<SiteBundle> {
     outline: extractOutline(page.html),
   }));
 
-  const entries: NavEntry[] = pages.map((page) => ({
+  const entries: NavEntry[] = rendered.map((page) => ({
     sitePath: page.sitePath,
-    title: titleOf(page.frontmatter),
+    title: page.title,
   }));
   if (tree.nav !== undefined) {
     const applied = applyNavSpec(tree.nav, entries);

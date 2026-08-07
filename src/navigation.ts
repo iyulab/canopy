@@ -90,6 +90,13 @@ export function buildNavigation(entries: NavEntry[]): NavNode[] {
       // A folder's index page links the folder node itself rather than
       // appearing as a separate "index" child.
       folder.sitePath = entry.sitePath;
+      // And if that page names itself, the folder answers to that name. The
+      // folder node and the index page are one entry in the sidebar, so a
+      // directory name here and a declared title in the tab would be two names
+      // for the thing the reader clicked once.
+      if (entry.title !== undefined) {
+        folder.label = entry.title;
+      }
     } else {
       const label = isIndexStem(stem)
         ? (entry.title ?? "Home") // root index = home page

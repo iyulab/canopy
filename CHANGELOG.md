@@ -8,6 +8,31 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [Unreleased]
+
+### Fixed
+
+- **The sidebar no longer scrolls away with the page.** On a grid layout, an item without an
+  explicit height stretches to match its tallest sibling — so the sidebar grew exactly as tall
+  as the main content, and its own `overflow-y: auto` never had anything to scroll: the whole
+  page moved as one unit and the navigation disappeared off-screen on any page longer than the
+  viewport. The sidebar now keeps its own `100vh` box and stays pinned to the top of the
+  viewport while the content scrolls past it. Unaffected below the mobile breakpoint, where the
+  sidebar stacks above the content instead of beside it.
+
+### Changed
+
+- **Sidebar navigation items now carry their tree depth as a class** (`canopy-nav-l0`,
+  `canopy-nav-l1`, …), the same pattern the on-page outline already used. The top level gets a
+  small default weight distinction; deeper levels are unstyled by default so a caller can target
+  any level directly instead of re-deriving depth from `<ul>` nesting.
+- **The mobile navigation's height cap dropped from `40vh` to `25vh`.** The disclosure still
+  ships open on every page load (canopy writes no client-side code to remember a reader's choice
+  across pages — see the no-JS non-goal in `docs/SCOPE.md`), so this cap is what a reader sees
+  above the fold on every single page, not just the first. The lower cap leaves noticeably more
+  of a phone screen for content on first paint; the reader's own control to collapse it further
+  is still there underneath.
+
 ## [0.2.0] — 2026-08-07
 
 ### Added

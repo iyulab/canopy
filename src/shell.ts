@@ -90,7 +90,12 @@ export function pageTitle(page: RenderedPage): string {
   return pageName(page.sitePath, declaredTitle(page.frontmatter, page.html));
 }
 
-function renderNavList(nodes: NavNode[], from: string): string {
+/**
+ * Tree depth as a class per item, the same pattern renderOutline uses for
+ * headings — so a consumer can style deeper levels without re-deriving depth
+ * from <ul> nesting.
+ */
+function renderNavList(nodes: NavNode[], from: string, depth = 0): string {
   if (nodes.length === 0) {
     return "";
   }
@@ -101,7 +106,7 @@ function renderNavList(nodes: NavNode[], from: string): string {
         node.sitePath !== undefined
           ? `<a href="${escapeHtml(relativeHref(from, node.sitePath))}">${label}</a>`
           : `<span>${label}</span>`;
-      return `<li>${link}${renderNavList(node.children, from)}</li>`;
+      return `<li class="canopy-nav-l${depth}">${link}${renderNavList(node.children, from, depth + 1)}</li>`;
     })
     .join("");
   return `<ul>${items}</ul>`;

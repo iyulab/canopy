@@ -159,6 +159,18 @@ describe("renderPage", () => {
     // Labelled for assistive technology; the summary itself is a CSS-drawn control.
     expect(html).toContain('aria-label="Site navigation"');
   });
+
+  // Depth is a value the NavNode tree already carries — renderOutline exposes it as
+  // canopy-outline-l{n} for the same reason: without it in the DOM, a consumer wanting
+  // to style deeper levels differently has no way to do so short of re-deriving depth
+  // from <ul> nesting.
+  it("marks each nav item with its tree depth, the same way the outline does", () => {
+    const html = renderPage(page(), nav);
+    // top-level: "notes" (has children) and "Home" (leaf)
+    expect(html).toContain('<li class="canopy-nav-l0">');
+    // one level in: "idea", a child of "notes"
+    expect(html).toContain('<li class="canopy-nav-l1">');
+  });
 });
 
 describe("renderContentsPage", () => {

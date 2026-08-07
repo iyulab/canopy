@@ -42,10 +42,22 @@ body {
   min-height: 100vh;
 }
 
+/* A grid item stretches to the tallest sibling by default, so without
+   align-self this box would grow exactly as tall as .canopy-main and its own
+   overflow-y would never engage — the whole page would scroll as one unit and
+   the sidebar would disappear upward with it. align-self opts out of that
+   stretch so height: 100vh is the sidebar's own box, and position: sticky
+   keeps that box pinned at the viewport top while .canopy-main scrolls past
+   it. The mobile breakpoint below releases all three: a single-column layout
+   has no "beside" for the sidebar to stay pinned against. */
 .canopy-sidebar {
   background: var(--bg-secondary);
   border-right: 1px solid var(--border);
   padding: var(--sp-6) var(--sp-4);
+  align-self: start;
+  position: sticky;
+  top: 0;
+  height: 100vh;
   overflow-y: auto;
 }
 
@@ -69,6 +81,11 @@ body {
 .canopy-sidebar a { color: var(--text-normal); text-decoration: none; }
 .canopy-sidebar a:hover { color: var(--accent); text-decoration: underline; }
 .canopy-sidebar span { color: var(--text-muted); }
+/* Minimal default hierarchy: only the top level is distinguished, matching the
+   minimal-configuration principle already applied to Wave 1 (no predefined
+   multi-level color themes) — a consumer who wants more can target
+   .canopy-nav-l{n} directly, now that depth is exposed in the markup. */
+.canopy-nav-l0 > a, .canopy-nav-l0 > span { font-weight: var(--font-weight-semibold); }
 
 /* A disclosure that ships open: the desktop layout is unchanged and needs no
    override, while a narrow screen can collapse the list entirely.
@@ -189,10 +206,22 @@ body {
   .canopy-sidebar {
     border-right: none;
     border-bottom: 1px solid var(--border);
+    /* Release the desktop pin: a single-column layout has no "beside" for the
+       sidebar to stay pinned against, and 100vh here would instead force it to
+       occupy the full screen permanently instead of the capped nav below. */
+    align-self: auto;
+    position: static;
+    height: auto;
   }
   /* Without a cap, a site of any size puts its whole navigation above the first
-     line of every page. */
-  .canopy-nav > nav { max-height: 40vh; overflow-y: auto; }
+     line of every page. canopy ships this disclosure open unconditionally (no
+     JS to remember a closed state across page loads — see SCOPE.md's no-JS
+     non-goal), so this cap is what every mobile reader sees above the fold on
+     every single page, not just the first. Measured live at 25vh: the header +
+     nav block is ~46-51% of common phone viewports, down from ~61-66% at the
+     previous 40vh. Reader-controlled closing (the disclosure's own toggle)
+     remains available underneath the cap either way. */
+  .canopy-nav > nav { max-height: 25vh; overflow-y: auto; }
   /* The native disclosure marker and nothing else: a visible word would have to
      be written in the site's language, which canopy cannot know — the same reason
      --home-label has no default. The aria-label carries the meaning.

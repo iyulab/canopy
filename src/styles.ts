@@ -65,7 +65,7 @@ body {
 .canopy-site-title > .canopy-home { font-weight: 400; font-size: 0.9em; color: var(--text-muted); }
 .canopy-home::before { content: "← "; }
 .canopy-sidebar ul { list-style: none; margin: 0; padding-left: var(--sp-3); }
-.canopy-sidebar > nav > ul { padding-left: 0; }
+.canopy-nav > nav > ul { padding-left: 0; }
 .canopy-sidebar a { color: var(--text-normal); text-decoration: none; }
 .canopy-sidebar a:hover { color: var(--accent); text-decoration: underline; }
 .canopy-sidebar span { color: var(--text-muted); }

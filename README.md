@@ -58,8 +58,8 @@ npx canopy build <vault-dir> [out-dir] [options]
 - `--site-icon <path>` — vault-relative favicon, linked from every page. Linked relatively, so
   it resolves from a sub-path — where the browser's implicit `/favicon.ico` guess fails. The
   build fails if the path is missing or excluded, rather than shipping a broken link.
-- `--tokens-css <path>` — inject a CSS file of design tokens (written as `tokens.css`) so the
-  published site matches a host app's theme. Without it, canopy's built-in tokens are used.
+- `--tokens-css <path>` — CSS file appended after canopy's built-in tokens in `tokens.css`. A
+  caller may override specific values (leaving the rest intact) or supply the entire vocabulary.
 - `--exclude <pattern>` — leave part of the vault unpublished. Repeatable. Accepts a directory
   (`drafts` or `drafts/**`, matching it and everything beneath), an extension at any depth
   (`*.tmp`), or one exact path (`notes/scratch.md`). Applies to markdown and assets alike.

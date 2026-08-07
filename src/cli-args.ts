@@ -33,7 +33,7 @@ export const USAGE = [
   "  --lang <tag>               BCP 47 language tag (defaults to en)",
   "  --site-icon <path>         Vault-relative favicon, linked from every page",
   "  --nav <path>               JSON navigation spec: order and labels",
-  "  --tokens-css <path>        Design tokens to write as tokens.css",
+  "  --tokens-css <path>        Design tokens appended after canopy's defaults",
   "  --exclude <pattern>        Leave a vault path unpublished (repeatable)",
 ].join("\n");
 

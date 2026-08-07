@@ -24,8 +24,8 @@ transform:
 - **Publishing scope** — which vault paths become part of the site
 - **The site shell** — the HTML document wrapped around each page: head metadata,
   stylesheets, sidebar, content, outline, backlinks
-- **Theming vocabulary** — a set of semantic CSS custom properties the shell reads, which
-  a caller may override wholesale
+- **Theming vocabulary** — a set of semantic CSS custom properties the shell reads. A caller
+  layers its own values over canopy's defaults, or restates the whole vocabulary
 
 If a published site is worse *as a site* without it, it probably belongs here.
 

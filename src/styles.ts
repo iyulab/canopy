@@ -70,6 +70,10 @@ body {
 .canopy-sidebar a:hover { color: var(--accent); text-decoration: underline; }
 .canopy-sidebar span { color: var(--text-muted); }
 
+/* A disclosure that ships open: the desktop layout is unchanged and needs no
+   override, while a narrow screen can collapse the list entirely. */
+.canopy-nav > summary { display: none; }
+
 .canopy-main {
   padding: var(--sp-8) var(--sp-6);
   max-width: var(--content-max-width);
@@ -180,6 +184,20 @@ body {
   .canopy-sidebar {
     border-right: none;
     border-bottom: 1px solid var(--border);
+  }
+  /* Without a cap, a site of any size puts its whole navigation above the first
+     line of every page. */
+  .canopy-nav > nav { max-height: 40vh; overflow-y: auto; }
+  /* The native disclosure marker and nothing else: a visible word would have to
+     be written in the site's language, which canopy cannot know — the same reason
+     --home-label has no default. The aria-label carries the meaning. */
+  .canopy-nav > summary {
+    display: list-item;
+    list-style-position: inside;
+    cursor: pointer;
+    color: var(--text-muted);
+    padding: var(--sp-3) 0;
+    min-height: 2.75rem;
   }
 }
 `;

@@ -152,6 +152,13 @@ describe("renderPage", () => {
     expect(html).not.toContain("canopy-logo");
     expect(html).not.toContain("canopy-home");
   });
+
+  it("wraps the navigation in a disclosure that starts open", () => {
+    const html = renderPage(page({ sitePath: "index.html" }), nav, { siteTitle: "Product Help" });
+    expect(html).toContain('<details class="canopy-nav" open>');
+    // Labelled for assistive technology; the summary itself is a CSS-drawn control.
+    expect(html).toContain('aria-label="Site navigation"');
+  });
 });
 
 describe("renderContentsPage", () => {

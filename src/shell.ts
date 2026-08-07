@@ -207,7 +207,7 @@ ${description}${icon}${links}
 </head>
 <body>
 <div class="canopy-layout">
-<aside class="canopy-sidebar">${sidebarHeader}<nav>${renderNavList(navigation, page.sitePath)}</nav></aside>
+<aside class="canopy-sidebar">${sidebarHeader}<details class="canopy-nav" open><summary aria-label="Site navigation"></summary><nav>${renderNavList(navigation, page.sitePath)}</nav></details></aside>
 <main class="canopy-main">
 ${renderOutline(page.outline)}
 <article class="canopy-content">${page.html}</article>

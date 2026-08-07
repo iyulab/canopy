@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { build } from "./index.js";
 import { emitSite } from "./emit.js";
+import { CANOPY_TOKENS } from "./tokens.js";
 
 describe("emitSite", () => {
   it("emits one HTML file per page plus the token and layout stylesheets", async () => {
@@ -34,7 +35,27 @@ describe("emitSite", () => {
     const bundle = await build({ documents: [{ path: "index.md", content: "# Home" }] });
     const files = emitSite(bundle, { tokens: ":root { --accent: hotpink; }" });
     const tokens = files.find((f) => f.path === "tokens.css");
-    expect(tokens?.contents).toBe(":root { --accent: hotpink; }");
+    expect(tokens?.contents).toContain(":root { --accent: hotpink; }");
+  });
+
+  it("layers caller tokens on top of the defaults instead of replacing them", async () => {
+    const bundle = await build({ documents: [{ path: "index.md", content: "# Home" }] });
+    const tokens = emitSite(bundle, { tokens: ":root { --accent: #0a7c5a; }" }).find(
+      (f) => f.path === "tokens.css",
+    );
+    // The defaults survive, so a caller overriding one value keeps the rest.
+    expect(tokens?.contents).toContain("--content-max-width");
+    // The caller's block comes last, so the cascade resolves in its favour.
+    const defaultAccent = tokens?.contents.indexOf("--accent: #4a6cf0") ?? -1;
+    const callerAccent = tokens?.contents.indexOf("--accent: #0a7c5a") ?? -1;
+    expect(defaultAccent).toBeGreaterThan(-1);
+    expect(callerAccent).toBeGreaterThan(defaultAccent);
+  });
+
+  it("emits the defaults unchanged when no tokens are given", async () => {
+    const bundle = await build({ documents: [{ path: "index.md", content: "# Home" }] });
+    const tokens = emitSite(bundle).find((f) => f.path === "tokens.css");
+    expect(tokens?.contents).toBe(CANOPY_TOKENS);
   });
 
   it("includes extra stylesheets passed by the consumer", async () => {

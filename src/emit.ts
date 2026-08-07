@@ -6,9 +6,12 @@ import { CANOPY_TOKENS } from "./tokens.js";
 /** Options for emitting a site bundle to files. */
 export interface EmitOptions extends ShellOptions {
   /**
-   * Design-token stylesheet to write as `tokens.css`. A consumer passes its
-   * own tokens here so the published site matches its look exactly; defaults
-   * to canopy's built-in tokens.
+   * Design-token overrides, appended after canopy's own tokens in `tokens.css`.
+   *
+   * A caller states only what it wants to change; everything else keeps canopy's
+   * value. Because the defaults end with a `prefers-color-scheme: dark` block and
+   * a media query adds no specificity, a bare `:root` here applies to both
+   * schemes — scheme-specific values need their own media query.
    */
   tokens?: string;
 }
@@ -42,7 +45,16 @@ export function emitSite(
     });
   }
 
-  files.push({ path: "tokens.css", contents: options.tokens ?? CANOPY_TOKENS });
+  // Layered, not replaced: `styles.css` reads ~60 custom properties, so a caller
+  // that overrides one value must not lose the other 59. The caller's block comes
+  // last, and the cascade does the rest.
+  files.push({
+    path: "tokens.css",
+    contents:
+      options.tokens === undefined
+        ? CANOPY_TOKENS
+        : `${CANOPY_TOKENS}\n/* --- caller tokens --- */\n${options.tokens}`,
+  });
   files.push({ path: "styles.css", contents: BASE_CSS });
   return files;
 }

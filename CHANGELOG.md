@@ -8,6 +8,37 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [0.1.2] — 2026-08-07
+
+### Changed
+
+- **A page is now named by its opening `h1` when it has no frontmatter title**, ahead of its
+  filename. The order is `frontmatter title → first h1 → filename`, and the result reaches every
+  place a page is named at once: the sidebar entry, the `<title>`, and the text of each backlink
+  pointing at it. Canopy already parsed that heading — it was assigning it an id so links could
+  target it — and then named the page after its file anyway, which calls the page something its
+  own author never wrote. The effect is largest where filenames are ASCII identifiers and the
+  documents are not: a whole sidebar in one language and a whole site in another. A folder's
+  `index` page now names the folder it opens for the same reason, since the folder node and that
+  page are one entry in the sidebar.
+
+  **This changes visible labels.** Any page carrying an `h1` but no frontmatter `title` will be
+  called something different than in 0.1.1, and navigation sorts by the new name. Pages that set
+  a frontmatter title, and pages with no heading at all, are unchanged. To keep a previous label,
+  set it explicitly — with frontmatter `title`, or with `label` in a `--nav` spec.
+
+### Fixed
+
+- Percent-encoded link targets resolve. `[x](a%20b/note.md)` addresses the same document as
+  `[x](<a b/note.md>)` and is rewritten the same way; previously only the second was, so the
+  first shipped as a `.md` URL that 404s. Canopy writes this encoding itself — every href it
+  generates is percent-encoded per segment — so a page could hold canopy's own encoded link to a
+  document in the sidebar and the author's identical link in the body with only one resolving.
+  Editors produce the encoded form without the author typing it, which makes any vault with a
+  space in a directory name subject to this. Decoding is per segment, so `%2F` stays a character
+  inside a name rather than becoming a path separator, and a malformed escape leaves the link
+  exactly as written.
+
 ## [0.1.1] — 2026-08-07
 
 ### Fixed

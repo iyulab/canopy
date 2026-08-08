@@ -16,6 +16,10 @@ Just as a tree's canopy is the layer seen from the outside, Canopy renders the *
 - **Output** — a static site bundle (HTML · assets · navigation · backlink graph · per-page
   outline · site shell)
 - **Stateless build** — the same input always yields the same output
+- **No JavaScript of its own** — every page works with none. A caller that wants
+  script-driven behavior (search, a theme toggle, analytics) supplies its own file via
+  `--script`; canopy carries it into the output but never authors or runs it. See
+  [docs/SCOPE.md](docs/SCOPE.md).
 
 ## Design principles
 
@@ -72,6 +76,11 @@ npx canopy build <vault-dir> [out-dir] [options]
   (`*.tmp`), or one exact path (`notes/scratch.md`). Applies to markdown and assets alike.
 - `--nav <path>` — a JSON file giving the navigation order and labels (see below). Without it,
   navigation is derived from the folder structure.
+- `--search-index <path>` — write a JSON search index (page path, title, headings, body text)
+  to this output-relative path. Also gives the shell a hidden `.canopy-search` form in the top
+  bar for a caller's script to find and reveal — the index and its mount point are one feature.
+- `--script <path>` — carry this file into `assets/script.js` and link it, deferred, from every
+  page. Canopy neither reads nor runs it; the file's behavior is entirely the caller's.
 
 ### Page names
 

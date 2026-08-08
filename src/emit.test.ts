@@ -116,6 +116,44 @@ describe("emitSite", () => {
     expect(files.find((f) => f.path.endsWith("search-index.json"))).toBeUndefined();
   });
 
+  it("gives the shell a search form when a search index is requested", async () => {
+    const bundle = await build({ documents: [{ path: "index.md", content: "# Home" }] });
+    const files = emitSite(bundle, { searchIndexPath: "search-index.json" });
+    const page = files.find((f) => f.path === "index.html");
+    expect(page?.contents).toContain('class="canopy-search"');
+  });
+
+  it("omits the search form when no search index is requested", async () => {
+    const bundle = await build({ documents: [{ path: "index.md", content: "# Home" }] });
+    const files = emitSite(bundle);
+    const page = files.find((f) => f.path === "index.html");
+    expect(page?.contents).not.toContain("canopy-search");
+  });
+
+  it("writes a caller-supplied script into assets/ and links it from every page", async () => {
+    const bundle = await build({
+      documents: [
+        { path: "index.md", content: "# Home" },
+        { path: "guide.md", content: "# Guide" },
+      ],
+    });
+    const files = emitSite(bundle, { script: "console.log('hi');" });
+    const asset = files.find((f) => f.path === "assets/script.js");
+    expect(asset?.contents).toBe("console.log('hi');");
+    for (const path of ["index.html", "guide.html"]) {
+      const page = files.find((f) => f.path === path);
+      expect(page?.contents).toContain("<script defer src=");
+      expect(page?.contents).toContain("assets/script.js");
+    }
+  });
+
+  it("writes no script asset and links nothing when none is given", async () => {
+    const bundle = await build({ documents: [{ path: "index.md", content: "# Home" }] });
+    const files = emitSite(bundle);
+    expect(files.find((f) => f.path === "assets/script.js")).toBeUndefined();
+    expect(files.find((f) => f.path === "index.html")?.contents).not.toContain("<script");
+  });
+
   it("emits a valid contents index for an empty tree", async () => {
     const bundle = await build({ documents: [] });
     const index = emitSite(bundle).find((f) => f.path === "index.html");

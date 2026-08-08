@@ -21,6 +21,13 @@ export interface EmitOptions extends ShellOptions {
    * way) pays nothing for a file it will never read.
    */
   searchIndexPath?: string;
+  /**
+   * A caller-supplied script's file contents, carried unread and unmodified
+   * into `assets/script.js` and linked `<script defer>` from every page.
+   * Canopy authors no JavaScript itself (see docs/SCOPE.md); this only
+   * carries what a caller gives it, the same way `tokens` carries CSS.
+   */
+  script?: string;
 }
 
 /**
@@ -36,7 +43,12 @@ export function emitSite(
   options: EmitOptions = {},
 ): OutputFile[] {
   const stylesheets = options.stylesheets ?? ["tokens.css", "styles.css"];
-  const shell: ShellOptions = { ...options, stylesheets };
+  const shell: ShellOptions = {
+    ...options,
+    stylesheets,
+    search: options.searchIndexPath !== undefined,
+    scriptPath: options.script !== undefined ? "assets/script.js" : undefined,
+  };
 
   const files: OutputFile[] = bundle.pages.map((page) => ({
     path: page.sitePath,
@@ -69,6 +81,9 @@ export function emitSite(
       path: options.searchIndexPath,
       contents: JSON.stringify(buildSearchIndex(bundle.pages)),
     });
+  }
+  if (options.script !== undefined) {
+    files.push({ path: "assets/script.js", contents: options.script });
   }
   return files;
 }

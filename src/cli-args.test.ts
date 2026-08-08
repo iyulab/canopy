@@ -14,6 +14,7 @@ describe("parseBuildArgs", () => {
       navPath: undefined,
       tokensCssPath: undefined,
       searchIndexPath: undefined,
+      scriptPath: undefined,
       exclude: [],
     });
   });
@@ -122,5 +123,10 @@ describe("parseBuildArgs", () => {
   it("parses --search-index", () => {
     const args = parseBuildArgs(["build", "vault", "--search-index", "search-index.json"]);
     expect(args).toMatchObject({ ok: true, searchIndexPath: "search-index.json" });
+  });
+
+  it("parses --script", () => {
+    const args = parseBuildArgs(["build", "vault", "--script", "search-ui.js"]);
+    expect(args).toMatchObject({ ok: true, scriptPath: "search-ui.js" });
   });
 });

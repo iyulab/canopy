@@ -164,6 +164,42 @@ describe("renderPage", () => {
     expect(html).not.toContain("canopy-home");
   });
 
+  it("renders a hidden search form in the top bar when search is enabled", () => {
+    const html = renderPage(page(), nav, { siteTitle: "Product Help", search: true });
+    const topbarStart = html.indexOf('<header class="canopy-topbar">');
+    const topbarEnd = html.indexOf("</header>");
+    expect(topbarStart).toBeGreaterThan(-1);
+    const topbarSection = html.slice(topbarStart, topbarEnd);
+    expect(topbarSection).toContain('<form class="canopy-search" role="search" hidden>');
+    expect(topbarSection).toContain('<input type="search"');
+    // A script wires it up and reveals it; without one, hidden keeps a broken
+    // control from ever being seen (see docs/SCOPE.md — canopy carries scripts
+    // it is given, it does not author them).
+    expect(topbarSection).toContain("hidden");
+  });
+
+  it("still puts up a top bar for search alone, with no title/logo/home", () => {
+    const html = renderPage(page(), nav, { search: true });
+    expect(html).toContain('<header class="canopy-topbar">');
+    expect(html).toContain("canopy-search");
+  });
+
+  it("omits the search form entirely when search is not enabled", () => {
+    const html = renderPage(page(), nav, { siteTitle: "Product Help" });
+    expect(html).not.toContain("canopy-search");
+  });
+
+  it("links a caller-supplied script, deferred and relative to the page", () => {
+    const html = renderPage(page({ sitePath: "guide/install.html" }), nav, {
+      scriptPath: "assets/script.js",
+    });
+    expect(html).toContain('<script defer src="../assets/script.js"></script>');
+  });
+
+  it("omits the script tag when no script path is given", () => {
+    expect(renderPage(page(), nav)).not.toContain("<script");
+  });
+
   it("wraps the navigation in a disclosure that starts open", () => {
     const html = renderPage(page({ sitePath: "index.html" }), nav, { siteTitle: "Product Help" });
     expect(html).toContain('<details class="canopy-nav" open>');

@@ -8,6 +8,13 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [Unreleased]
+
+### Added
+
+- **A hidden search form in the top bar** when `--search-index` is given: `<form class="canopy-search" role="search" hidden>` with a single `<input type="search">`. `.canopy-search` is a documented mount point, not an internal implementation detail — a caller's script can rely on it directly instead of reaching into the shell's sidebar structure. Canopy still writes no script itself; the form starts hidden and stays that way until a caller-supplied script finds it and reveals it. No new flag: a search index and a place to search from are one feature.
+- **`--script <path>`**: carries a caller-supplied script file into `assets/script.js` and links it `<script defer>` from every page, relative to that page's depth. Canopy neither reads nor executes the file — it only carries it, the same way `--tokens-css` carries CSS. Absent the flag, output is unchanged. This is what lets a caller supply the behavior behind `.canopy-search` (or a theme toggle, or anything else) without canopy authoring any of it — see the widened non-goal in `docs/SCOPE.md`, "Author client-side code".
+
 ## [0.4.0] — 2026-08-08
 
 ### Added

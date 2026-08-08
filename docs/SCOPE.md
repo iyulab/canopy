@@ -55,7 +55,10 @@ Each of these is a deliberate non-goal, not a gap awaiting a contribution:
   widget — is never something canopy implements. What CSS can express (colour scheme
   following `prefers-color-scheme`, responsive layout, disclosure widgets, syntax
   colours resolved at build time) is expressed that way; the rest belongs to the
-  caller, which owns the output.
+  caller, which owns the output. A caller that needs behaviour supplies its own
+  script (`--script`), which canopy carries the same way it carries a caller's
+  token stylesheet (`--tokens-css`) — the file is the caller's, and a build given
+  none emits none.
 
 ## Dependency direction
 

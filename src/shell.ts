@@ -51,6 +51,26 @@ export interface ShellOptions {
    * a home page.
    */
   homeLabel?: string;
+  /**
+   * Render a hidden search form in the top bar. Set by `emitSite` whenever a
+   * search index is requested — the index and the place to search from are
+   * one feature, not two flags.
+   *
+   * Canopy writes no script (see docs/SCOPE.md), so the form starts `hidden`
+   * and stays that way unless a caller-supplied script (`--script`) finds
+   * `.canopy-search` and reveals it. `.canopy-search` is the entire contract:
+   * a script depends on this documented element, never on the shell's
+   * internal structure.
+   */
+  search?: boolean;
+  /**
+   * Site path of a caller-supplied script, linked `<script defer>` from every
+   * page. Relative like every other link, so it resolves from a sub-path.
+   *
+   * Canopy neither reads nor writes this file's contents — it only carries
+   * what a caller gives it (see docs/SCOPE.md, "Author client-side code").
+   */
+  scriptPath?: string;
 }
 
 /** MIME type for a favicon, inferred from its extension. */
@@ -178,6 +198,10 @@ export function renderPage(
     ? `<meta name="description" content="${escapeHtml(options.description)}">`
     : "";
 
+  const script = options.scriptPath
+    ? `<script defer src="${escapeHtml(relativeHref(page.sitePath, options.scriptPath))}"></script>`
+    : "";
+
   let icon = "";
   if (options.iconPath) {
     const type = iconType(options.iconPath);
@@ -196,10 +220,13 @@ export function renderPage(
     options.homeUrl !== undefined && options.homeLabel !== undefined
       ? `<a class="canopy-home" href="${escapeHtml(options.homeUrl)}">${escapeHtml(options.homeLabel)}</a>`
       : "";
+  const search = options.search
+    ? `<form class="canopy-search" role="search" hidden><input type="search" name="q" aria-label="Search"></form>`
+    : "";
   const topbar =
-    siteTitleLink === "" && homeLink === ""
+    siteTitleLink === "" && homeLink === "" && search === ""
       ? ""
-      : `<header class="canopy-topbar">${siteTitleLink}${homeLink}</header>`;
+      : `<header class="canopy-topbar">${siteTitleLink}${homeLink}${search}</header>`;
 
   return `<!doctype html>
 <html lang="${escapeHtml(lang)}">
@@ -208,7 +235,7 @@ export function renderPage(
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="canopy">
 <title>${escapeHtml(docTitle)}</title>
-${description}${icon}${links}
+${description}${icon}${links}${script}
 </head>
 <body>
 ${topbar}

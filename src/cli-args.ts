@@ -29,6 +29,12 @@ export type BuildArgs =
       homeLabel?: string;
       /** Output-relative path to write the search index JSON to. */
       searchIndexPath?: string;
+      /**
+       * Path to a script file to carry into the published site, deferred and
+       * linked from every page. Canopy does not read or run it — the caller
+       * owns the behavior; canopy only carries the file (see docs/SCOPE.md).
+       */
+      scriptPath?: string;
     }
   | { ok: false; error: string };
 
@@ -45,6 +51,7 @@ export const USAGE = [
   "  --home-url <url>           Link back to the site this one sits beside",
   "  --home-label <text>        Link text for --home-url (required with it)",
   "  --search-index <path>      Write a search index JSON file at this output-relative path",
+  "  --script <path>            Carry this script into assets/ and link it, deferred, from every page",
   "  --exclude <pattern>        Leave a vault path unpublished (repeatable)",
 ].join("\n");
 
@@ -66,6 +73,7 @@ const VALUE_FLAGS = {
   "--home-url": "homeUrl",
   "--home-label": "homeLabel",
   "--search-index": "searchIndexPath",
+  "--script": "scriptPath",
 } as const;
 
 /**
@@ -145,6 +153,7 @@ export function parseBuildArgs(argv: string[]): BuildArgs {
     homeUrl: single.homeUrl,
     homeLabel: single.homeLabel,
     searchIndexPath: single.searchIndexPath,
+    scriptPath: single.scriptPath,
     exclude,
   };
 }

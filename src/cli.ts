@@ -56,6 +56,19 @@ async function main(): Promise<void> {
     }
   }
 
+  // Carried unread past this point — canopy neither runs nor inspects it, only
+  // writes it to assets/ and links it (see docs/SCOPE.md, "Author client-side code").
+  let script: string | undefined;
+  if (args.scriptPath !== undefined) {
+    try {
+      script = await readFile(path.resolve(args.scriptPath), "utf8");
+    } catch {
+      console.error(`--script: "${args.scriptPath}" could not be read`);
+      process.exitCode = 1;
+      return;
+    }
+  }
+
   // Both are copied by the asset pass, so they have to survive `--exclude` and
   // actually exist. Checking here turns a silently-broken tag — which only shows
   // up as a missing image after deploy — into a build failure naming the path.
@@ -121,6 +134,7 @@ async function main(): Promise<void> {
     siteTitle: args.siteTitle ?? path.basename(vault),
     stylesheets,
     tokens,
+    ...(script !== undefined ? { script } : {}),
     ...(args.lang ? { lang: args.lang } : {}),
     ...(args.siteIcon ? { iconPath: args.siteIcon.replace(/\\/g, "/") } : {}),
     ...(args.siteDescription ? { description: args.siteDescription } : {}),

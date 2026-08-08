@@ -59,6 +59,20 @@ body {
 .canopy-topbar .canopy-home { font-weight: 400; font-size: 0.9em; color: var(--text-muted); }
 .canopy-home::before { content: "← "; }
 
+/* Pushed to the far edge of the bar when a title/logo/home shares it; alone,
+   it simply starts the bar. Hidden by default (see shell.ts) until a
+   caller-supplied script reveals it, so this rule only ever affects layout
+   after that script has run. */
+.canopy-search { margin-left: auto; }
+.canopy-search input[type="search"] {
+  font: inherit;
+  padding: var(--sp-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  background: var(--bg-primary);
+  color: var(--text-normal);
+}
+
 /* The sidebar tint and its divider paint here as a hard-stopped gradient,
    not as .canopy-sidebar's own background/border. This container spans the
    full row height (min-height below, or .canopy-main's own height on a long

@@ -2,3 +2,7 @@ node_modules/
 dist/
 coverage/
 *.log
+
+# Left behind by browser-automation tool sessions (Playwright MCP), not
+# project content.
+.playwright-mcp/

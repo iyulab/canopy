@@ -16,7 +16,15 @@ describe("sidebar scroll", () => {
     expect(BASE_CSS).toMatch(/\.canopy-sidebar\s*\{[^}]*align-self:\s*start/);
     expect(BASE_CSS).toMatch(/\.canopy-sidebar\s*\{[^}]*position:\s*sticky/);
     expect(BASE_CSS).toMatch(/\.canopy-sidebar\s*\{[^}]*top:\s*0/);
-    expect(BASE_CSS).toMatch(/\.canopy-sidebar\s*\{[^}]*height:\s*100vh/);
+    // max-height, not a fixed height: now that .canopy-topbar can sit above
+    // .canopy-layout in normal flow (see "top bar" describe block below), a
+    // fixed 100vh would make the sidebar's box run exactly the topbar's
+    // height past the bottom of the first viewport — visible on any site
+    // whose nav list is close to filling the screen, the same symptom the
+    // original stretch bug had. Sizing to content, capped at 100vh, only
+    // engages overflow-y for a nav list that actually needs it.
+    expect(BASE_CSS).toMatch(/\.canopy-sidebar\s*\{[^}]*max-height:\s*100vh/);
+    expect(BASE_CSS).not.toMatch(/\.canopy-sidebar\s*\{[^}]*[^-]height:\s*100vh/);
   });
 
   it("releases the sticky pin on narrow screens, where the sidebar stacks above main", () => {
@@ -37,6 +45,32 @@ describe("mobile navigation footprint", () => {
     // 375x667): the prior 40vh cap put the header+nav block at 66% of the viewport.
     expect(BASE_CSS).toContain(".canopy-nav > nav { max-height: 25vh; overflow-y: auto; }");
     expect(BASE_CSS).not.toContain("max-height: 40vh");
+  });
+});
+
+describe("top bar", () => {
+  it("spans the full width above the sidebar/main grid, not inside the sidebar", () => {
+    // The header used to live inside .canopy-sidebar as .canopy-site-title; it now
+    // renders as a sibling <header class="canopy-topbar"> before .canopy-layout
+    // (see shell.ts), so its styling must target the new selector and must not
+    // constrain itself to the sidebar's 16rem column.
+    expect(BASE_CSS).toMatch(/\.canopy-topbar\s*\{/);
+    expect(BASE_CSS).not.toMatch(/\.canopy-site-title\s*\{/);
+  });
+
+  it("still sizes the logo and dims the home link the same way it did in the sidebar", () => {
+    expect(BASE_CSS).toMatch(/\.canopy-logo\s*\{[^}]*max-height:\s*1\.75rem/);
+    expect(BASE_CSS).toMatch(/\.canopy-topbar\s*\.canopy-home\s*\{[^}]*color:\s*var\(--text-muted\)/);
+  });
+
+  it("wraps instead of forcing horizontal scroll on a narrow viewport", () => {
+    // Unlike the sidebar's title block, which stacked in a column of its own
+    // 16rem-wide box, the top bar lays its title and home link out in a row
+    // that now spans the full page width — including on a phone. A long site
+    // title plus a home link is a plausible combination that would otherwise
+    // exceed the viewport and force horizontal scroll, since flex items don't
+    // shrink below their content size by default.
+    expect(BASE_CSS).toMatch(/\.canopy-topbar\s*\{[^}]*flex-wrap:\s*wrap/);
   });
 });
 

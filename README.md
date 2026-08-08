@@ -58,8 +58,8 @@ npx canopy build <vault-dir> [out-dir] [options]
 - `--site-icon <path>` — vault-relative favicon, linked from every page. Linked relatively, so
   it resolves from a sub-path — where the browser's implicit `/favicon.ico` guess fails. The
   build fails if the path is missing or excluded, rather than shipping a broken link.
-- `--site-logo <path>` — vault-relative logo, shown beside the site title in the sidebar
-  header. Linked relatively, so it resolves from a sub-path. The build fails if the path is
+- `--site-logo <path>` — vault-relative logo, shown beside the site title in the top bar.
+  Linked relatively, so it resolves from a sub-path. The build fails if the path is
   missing or excluded. Decorative: it carries an empty `alt`, since the site title beside it
   already names the site.
 - `--home-url <url>` / `--home-label <text>` — a link back to the site this documentation

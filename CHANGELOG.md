@@ -32,6 +32,13 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
   above the fold on every single page, not just the first. The lower cap leaves noticeably more
   of a phone screen for content on first paint; the reader's own control to collapse it further
   is still there underneath.
+- **The site title, logo, and home link moved out of the sidebar into a full-width top bar.**
+  They previously lived in `.canopy-site-title`, a block confined to the sidebar's own column;
+  that class is gone, replaced by `<header class="canopy-topbar">` as a sibling of the sidebar/main
+  layout rather than a child of the sidebar. A caller with custom CSS targeting
+  `.canopy-site-title` needs to retarget it to `.canopy-topbar`. Unchanged: which settings turn
+  the bar on (`--site-title`, `--site-logo`, `--home-url`/`--home-label` — absent all three, no
+  bar renders, same as before), and the markup and behavior of everything below it.
 
 ## [0.2.0] — 2026-08-07
 

@@ -132,7 +132,7 @@ describe("renderPage", () => {
     expect(html).not.toContain("<title><x>");
   });
 
-  it("puts the logo and the home link in the sidebar header", () => {
+  it("puts the logo and the home link in a top bar above the layout grid", () => {
     const html = renderPage(page({ sitePath: "guide/install.html" }), nav, {
       siteTitle: "Product Help",
       logoPath: "assets/logo.svg",
@@ -145,6 +145,17 @@ describe("renderPage", () => {
     expect(html).toContain('alt=""');
     expect(html).toContain('href="https://example.test/"');
     expect(html).toContain("제품 홈");
+    // The top bar wraps the header content and sits outside (before) the
+    // sidebar/main grid, not inside the sidebar.
+    const topbarStart = html.indexOf('<header class="canopy-topbar">');
+    const layoutStart = html.indexOf('<div class="canopy-layout">');
+    const sidebarStart = html.indexOf('<aside class="canopy-sidebar">');
+    expect(topbarStart).toBeGreaterThan(-1);
+    expect(topbarStart).toBeLessThan(layoutStart);
+    expect(layoutStart).toBeLessThan(sidebarStart);
+    // The header content itself is no longer inside the sidebar.
+    const sidebarSection = html.slice(sidebarStart, html.indexOf("</aside>"));
+    expect(sidebarSection).not.toContain("canopy-site-title");
   });
 
   it("omits the logo and home link when they are not given", () => {

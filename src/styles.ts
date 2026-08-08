@@ -36,6 +36,29 @@ body {
   line-height: var(--line-height-relaxed);
 }
 
+/* Full-width header, above the sidebar/main grid rather than inside the
+   sidebar's 16rem column — a site title and a home link read as belonging to
+   the whole page, not to the navigation panel. Absent when the settings give
+   canopy neither a title, a logo, nor a home link (see shell.ts), so a site
+   with none of those keeps today's chrome-free top edge. */
+.canopy-topbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--border);
+  font-weight: var(--font-weight-semibold);
+}
+.canopy-topbar > a:not(.canopy-home) { display: flex; align-items: center; gap: var(--sp-2); }
+/* Capped rather than sized: a brand file supplies whatever it has, and a tall
+   logo must not grow the bar past a single line. */
+.canopy-logo { max-height: 1.75rem; max-width: 100%; width: auto; }
+/* Specificity beats .canopy-topbar a without !important, which would also
+   override a caller's own stylesheet. */
+.canopy-topbar .canopy-home { font-weight: 400; font-size: 0.9em; color: var(--text-muted); }
+.canopy-home::before { content: "← "; }
+
 .canopy-layout {
   display: grid;
   grid-template-columns: 16rem 1fr;
@@ -49,7 +72,16 @@ body {
    stretch so height: 100vh is the sidebar's own box, and position: sticky
    keeps that box pinned at the viewport top while .canopy-main scrolls past
    it. The mobile breakpoint below releases all three: a single-column layout
-   has no "beside" for the sidebar to stay pinned against. */
+   has no "beside" for the sidebar to stay pinned against.
+   100vh here is the sidebar's full height in isolation; with .canopy-topbar
+   as a sibling above .canopy-layout rather than inside it, the topbar's own
+   height already comes out of the viewport before .canopy-layout starts, so
+   this doesn't need to account for it. It does need to give up a fixed
+   height, though: with .canopy-topbar in normal flow above .canopy-layout,
+   a flat 100vh would run the sidebar's box exactly the topbar's height past
+   the bottom of the first viewport. max-height caps it there instead, so a
+   short nav sizes to its own content and only a nav list that actually fills
+   the screen engages overflow-y. */
 .canopy-sidebar {
   background: var(--bg-secondary);
   border-right: 1px solid var(--border);
@@ -57,25 +89,10 @@ body {
   align-self: start;
   position: sticky;
   top: 0;
-  height: 100vh;
+  max-height: 100vh;
   overflow-y: auto;
 }
 
-.canopy-site-title {
-  font-weight: var(--font-weight-semibold);
-  margin-bottom: var(--sp-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-}
-.canopy-site-title > a:not(.canopy-home) { display: flex; align-items: center; gap: var(--sp-2); }
-/* Capped rather than sized: a brand file supplies whatever it has, and a tall
-   logo must not push the navigation off the first screen. */
-.canopy-logo { max-height: 1.75rem; max-width: 100%; width: auto; }
-/* Specificity beats .canopy-sidebar a without !important, which would also
-   override a caller's own stylesheet. */
-.canopy-site-title > .canopy-home { font-weight: 400; font-size: 0.9em; color: var(--text-muted); }
-.canopy-home::before { content: "← "; }
 .canopy-sidebar ul { list-style: none; margin: 0; padding-left: var(--sp-3); }
 .canopy-nav > nav > ul { padding-left: 0; }
 .canopy-sidebar a { color: var(--text-normal); text-decoration: none; }
@@ -207,8 +224,11 @@ body {
     border-right: none;
     border-bottom: 1px solid var(--border);
     /* Release the desktop pin: a single-column layout has no "beside" for the
-       sidebar to stay pinned against, and 100vh here would instead force it to
-       occupy the full screen permanently instead of the capped nav below. */
+       sidebar to stay pinned against. The desktop max-height: 100vh is inert
+       here anyway — the capped nav below keeps the sidebar's own content well
+       under a full screen — but position: static (not sticky) is what actually
+       matters, since a stray sticky element in a single column would otherwise
+       still try to pin itself as the page scrolls. */
     align-self: auto;
     position: static;
     height: auto;

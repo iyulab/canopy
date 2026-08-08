@@ -6,7 +6,7 @@ import { declaredTitle, pageName } from "./title.js";
 
 /** Options controlling the site shell wrapped around each page. */
 export interface ShellOptions {
-  /** Site name, shown in the sidebar header and document title. */
+  /** Site name, shown in the top bar and document title. */
   siteTitle?: string;
   /**
    * BCP 47 language tag for the <html lang> attribute. Defaults to "en".
@@ -196,10 +196,10 @@ export function renderPage(
     options.homeUrl !== undefined && options.homeLabel !== undefined
       ? `<a class="canopy-home" href="${escapeHtml(options.homeUrl)}">${escapeHtml(options.homeLabel)}</a>`
       : "";
-  const sidebarHeader =
+  const topbar =
     siteTitleLink === "" && homeLink === ""
       ? ""
-      : `<div class="canopy-site-title">${siteTitleLink}${homeLink}</div>`;
+      : `<header class="canopy-topbar">${siteTitleLink}${homeLink}</header>`;
 
   return `<!doctype html>
 <html lang="${escapeHtml(lang)}">
@@ -211,8 +211,9 @@ export function renderPage(
 ${description}${icon}${links}
 </head>
 <body>
+${topbar}
 <div class="canopy-layout">
-<aside class="canopy-sidebar">${sidebarHeader}<details class="canopy-nav" open><summary aria-label="Site navigation"></summary><nav>${renderNavList(navigation, page.sitePath)}</nav></details></aside>
+<aside class="canopy-sidebar"><details class="canopy-nav" open><summary aria-label="Site navigation"></summary><nav>${renderNavList(navigation, page.sitePath)}</nav></details></aside>
 <main class="canopy-main">
 ${renderOutline(page.outline)}
 <article class="canopy-content">${page.html}</article>

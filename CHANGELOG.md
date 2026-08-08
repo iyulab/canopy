@@ -10,6 +10,17 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
 ## [Unreleased]
 
+### Added
+
+- **`--search-index <path>`**: writes a JSON array of `{ p, t, h, b }` (site path, title,
+  heading text, plain-text body) — one entry per page — to the given output-relative path.
+  Opt-in and untruncated: canopy already holds all four while rendering, so a consumer
+  building a client-side search UI does not have to reparse markdown to get them, and no
+  size-driven truncation is applied since real sites stay in the low hundreds of KB gzipped
+  even with full page bodies (measured against a 255-page corpus). The shell markup a search
+  UI would mount into, and a way to carry that UI's script into the published site, are not
+  part of this flag — those are still open design questions, tracked separately.
+
 ### Fixed
 
 - **Every page now fits the viewport on a narrow screen instead of scrolling horizontally.**

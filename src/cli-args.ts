@@ -27,6 +27,8 @@ export type BuildArgs =
       homeUrl?: string;
       /** Link text for `homeUrl`, in the site's own language. */
       homeLabel?: string;
+      /** Output-relative path to write the search index JSON to. */
+      searchIndexPath?: string;
     }
   | { ok: false; error: string };
 
@@ -42,6 +44,7 @@ export const USAGE = [
   "  --site-logo <path>         Vault-relative logo, shown beside the site title",
   "  --home-url <url>           Link back to the site this one sits beside",
   "  --home-label <text>        Link text for --home-url (required with it)",
+  "  --search-index <path>      Write a search index JSON file at this output-relative path",
   "  --exclude <pattern>        Leave a vault path unpublished (repeatable)",
 ].join("\n");
 
@@ -62,6 +65,7 @@ const VALUE_FLAGS = {
   "--site-logo": "siteLogo",
   "--home-url": "homeUrl",
   "--home-label": "homeLabel",
+  "--search-index": "searchIndexPath",
 } as const;
 
 /**
@@ -140,6 +144,7 @@ export function parseBuildArgs(argv: string[]): BuildArgs {
     siteLogo: single.siteLogo,
     homeUrl: single.homeUrl,
     homeLabel: single.homeLabel,
+    searchIndexPath: single.searchIndexPath,
     exclude,
   };
 }

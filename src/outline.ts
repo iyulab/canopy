@@ -12,6 +12,8 @@
  * heading's id?".
  */
 
+import { htmlToText } from "./html-text.js";
+
 /** One heading in a page's outline. */
 export interface OutlineItem {
   /** Heading level, as in `<h2>` → 2. */
@@ -34,18 +36,6 @@ const OUTLINE_LEVELS = [2, 3];
 const HEADING = /<h([1-6])\b([^>]*)>([\s\S]*?)<\/h\1>/gi;
 const ID_ATTR = /\bid="([^"]*)"/i;
 
-/** Strip inline markup and decode the entities an HTML heading may carry. */
-function toText(html: string): string {
-  return html
-    .replace(/<[^>]*>/g, "")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&amp;/g, "&")
-    .trim();
-}
-
 /**
  * Collect the outline of a rendered page body.
  *
@@ -60,7 +50,7 @@ export function extractOutline(html: string): OutlineItem[] {
       continue;
     }
     const id = match[2]?.match(ID_ATTR)?.[1];
-    const text = toText(match[3] ?? "");
+    const text = htmlToText(match[3] ?? "");
     if (id === undefined || id === "" || text === "") {
       continue;
     }
@@ -86,7 +76,7 @@ export function extractFirstHeading(html: string): string | undefined {
     if (Number(match[1]) !== 1) {
       continue;
     }
-    const text = toText(match[3] ?? "");
+    const text = htmlToText(match[3] ?? "");
     if (text !== "") {
       return text;
     }

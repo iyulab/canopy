@@ -1,4 +1,5 @@
 import type { SiteBundle, OutputFile } from "./contract.js";
+import { buildSearchIndex } from "./search-index.js";
 import { renderContentsPage, renderPage, type ShellOptions } from "./shell.js";
 import { BASE_CSS } from "./styles.js";
 import { CANOPY_TOKENS } from "./tokens.js";
@@ -14,6 +15,12 @@ export interface EmitOptions extends ShellOptions {
    * schemes — scheme-specific values need their own media query.
    */
   tokens?: string;
+  /**
+   * Output-relative path to write the search index JSON to. Opt-in: a
+   * consumer with no search UI (or one that builds its own index some other
+   * way) pays nothing for a file it will never read.
+   */
+  searchIndexPath?: string;
 }
 
 /**
@@ -56,5 +63,12 @@ export function emitSite(
         : `${CANOPY_TOKENS}\n/* --- caller tokens --- */\n${options.tokens}`,
   });
   files.push({ path: "styles.css", contents: BASE_CSS });
+
+  if (options.searchIndexPath !== undefined) {
+    files.push({
+      path: options.searchIndexPath,
+      contents: JSON.stringify(buildSearchIndex(bundle.pages)),
+    });
+  }
   return files;
 }

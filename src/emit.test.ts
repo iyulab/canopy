@@ -98,6 +98,24 @@ describe("emitSite", () => {
     expect(roots[0]?.contents).not.toContain('class="canopy-contents"');
   });
 
+  it("writes a search index file when a path is given", async () => {
+    const bundle = await build({
+      documents: [{ path: "index.md", content: "# Home\n\n## Section\n\ntext\n\n## Two\n\ntext" }],
+    });
+    const files = emitSite(bundle, { searchIndexPath: "search-index.json" });
+    const indexFile = files.find((f) => f.path === "search-index.json");
+    expect(indexFile).toBeDefined();
+    expect(JSON.parse(indexFile?.contents ?? "[]")).toEqual([
+      { p: "index.html", t: "Home", h: ["Section", "Two"], b: expect.any(String) },
+    ]);
+  });
+
+  it("omits the search index file entirely when no path is given", async () => {
+    const bundle = await build({ documents: [{ path: "index.md", content: "# Home" }] });
+    const files = emitSite(bundle);
+    expect(files.find((f) => f.path.endsWith("search-index.json"))).toBeUndefined();
+  });
+
   it("emits a valid contents index for an empty tree", async () => {
     const bundle = await build({ documents: [] });
     const index = emitSite(bundle).find((f) => f.path === "index.html");

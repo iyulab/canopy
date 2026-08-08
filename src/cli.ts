@@ -127,6 +127,7 @@ async function main(): Promise<void> {
     ...(args.siteLogo ? { logoPath: args.siteLogo.replace(/\\/g, "/") } : {}),
     ...(args.homeUrl ? { homeUrl: args.homeUrl } : {}),
     ...(args.homeLabel ? { homeLabel: args.homeLabel } : {}),
+    ...(args.searchIndexPath ? { searchIndexPath: args.searchIndexPath } : {}),
   });
 
   await writeFiles(outDir, files);

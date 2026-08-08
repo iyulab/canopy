@@ -13,6 +13,7 @@ describe("parseBuildArgs", () => {
       siteIcon: undefined,
       navPath: undefined,
       tokensCssPath: undefined,
+      searchIndexPath: undefined,
       exclude: [],
     });
   });
@@ -116,5 +117,10 @@ describe("parseBuildArgs", () => {
   it("refuses a home label with no URL", () => {
     const args = parseBuildArgs(["build", "vault", "--home-label", "제품 홈"]);
     expect(args).toEqual({ ok: false, error: "--home-label needs --home-url" });
+  });
+
+  it("parses --search-index", () => {
+    const args = parseBuildArgs(["build", "vault", "--search-index", "search-index.json"]);
+    expect(args).toMatchObject({ ok: true, searchIndexPath: "search-index.json" });
   });
 });

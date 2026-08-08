@@ -33,6 +33,7 @@ export { renderPage, pageTitle, renderContentsPage, type ShellOptions } from "./
 export { extractOutline, extractFirstHeading, isOutlineUseful, type OutlineItem } from "./outline.js";
 export { declaredTitle, pageName, isIndexStem } from "./title.js";
 export { emitSite, type EmitOptions } from "./emit.js";
+export { buildSearchIndex, type SearchIndexEntry } from "./search-index.js";
 export { CANOPY_TOKENS } from "./tokens.js";
 export { BASE_CSS } from "./styles.js";
 

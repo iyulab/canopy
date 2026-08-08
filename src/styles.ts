@@ -144,9 +144,15 @@ body {
    control visible at every width. */
 .canopy-nav[open] > summary { display: none; }
 
+/* min-width: 0 overrides a grid item's default min-width: auto, which would
+   otherwise use max-width as a floor on .canopy-layout's column track — on the
+   single-column mobile layout that kept the whole page (not just this box)
+   768px wide regardless of viewport, independent of what the page's own
+   content was. */
 .canopy-main {
   padding: var(--sp-8) var(--sp-6);
   max-width: var(--content-max-width);
+  min-width: 0;
   margin: 0 auto;
   width: 100%;
 }

@@ -12,6 +12,12 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
 ### Fixed
 
+- **Every page now fits the viewport on a narrow screen instead of scrolling horizontally.**
+  `.canopy-main` is a grid item of `.canopy-layout` at every width, and grid items default to
+  `min-width: auto` — which used `.canopy-main`'s own `max-width` (768px) as a floor on the
+  grid track's size, keeping the single mobile column (and the whole page with it) 768px wide
+  regardless of viewport or content. `min-width: 0` is the standard way to opt a grid item out
+  of that default.
 - **The on-page outline now stays pinned to the viewport on scroll, matching the sidebar.**
   It previously used `position: absolute`, computed once against `.canopy-main`'s box and then
   unaffected by scrolling — while `.canopy-sidebar` has stayed pinned via `position: sticky`

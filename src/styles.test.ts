@@ -261,3 +261,20 @@ describe("on-page outline", () => {
     expect(base).not.toMatch(/\.canopy-outline\s*\{[^}]*position:\s*sticky/);
   });
 });
+
+describe("main column shrink", () => {
+  it("lets .canopy-main shrink below its own max-width instead of forcing the grid track wide", () => {
+    // .canopy-main is a grid item of .canopy-layout at every width (mobile
+    // included, where grid-template-columns drops to a single 1fr column).
+    // Grid items default to min-width: auto, which uses the item's own
+    // max-width as a floor on the *track's* size when nothing else on the
+    // item constrains it smaller — so a 768px max-width kept the single
+    // mobile column, and therefore the whole page, 768px wide regardless of
+    // viewport. Reproduced on every page tried, including plain prose with
+    // no table or unwrapped-width content, which rules out content as the
+    // cause: getComputedStyle(.canopy-layout).gridTemplateColumns read
+    // "768px" at a 375px viewport before this fix. min-width: 0 is the
+    // standard escape from grid's (and flex's) default auto minimum.
+    expect(BASE_CSS).toMatch(/\.canopy-main\s*\{[^}]*min-width:\s*0/);
+  });
+});

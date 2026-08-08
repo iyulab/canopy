@@ -70,20 +70,23 @@ body {
    reach the actual column boundary on any viewport wider than that max-width
    (measured live at 1280px: main's centered box left a visible gap between
    the sidebar and where main's own border would sit). The gradient is
-   painted on this container's true coordinate space instead, so the 16rem
-   stop always lands exactly on the grid's real column boundary regardless
-   of what either child does with its own width. Reset on the mobile
-   breakpoint below, where the grid drops to one column and there is no
-   boundary left to mark this way. */
+   painted on this container's true coordinate space instead, so the stop
+   always lands exactly on the grid's real column boundary regardless of
+   what either child does with its own width — read from --canopy-sidebar-w
+   rather than repeating the grid column's own 16rem as a second literal, so
+   a future change to the sidebar's width cannot move one without the other.
+   Reset on the mobile breakpoint below, where the grid drops to one column
+   and there is no boundary left to mark this way. */
 .canopy-layout {
+  --canopy-sidebar-w: 16rem;
   display: grid;
-  grid-template-columns: 16rem 1fr;
+  grid-template-columns: var(--canopy-sidebar-w) 1fr;
   min-height: 100vh;
   background: linear-gradient(
     to right,
-    var(--bg-secondary) 0, var(--bg-secondary) 16rem,
-    var(--border) 16rem, var(--border) calc(16rem + 1px),
-    var(--bg-primary) calc(16rem + 1px), var(--bg-primary) 100%
+    var(--bg-secondary) 0, var(--bg-secondary) var(--canopy-sidebar-w),
+    var(--border) var(--canopy-sidebar-w), var(--border) calc(var(--canopy-sidebar-w) + 1px),
+    var(--bg-primary) calc(var(--canopy-sidebar-w) + 1px), var(--bg-primary) 100%
   );
 }
 

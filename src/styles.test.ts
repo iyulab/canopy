@@ -58,6 +58,25 @@ describe("sidebar column fill", () => {
     expect(desktopCss).not.toMatch(/\.canopy-sidebar\s*\{[^}]*border-right:/);
   });
 
+  it("derives the gradient's column-boundary stop from the same width the grid column uses, not a second literal", () => {
+    // grid-template-columns and the gradient stop both encode "where the
+    // sidebar column ends" — as two independently-written 16rem literals,
+    // changing the sidebar's width would silently desync them (the grid
+    // moves, the tint doesn't). A single custom property read by both sites
+    // makes that impossible instead of merely documented against.
+    const width = BASE_CSS.match(/--canopy-sidebar-w:\s*([^;]+);/)?.[1]?.trim();
+    if (width === undefined) throw new Error("--canopy-sidebar-w is not declared in BASE_CSS");
+    expect(BASE_CSS).toContain(`grid-template-columns: var(--canopy-sidebar-w) 1fr;`);
+    expect(BASE_CSS).toContain(`var(--bg-secondary) var(--canopy-sidebar-w)`);
+    expect(BASE_CSS).toContain(`var(--border) var(--canopy-sidebar-w)`);
+    // The property's own definition is the only place the literal width may
+    // appear in actual CSS — anywhere else it should be a var() read instead.
+    // Comments may still mention it in prose, so strip /* ... */ before counting.
+    const cssOnly = BASE_CSS.replace(/\/\*[\s\S]*?\*\//g, "");
+    const occurrences = cssOnly.split(width).length - 1;
+    expect(occurrences).toBe(1);
+  });
+
   it("resets to a plain fill on the single-column mobile layout, where .canopy-sidebar tints its own stacked block again", () => {
     // Below the breakpoint there is no column boundary left for a
     // left-to-right gradient to mark, and .canopy-sidebar's own (content-sized)

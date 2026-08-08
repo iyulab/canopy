@@ -16,9 +16,9 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
   explicit height stretches to match its tallest sibling — so the sidebar grew exactly as tall
   as the main content, and its own `overflow-y: auto` never had anything to scroll: the whole
   page moved as one unit and the navigation disappeared off-screen on any page longer than the
-  viewport. The sidebar now keeps its own `100vh` box and stays pinned to the top of the
-  viewport while the content scrolls past it. Unaffected below the mobile breakpoint, where the
-  sidebar stacks above the content instead of beside it.
+  viewport. The sidebar now keeps its own box, capped at the viewport height, and stays pinned
+  to the top of the viewport while the content scrolls past it. Unaffected below the mobile
+  breakpoint, where the sidebar stacks above the content instead of beside it.
 
 ### Changed
 

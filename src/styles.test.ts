@@ -11,8 +11,9 @@ describe("sidebar scroll", () => {
     // A grid item stretches to the tallest sibling by default, so `.canopy-sidebar`
     // grows exactly as tall as `.canopy-main` and its own overflow never engages —
     // the whole page scrolls as one unit and the sidebar disappears upward with it.
-    // `align-self: start` opts the sidebar out of that stretch so `height: 100vh` is
-    // its own box, and `position: sticky` keeps that box pinned at the viewport top.
+    // `align-self: start` opts the sidebar out of that stretch so its box sizes to
+    // its own content (capped below, not fixed), and `position: sticky` keeps that
+    // box pinned at the viewport top.
     expect(BASE_CSS).toMatch(/\.canopy-sidebar\s*\{[^}]*align-self:\s*start/);
     expect(BASE_CSS).toMatch(/\.canopy-sidebar\s*\{[^}]*position:\s*sticky/);
     expect(BASE_CSS).toMatch(/\.canopy-sidebar\s*\{[^}]*top:\s*0/);
@@ -69,11 +70,16 @@ describe("sidebar column fill", () => {
     expect(BASE_CSS).toContain(`grid-template-columns: var(--canopy-sidebar-w) 1fr;`);
     expect(BASE_CSS).toContain(`var(--bg-secondary) var(--canopy-sidebar-w)`);
     expect(BASE_CSS).toContain(`var(--border) var(--canopy-sidebar-w)`);
-    // The property's own definition is the only place the literal width may
-    // appear in actual CSS — anywhere else it should be a var() read instead.
-    // Comments may still mention it in prose, so strip /* ... */ before counting.
-    const cssOnly = BASE_CSS.replace(/\/\*[\s\S]*?\*\//g, "");
-    const occurrences = cssOnly.split(width).length - 1;
+    // Scoped to .canopy-layout's own rule body, not the whole stylesheet: the
+    // claim under test is that this one rule doesn't repeat its width as a
+    // second literal, not that the literal is globally unique — an unrelated
+    // rule elsewhere coincidentally using the same value (e.g. a future
+    // --content-max-width) would otherwise fail this test for the wrong
+    // reason. Comments may mention the value in prose, so strip them first.
+    const layoutRule = BASE_CSS.match(/\.canopy-layout\s*\{[^}]*\}/)?.[0];
+    if (layoutRule === undefined) throw new Error(".canopy-layout rule not found in BASE_CSS");
+    const layoutRuleCssOnly = layoutRule.replace(/\/\*[\s\S]*?\*\//g, "");
+    const occurrences = layoutRuleCssOnly.split(width).length - 1;
     expect(occurrences).toBe(1);
   });
 

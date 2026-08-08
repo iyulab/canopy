@@ -37,6 +37,40 @@ describe("sidebar scroll", () => {
   });
 });
 
+describe("sidebar column fill", () => {
+  it("tints and divides the full column height via .canopy-layout's own background, not .canopy-sidebar's", () => {
+    // .canopy-sidebar sizes to its own content (max-height: 100vh, not a
+    // fixed height — see "sidebar scroll" above), so a nav list shorter than
+    // the viewport no longer reaches the bottom of the column on its own.
+    // .canopy-layout already spans the full row height regardless (its own
+    // min-height: 100vh floor, or .canopy-main's height on a longer page),
+    // so a hard-stopped gradient there reaches the bottom of the column for
+    // any content length. It cannot live on .canopy-main instead: .canopy-main
+    // centers a content-max-width column with its own side margins, so its
+    // box doesn't reach the real column boundary above that max-width.
+    expect(BASE_CSS).toMatch(
+      /\.canopy-layout\s*\{[^}]*background:\s*linear-gradient\(\s*to right,\s*var\(--bg-secondary\)[^}]*var\(--border\)[^}]*var\(--bg-primary\)/,
+    );
+    // Scoped to the desktop rule, before the mobile breakpoint reintroduces
+    // .canopy-sidebar's own background for its stacked block (below).
+    const desktopCss = BASE_CSS.slice(0, BASE_CSS.indexOf("@media (max-width: 40rem)"));
+    expect(desktopCss).not.toMatch(/\.canopy-sidebar\s*\{[^}]*background:/);
+    expect(desktopCss).not.toMatch(/\.canopy-sidebar\s*\{[^}]*border-right:/);
+  });
+
+  it("resets to a plain fill on the single-column mobile layout, where .canopy-sidebar tints its own stacked block again", () => {
+    // Below the breakpoint there is no column boundary left for a
+    // left-to-right gradient to mark, and .canopy-sidebar's own (content-sized)
+    // box is the whole of its row rather than a short box inside a taller one
+    // — the same background on the sidebar itself reaches exactly as far as
+    // the gradient would have.
+    const mobileBlock = BASE_CSS.match(/@media \(max-width: 40rem\) \{([\s\S]*)\}\s*$/)?.[1];
+    expect(mobileBlock).toBeDefined();
+    expect(mobileBlock).toMatch(/\.canopy-layout\s*\{[^}]*background:\s*var\(--bg-primary\)/);
+    expect(mobileBlock).toMatch(/\.canopy-sidebar\s*\{[^}]*background:\s*var\(--bg-secondary\)/);
+  });
+});
+
 describe("mobile navigation footprint", () => {
   it("caps the always-open nav list well under half the header's prior share of the screen", () => {
     // canopy ships the nav disclosure `open` unconditionally (no JS to remember a

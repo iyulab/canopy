@@ -40,6 +40,13 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
   the bar on (`--site-title`, `--site-logo`, `--home-url`/`--home-label` — absent all three, no
   bar renders, same as before), and the markup and behavior of everything below it.
 
+  The sidebar's own tinted background and its divider move too, from `.canopy-sidebar` to
+  `.canopy-layout` (a caller targeting those directly needs to retarget the same way). The sidebar
+  box itself sizes to its nav list's own content rather than a fixed viewport height, so painting
+  the tint there would have stopped wherever a short list ends, short of the actual column; a
+  gradient on the layout container behind it reaches the bottom of the column regardless of how
+  long the list is.
+
 ## [0.2.0] — 2026-08-07
 
 ### Added

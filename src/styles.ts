@@ -59,17 +59,39 @@ body {
 .canopy-topbar .canopy-home { font-weight: 400; font-size: 0.9em; color: var(--text-muted); }
 .canopy-home::before { content: "← "; }
 
+/* The sidebar tint and its divider paint here as a hard-stopped gradient,
+   not as .canopy-sidebar's own background/border. This container spans the
+   full row height (min-height below, or .canopy-main's own height on a long
+   page) independent of how tall any one cell's own content is, so a gradient
+   here reaches the bottom of the column even when the sticky sidebar box
+   inside it (below) is short. Painting it on .canopy-main instead — the
+   seemingly obvious alternative — doesn't work: .canopy-main centers a
+   content-max-width column with its own side margins, so its box doesn't
+   reach the actual column boundary on any viewport wider than that max-width
+   (measured live at 1280px: main's centered box left a visible gap between
+   the sidebar and where main's own border would sit). The gradient is
+   painted on this container's true coordinate space instead, so the 16rem
+   stop always lands exactly on the grid's real column boundary regardless
+   of what either child does with its own width. Reset on the mobile
+   breakpoint below, where the grid drops to one column and there is no
+   boundary left to mark this way. */
 .canopy-layout {
   display: grid;
   grid-template-columns: 16rem 1fr;
   min-height: 100vh;
+  background: linear-gradient(
+    to right,
+    var(--bg-secondary) 0, var(--bg-secondary) 16rem,
+    var(--border) 16rem, var(--border) calc(16rem + 1px),
+    var(--bg-primary) calc(16rem + 1px), var(--bg-primary) 100%
+  );
 }
 
 /* A grid item stretches to the tallest sibling by default, so without
    align-self this box would grow exactly as tall as .canopy-main and its own
    overflow-y would never engage — the whole page would scroll as one unit and
    the sidebar would disappear upward with it. align-self opts out of that
-   stretch so height: 100vh is the sidebar's own box, and position: sticky
+   stretch so max-height: 100vh is the sidebar's own box, and position: sticky
    keeps that box pinned at the viewport top while .canopy-main scrolls past
    it. The mobile breakpoint below releases all three: a single-column layout
    has no "beside" for the sidebar to stay pinned against.
@@ -81,10 +103,10 @@ body {
    a flat 100vh would run the sidebar's box exactly the topbar's height past
    the bottom of the first viewport. max-height caps it there instead, so a
    short nav sizes to its own content and only a nav list that actually fills
-   the screen engages overflow-y. */
+   the screen engages overflow-y — at the cost of the box no longer reaching
+   the bottom of a short column on its own, which is why the tint and the
+   divider (above, on .canopy-layout) don't live here anymore. */
 .canopy-sidebar {
-  background: var(--bg-secondary);
-  border-right: 1px solid var(--border);
   padding: var(--sp-6) var(--sp-4);
   align-self: start;
   position: sticky;
@@ -219,9 +241,18 @@ body {
 }
 
 @media (max-width: 40rem) {
-  .canopy-layout { grid-template-columns: 1fr; }
+  /* One column now, so there is no column boundary left for the desktop
+     gradient (above) to mark — reset to a plain fill. .canopy-sidebar takes
+     its tint back here instead: stacked above .canopy-main rather than
+     beside it, its own (content-sized) box is the whole of its row, so
+     painting the tint there again reaches exactly as far as the gradient
+     would have. */
+  .canopy-layout {
+    grid-template-columns: 1fr;
+    background: var(--bg-primary);
+  }
   .canopy-sidebar {
-    border-right: none;
+    background: var(--bg-secondary);
     border-bottom: 1px solid var(--border);
     /* Release the desktop pin: a single-column layout has no "beside" for the
        sidebar to stay pinned against. The desktop max-height: 100vh is inert
@@ -231,7 +262,6 @@ body {
        still try to pin itself as the page scrolls. */
     align-self: auto;
     position: static;
-    height: auto;
   }
   /* Without a cap, a site of any size puts its whole navigation above the first
      line of every page. canopy ships this disclosure open unconditionally (no

@@ -8,6 +8,20 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [Unreleased]
+
+### Fixed
+
+- **The sidebar/main two-column layout, and the tint that divides them, are back.** A doc
+  comment landed in 0.3.0 (`f4ceebd`) wrote a custom-property prefix pair as
+  `--sp-*/--bg-*` — the `*/` closed the CSS comment early, and everything from there to the
+  comment's real closing `*/` became part of the *next* rule's selector prelude. An invalid
+  prelude drops the whole rule, so `.canopy-layout` (`display: grid` and the sidebar/main
+  divider) parsed to nothing in a real browser: the sidebar and main stacked as full-width
+  blocks with no visual boundary between them. Every existing test matched against the raw
+  JS string, which this bug never touched, so 0.3.0 shipped and published with it. A new test
+  (`comment safety`) checks what a real CSS parser sees instead.
+
 ## [0.3.0] — 2026-08-08
 
 ### Fixed

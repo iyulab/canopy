@@ -100,6 +100,39 @@ describe("sidebar column fill", () => {
   });
 });
 
+describe("comment safety", () => {
+  it("never lets stray comment debris merge into the next rule's selector prelude", () => {
+    // A literal "*/" inside comment prose (not just at the comment's intended
+    // end) closes the comment early for a real CSS parser, even though the JS
+    // string itself is untouched — every assertion elsewhere in this file
+    // matches against BASE_CSS's raw string and cannot see this class of bug.
+    // A prior comment ("tokens.ts's --sp-*/--bg-* vocabulary") did exactly
+    // this: "--sp-*/" closed the comment mid-sentence, so the tail
+    // ("--bg-* vocabulary: ...") became part of the *next* rule's selector
+    // prelude. A parser treats "prelude then { }" as one unit — if the
+    // prelude isn't a valid selector list, the whole rule is dropped, not
+    // just the garbage text. That is what happened to .canopy-layout: it
+    // parsed to zero rules in a real browser while every string-level test
+    // here kept passing, because none of them checked what sits *between*
+    // rules.
+    //
+    // This models that mechanism directly with the same first-"*/"-wins
+    // stripping a CSS lexer does (a bare regex is enough for that part —
+    // it's the "what's left before the next rule's {" check below that a
+    // plain content match can't express), rather than parsing full CSS,
+    // to avoid pulling in a parser dependency for one test.
+    const stripped = BASE_CSS.replace(/\/\*[\s\S]*?\*\//g, "");
+    for (const selector of [".canopy-topbar", ".canopy-layout", ".canopy-sidebar", ".canopy-main", ".canopy-outline", ".canopy-backlinks"]) {
+      const needle = `${selector} {`;
+      const idx = stripped.indexOf(needle);
+      expect(idx, `${selector} rule not found at all after stripping comments`).toBeGreaterThanOrEqual(0);
+      const prevClose = stripped.lastIndexOf("}", idx);
+      const between = stripped.slice(prevClose + 1, idx);
+      expect(between.trim(), `text sits between the previous rule and ${needle} — a real parser would fold it into this rule's prelude and drop the whole rule`).toBe("");
+    }
+  });
+});
+
 describe("mobile navigation footprint", () => {
   it("caps the always-open nav list well under half the header's prior share of the screen", () => {
     // canopy ships the nav disclosure `open` unconditionally (no JS to remember a

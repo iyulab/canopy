@@ -217,14 +217,42 @@ body {
 .canopy-outline-l2 { padding-left: var(--sp-6); }
 
 @media (min-width: 75rem) {
-  /* Room for a column beside the text: float the outline out of the flow so the
-     prose keeps its measure instead of narrowing to make space. */
-  .canopy-main { position: relative; }
+  /* Room for a column beside the text. .canopy-content and .canopy-backlinks
+     stay in one column; .canopy-outline gets a second, sized independently of
+     .canopy-content's own max-width so a long line of prose can't push it
+     around. Placed on an explicit grid (rather than the position: absolute
+     this used before position: sticky replaced it below) because sticky's
+     inset properties offset from the box's own in-flow position, not from a
+     containing block's edge the way absolute's do — an explicit grid area is
+     what keeps the outline "beside" the text once it also needs to stay in
+     flow to be sticky at all.
+     :has() scopes the wider column to pages that actually have an outline
+     (isOutlineUseful in shell.ts) — without it, a page short enough to skip
+     the outline would still carry the extra width as a permanent gap where
+     an outline never renders. */
+  .canopy-main:has(.canopy-outline) {
+    max-width: calc(var(--content-max-width) + var(--sp-6) + 14rem);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 14rem;
+    column-gap: var(--sp-6);
+    align-items: start;
+  }
+  .canopy-content { grid-column: 1; grid-row: 1; }
+  .canopy-backlinks { grid-column: 1; grid-row: 2; }
+
+  /* Grid row 1 / 3 spans both .canopy-content and .canopy-backlinks, so the
+     outline can stay sticky for the full length of the article rather than
+     just its own (much shorter) row. align-self: start is the same fix
+     .canopy-sidebar already needed above: without it, a grid item stretches
+     to match its spanned rows' combined height, and position: sticky has
+     nothing to do inside a box that's already as tall as the space it could
+     move through. */
   .canopy-outline {
-    position: absolute;
+    grid-column: 2;
+    grid-row: 1 / 3;
+    align-self: start;
+    position: sticky;
     top: var(--sp-8);
-    left: calc(100% + var(--sp-6));
-    width: 14rem;
     margin: 0;
   }
 }

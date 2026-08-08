@@ -8,6 +8,20 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [Unreleased]
+
+### Fixed
+
+- **The on-page outline now stays pinned to the viewport on scroll, matching the sidebar.**
+  It previously used `position: absolute`, computed once against `.canopy-main`'s box and then
+  unaffected by scrolling — while `.canopy-sidebar` has stayed pinned via `position: sticky`
+  since 0.3.0. `.canopy-main` and its children (`.canopy-content`, `.canopy-outline`,
+  `.canopy-backlinks`) now use an explicit two-column grid instead: `position: sticky`'s inset
+  properties offset from a box's own in-flow position rather than a containing block's edge, so
+  keeping the outline "beside" the article once it also needs to stay in flow required a real
+  column, not an offset. Scoped to pages that have an outline at all (`:has(.canopy-outline)`),
+  so a page without one keeps its previous centered, single-column width.
+
 ## [0.3.1] — 2026-08-08
 
 ### Fixed

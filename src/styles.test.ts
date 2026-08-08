@@ -178,3 +178,86 @@ describe("navigation depth styling", () => {
     expect(BASE_CSS).toMatch(/\.canopy-nav-l0\s*>\s*a,\s*\.canopy-nav-l0\s*>\s*span\s*\{[^}]*font-weight:\s*var\(--font-weight-semibold\)/);
   });
 });
+
+/**
+ * Finds the block opened by `marker` (its own literal text, ending in "{")
+ * and returns everything up to its balanced closing "}". A plain regex can't
+ * express "the matching brace" once the block's own content contains rules
+ * of its own (each with a "{" and "}"), which is exactly the shape a media
+ * query has — this is the same "avoid a parser dependency, model just enough
+ * of the mechanism" approach the "comment safety" tests above already use.
+ */
+function extractBlock(css: string, marker: string): string {
+  const start = css.indexOf(marker);
+  if (start === -1) throw new Error(`marker not found: ${marker}`);
+  let depth = 0;
+  for (let i = start; i < css.length; i++) {
+    if (css[i] === "{") depth++;
+    else if (css[i] === "}") {
+      depth--;
+      if (depth === 0) return css.slice(start + marker.length, i);
+    }
+  }
+  throw new Error(`unbalanced braces after marker: ${marker}`);
+}
+
+describe("on-page outline", () => {
+  it("is pinned to the viewport like the sidebar once there is room for it beside the text", () => {
+    // The outline used position: absolute, which leaves flow entirely and is
+    // unaffected by scrolling — while .canopy-sidebar, a few rules away, has
+    // used position: sticky since cycle-22. Two navigation aids in the same
+    // shell behaving differently on scroll is an inconsistency a reader
+    // notices, not a deliberate design (issue
+    // ISSUE-canopy-20260808-topbar-and-toc-not-sticky, option C: outline
+    // sticky, top bar left alone — the top bar has no equivalent "which
+    // heading am I under" job that scrolling away would break).
+    const desktopBlock = extractBlock(BASE_CSS, "@media (min-width: 75rem) {");
+    expect(desktopBlock).toMatch(/\.canopy-outline\s*\{[^}]*position:\s*sticky/);
+    expect(desktopBlock).not.toMatch(/\.canopy-outline\s*\{[^}]*position:\s*absolute/);
+    expect(desktopBlock).toMatch(/\.canopy-outline\s*\{[^}]*top:\s*var\(--sp-8\)/);
+  });
+
+  it("reserves its own grid column instead of floating in .canopy-main's centering margin", () => {
+    // position: absolute computed "beside the text" as an offset from
+    // .canopy-main's own edge; position: sticky's inset properties instead
+    // offset from the box's own in-flow position, so simply swapping the
+    // position value would leave the outline in flow at the top of
+    // .canopy-main (before .canopy-content, per the markup order in
+    // shell.ts) rather than beside it. Placing .canopy-content, .canopy-outline
+    // and .canopy-backlinks on an explicit grid is what keeps "beside" true
+    // once "sticky" needs the box to stay in flow.
+    const desktopBlock = extractBlock(BASE_CSS, "@media (min-width: 75rem) {");
+    expect(desktopBlock).toMatch(/\.canopy-main:has\(\.canopy-outline\)\s*\{[^}]*display:\s*grid/);
+    expect(desktopBlock).toMatch(/\.canopy-content\s*\{[^}]*grid-column:\s*1/);
+    expect(desktopBlock).toMatch(/\.canopy-outline\s*\{[^}]*grid-column:\s*2/);
+    expect(desktopBlock).toMatch(/\.canopy-backlinks\s*\{[^}]*grid-column:\s*1/);
+  });
+
+  it("only widens .canopy-main's centered column when there is an outline to make room for", () => {
+    // A page short enough to skip the outline entirely (isOutlineUseful) has
+    // no .canopy-outline element at all — :has() keeps that page's centered
+    // 48rem column exactly as before instead of leaving a permanent gap where
+    // an outline never renders.
+    const desktopBlock = extractBlock(BASE_CSS, "@media (min-width: 75rem) {");
+    expect(desktopBlock).toMatch(/\.canopy-main:has\(\.canopy-outline\)\s*\{[^}]*max-width:\s*calc\(var\(--content-max-width\)/);
+    expect(desktopBlock).not.toMatch(/^\s*\.canopy-main\s*\{[^}]*display:\s*grid/m);
+  });
+
+  it("sizes to its own content within its grid area, the same align-self fix the sidebar already needed", () => {
+    // .canopy-sidebar documents why a grid item needs align-self: start to
+    // avoid stretching to its tallest sibling before position: sticky can do
+    // anything useful; the outline is a grid item under the same rules once
+    // it spans rows alongside .canopy-content and .canopy-backlinks.
+    const desktopBlock = extractBlock(BASE_CSS, "@media (min-width: 75rem) {");
+    expect(desktopBlock).toMatch(/\.canopy-outline\s*\{[^}]*align-self:\s*start/);
+  });
+
+  it("stacks above the article in normal flow below the breakpoint, unaffected by the desktop grid", () => {
+    // Below 75rem there is no side-by-side column — the outline renders
+    // wherever the markup places it (before .canopy-content, per shell.ts),
+    // full width, exactly like before this change.
+    const base = BASE_CSS.slice(0, BASE_CSS.indexOf("@media (min-width: 75rem)"));
+    expect(base).toMatch(/\.canopy-outline\s*\{[^}]*border-left:\s*2px solid var\(--border\)/);
+    expect(base).not.toMatch(/\.canopy-outline\s*\{[^}]*position:\s*sticky/);
+  });
+});

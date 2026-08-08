@@ -67,6 +67,10 @@ describe("sidebar column fill", () => {
     // makes that impossible instead of merely documented against.
     const width = BASE_CSS.match(/--canopy-sidebar-w:\s*([^;]+);/)?.[1]?.trim();
     if (width === undefined) throw new Error("--canopy-sidebar-w is not declared in BASE_CSS");
+    // Declared on .canopy-layout's own rule, not on a bare :root alongside
+    // tokens.ts's --sp-*/--bg-* vocabulary — it exists to keep the two uses
+    // below in sync with each other, not as a value callers read or override.
+    expect(BASE_CSS).toMatch(/\.canopy-layout\s*\{\s*--canopy-sidebar-w:/);
     expect(BASE_CSS).toContain(`grid-template-columns: var(--canopy-sidebar-w) 1fr;`);
     expect(BASE_CSS).toContain(`var(--bg-secondary) var(--canopy-sidebar-w)`);
     expect(BASE_CSS).toContain(`var(--border) var(--canopy-sidebar-w)`);

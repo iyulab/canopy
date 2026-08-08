@@ -76,7 +76,13 @@ body {
    rather than repeating the grid column's own 16rem as a second literal, so
    a future change to the sidebar's width cannot move one without the other.
    Reset on the mobile breakpoint below, where the grid drops to one column
-   and there is no boundary left to mark this way. */
+   and there is no boundary left to mark this way.
+   --canopy-sidebar-w is declared here, on the rule, not on :root alongside
+   tokens.ts's --sp-*/--bg-* vocabulary: it exists only to keep the two
+   declarations below in sync with each other, not as a value a caller is
+   meant to read or override, so it isn't part of the design-token contract
+   this file's own header comment already says the sidebar's width is not
+   ("Sidebar width is a local layout constant, not a design token"). */
 .canopy-layout {
   --canopy-sidebar-w: 16rem;
   display: grid;

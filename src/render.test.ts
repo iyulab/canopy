@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { visit, SKIP } from "unist-util-visit";
 import { renderMarkdown, renderDocument } from "./render.js";
 
 describe("renderMarkdown", () => {
@@ -106,5 +107,66 @@ describe("renderDocument", () => {
     expect(frontmatter).toEqual({ title: "Page" });
     expect(html).toContain('<h1 id="heading">Heading</h1>');
     expect(html).not.toContain("title: Page");
+  });
+});
+
+describe("caller rehype plugins", () => {
+  // A minimal stand-in for a real caller plugin (e.g. rehype-declart): claims
+  // a `language-diagram` fence and replaces it with an element sanitize would
+  // otherwise strip (an <svg>, absent from rehype-sanitize's default schema).
+  // This is the shape verified live against the actual published
+  // rehype-declart + its WASM binding before this extension point was built.
+  function rehypeFence(tagName: string, className: string) {
+    return () => (tree: import("hast").Root) => {
+      visit(tree, "element", (node, index, parent) => {
+        if (node.tagName !== "pre" || !parent || index == null) return;
+        const code = node.children.find(
+          (c): c is import("hast").Element =>
+            c.type === "element" &&
+            c.tagName === "code" &&
+            Array.isArray(c.properties?.className) &&
+            c.properties.className.includes(`language-${className}`),
+        );
+        if (!code) return;
+        parent.children[index] = {
+          type: "element",
+          tagName,
+          properties: {},
+          children: [],
+        };
+        return [SKIP, index];
+      });
+    };
+  }
+
+  it("runs a caller's rehype plugin and keeps its output past sanitize", async () => {
+    const html = await renderMarkdown("```diagram\nsource\n```", [
+      rehypeFence("svg", "diagram"),
+    ]);
+    // <svg> is absent from rehype-sanitize's default schema — this only
+    // survives because the plugin runs after sanitize, not before it.
+    expect(html).toContain("<svg");
+  });
+
+  it("runs before Shiki, so the plugin sees the fence before Shiki claims it", async () => {
+    const html = await renderMarkdown("```diagram\nsource\n```", [
+      rehypeFence("svg", "diagram"),
+    ]);
+    expect(html).not.toContain("shiki");
+  });
+
+  it("leaves plain documents unaffected when no plugin claims anything", async () => {
+    const withPlugin = await renderMarkdown("# Heading\n\ntext", [
+      rehypeFence("svg", "diagram"),
+    ]);
+    const without = await renderMarkdown("# Heading\n\ntext");
+    expect(withPlugin).toBe(without);
+  });
+
+  it("still sanitizes raw HTML a plugin does not claim", async () => {
+    const html = await renderMarkdown("<script>alert(1)</script>", [
+      rehypeFence("svg", "diagram"),
+    ]);
+    expect(html).not.toContain("<script>");
   });
 });

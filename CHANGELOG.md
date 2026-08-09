@@ -8,6 +8,20 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [Unreleased]
+
+### Added
+
+- **A caller can now extend the rehype stage with its own plugins**, both as a
+  library option (`SourceTree.rehypePlugins`) and as a CLI flag
+  (`--rehype-plugin <specifier>`, repeatable — accepts a bare package name or
+  a filesystem path, loaded and run in canopy's own process). Plugins run at
+  a single fixed position: after sanitize (so a plugin's output is trusted
+  the same way katex's and Shiki's already are, and is never stripped) and
+  before Shiki (so a plugin can claim a fenced code block by its language
+  before Shiki renders it as plain highlighted code). Verified against the
+  published `rehype-declart` package end to end.
+
 ## [0.6.0] — 2026-08-09
 
 ### Added

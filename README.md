@@ -81,6 +81,15 @@ npx canopy build <vault-dir> [out-dir] [options]
   bar for a caller's script to find and reveal — the index and its mount point are one feature.
 - `--script <path>` — carry this file into `assets/script.js` and link it, deferred, from every
   page. Canopy neither reads nor runs it; the file's behavior is entirely the caller's.
+- `--rehype-plugin <specifier>` — load a [rehype](https://github.com/rehypejs/rehype) plugin and
+  run it in the render pipeline, after sanitize and before syntax highlighting. Repeatable.
+  Accepts a bare package name (`--rehype-plugin rehype-declart`, resolved from your own
+  `node_modules`) or a path to a local module (`--rehype-plugin ./my-plugin.js`), whose default
+  export is used as the plugin. Unlike `--script`, canopy imports and runs this — the plugin
+  itself decides what it does with the tree; canopy's only contract is *when* it runs. A plugin
+  meaning to replace a fenced code block's default rendering (a diagram, say) has to claim it
+  before Shiki does; its output survives untouched because it runs after canopy's own HTML
+  sanitizing, the same trust level canopy's own KaTeX and syntax-highlighting output already has.
 
 ### Page names
 
@@ -178,7 +187,8 @@ interface SourceDocument {
 }
 interface SourceTree {
   documents: SourceDocument[];
-  nav?: NavSpec;   // optional order and labels; see Navigation above
+  nav?: NavSpec;              // optional order and labels; see Navigation above
+  rehypePlugins?: PluggableList; // optional rehype plugins; see --rehype-plugin above
 }
 ```
 

@@ -52,14 +52,21 @@ export async function build(tree: SourceTree): Promise<SiteBundle> {
   const index = buildLinkIndex(tree.documents.map((doc) => toSitePath(doc.path)));
 
   // Pass 2: render in parallel; the wiki context resolves links per page.
+  // `tree.rehypePlugins` is passed by reference to every call, which is what
+  // lets render.ts's pipeline cache build the extended processor once for the
+  // whole build rather than once per document (see render.ts's `processor`).
   const rendered = await Promise.all(
     tree.documents.map(async (doc) => {
       const sitePath = toSitePath(doc.path);
-      const { frontmatter, html, outgoing } = await renderDocument(doc.content, {
-        resolve: (target) => index.resolve(target),
-        isPage: (candidate) => index.has(candidate),
-        fromSitePath: sitePath,
-      });
+      const { frontmatter, html, outgoing } = await renderDocument(
+        doc.content,
+        {
+          resolve: (target) => index.resolve(target),
+          isPage: (candidate) => index.has(candidate),
+          fromSitePath: sitePath,
+        },
+        tree.rehypePlugins,
+      );
       // Named once, here: the name reaches the navigation, the tab, and every
       // backlink pointing at this page, and re-deriving it per reference would
       // rescan the body once per inbound link.

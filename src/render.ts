@@ -1,4 +1,4 @@
-import { unified } from "unified";
+import { unified, type PluggableList } from "unified";
 import { VFile } from "vfile";
 import remarkParse from "remark-parse";
 import remarkGfm from "remark-gfm";
@@ -34,6 +34,26 @@ import remarkMarkdownLink from "./remark-markdown-link.js";
  * keeps the build stateless (same input -> same output). KaTeX needs its
  * stylesheet (katex CSS) bundled into the site shell to display correctly;
  * that lands with the asset pipeline (C26).
+ *
+ * A caller may extend the rehype stage with its own plugins
+ * (`renderRehypePlugins`), fixed at exactly one position: after sanitize,
+ * before Shiki. Not configurable, because both bounds are load-bearing:
+ * - **After sanitize**: sanitize has no notion of a caller's plugin, so
+ *   anything running before it is stripped down to the default schema —
+ *   verified live with rehype-declart's actual SVG output, which came back
+ *   as bare text when placed before sanitize and intact when placed after.
+ *   The trust argument is the same one that already places rehype-katex and
+ *   the Shiki plugin after sanitize (see above): output built from a fenced
+ *   block's own parsed content, not from a user's raw HTML, is safe to emit
+ *   unsanitized. A caller plugin sits at that same trust level or it
+ *   shouldn't be here — canopy cannot verify which, so the position is the
+ *   only enforcement available.
+ * - **Before Shiki**: Shiki claims every fenced code block by its `language-*`
+ *   class, including ones a caller's plugin means to replace — verified
+ *   live: a `declart` fence rendered as a plain highlighted code block, and
+ *   the caller's plugin never saw it, when Shiki ran first. A caller plugin
+ *   that means to replace a fence's default code-block rendering has to run
+ *   before Shiki claims it.
  */
 
 // The callout transform (remark-callout) emits classed blockquotes/titles.
@@ -87,7 +107,7 @@ async function createWarmedHighlighter() {
   return highlighter;
 }
 
-const buildProcessor = async () =>
+const buildProcessor = async (rehypePlugins: PluggableList) =>
   unified()
   .use(remarkParse)
   .use(remarkGfm)
@@ -111,6 +131,10 @@ const buildProcessor = async () =>
   // rehype-slug runs *after* sanitize so heading ids are not clobbered with a
   // "user-content-" prefix; this keeps `[[note#heading]]` fragments matching.
   .use(rehypeSlug)
+  // A caller's rehype plugins (see the pipeline comment above for why exactly
+  // here): trusted like katex/shiki because they run after sanitize, and
+  // ahead of a caller-owned language tag because they run before Shiki.
+  .use(rehypePlugins)
   .use(rehypeKatex)
   // Dual theme: emits both palettes as CSS variables (--shiki-dark*) so the
   // site stylesheet can switch code blocks with the page's color scheme.
@@ -138,21 +162,40 @@ const buildProcessor = async () =>
   .freeze();
 
 /**
- * The pipeline, built once and reused.
+ * Reused across calls that pass no rehype plugins of their own — the
+ * overwhelmingly common case (every plain vault) — so a plain build still
+ * pays the highlighter warm-up cost exactly once. Never mutated; `.use()`
+ * on a `unified()` instance returns a new instance rather than changing this
+ * one in place, so handing it out repeatedly is safe.
+ */
+const NO_REHYPE_PLUGINS: PluggableList = [];
+
+/**
+ * The pipeline, built once per distinct rehype plugin list and reused.
  *
- * It holds no per-document state, which is what keeps the build stateless: the
- * same input yields the same output. Construction is asynchronous only because
+ * A build passes the same plugin list (by reference) to every document it
+ * renders — see `build()` in index.ts — so caching by reference equality
+ * costs one rebuild per actual plugin set, not per document. It holds no
+ * per-document state, which is what keeps the build stateless: the same
+ * input yields the same output. Construction is asynchronous only because
  * the highlighter is, so it is done once and awaited by every caller.
  */
 let pipeline: ReturnType<typeof buildProcessor> | undefined;
-function processor() {
-  pipeline ??= buildProcessor();
+let pipelineFor: PluggableList | undefined;
+function processor(rehypePlugins: PluggableList = NO_REHYPE_PLUGINS) {
+  if (pipeline === undefined || pipelineFor !== rehypePlugins) {
+    pipeline = buildProcessor(rehypePlugins);
+    pipelineFor = rehypePlugins;
+  }
   return pipeline;
 }
 
 /** Render a markdown body (no frontmatter, no wikilink resolution) to HTML. */
-export async function renderMarkdown(markdown: string): Promise<string> {
-  const file = await (await processor()).process(markdown);
+export async function renderMarkdown(
+  markdown: string,
+  rehypePlugins?: PluggableList,
+): Promise<string> {
+  const file = await (await processor(rehypePlugins)).process(markdown);
   return String(file);
 }
 
@@ -169,14 +212,18 @@ export interface RenderedDocument {
  * and outgoing wikilinks. Frontmatter is stripped before rendering, so it
  * never leaks into the published HTML. When a wiki context is supplied,
  * `[[wikilinks]]` are resolved to relative hyperlinks.
+ *
+ * `rehypePlugins` extends the rehype stage at a fixed position — see the
+ * pipeline comment above `buildProcessor` for exactly where and why.
  */
 export async function renderDocument(
   raw: string,
   wiki?: WikiContext,
+  rehypePlugins?: PluggableList,
 ): Promise<RenderedDocument> {
   const { data, body } = parseFrontmatter(raw);
   const file = new VFile({ value: body, data: wiki ? { wiki } : {} });
-  await (await processor()).process(file);
+  await (await processor(rehypePlugins)).process(file);
   const recorded = file.data.wikiLinks;
   const outgoing = Array.isArray(recorded) ? (recorded as string[]) : [];
   return { frontmatter: data, html: String(file), outgoing };

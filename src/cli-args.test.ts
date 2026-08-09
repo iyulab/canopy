@@ -16,6 +16,7 @@ describe("parseBuildArgs", () => {
       searchIndexPath: undefined,
       scriptPath: undefined,
       exclude: [],
+      rehypePluginPaths: [],
     });
   });
 
@@ -128,5 +129,22 @@ describe("parseBuildArgs", () => {
   it("parses --script", () => {
     const args = parseBuildArgs(["build", "vault", "--script", "search-ui.js"]);
     expect(args).toMatchObject({ ok: true, scriptPath: "search-ui.js" });
+  });
+
+  it("collects --rehype-plugin, which may be repeated", () => {
+    expect(
+      parseBuildArgs([
+        "build",
+        "v",
+        "--rehype-plugin",
+        "rehype-declart",
+        "--rehype-plugin",
+        "./my-plugin.js",
+      ]),
+    ).toMatchObject({
+      ok: true,
+      vault: "v",
+      rehypePluginPaths: ["rehype-declart", "./my-plugin.js"],
+    });
   });
 });

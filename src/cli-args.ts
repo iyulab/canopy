@@ -35,6 +35,15 @@ export type BuildArgs =
        * owns the behavior; canopy only carries the file (see docs/SCOPE.md).
        */
       scriptPath?: string;
+      /**
+       * Module paths to rehype plugins, loaded and run in the render pipeline
+       * at a fixed position (see render.ts): after sanitize, before Shiki.
+       * Unlike --script, canopy imports and runs these — the trust boundary
+       * is the same one a build tool's config file already crosses (a
+       * caller's own plugin list), not a new one for canopy specifically.
+       * Empty when the flag was not given.
+       */
+      rehypePluginPaths: string[];
     }
   | { ok: false; error: string };
 
@@ -52,6 +61,7 @@ export const USAGE = [
   "  --home-label <text>        Link text for --home-url (required with it)",
   "  --search-index <path>      Write a search index JSON file at this output-relative path",
   "  --script <path>            Carry this script into assets/ and link it, deferred, from every page",
+  "  --rehype-plugin <path>     Load a rehype plugin module, run after sanitize and before Shiki (repeatable)",
   "  --exclude <pattern>        Leave a vault path unpublished (repeatable)",
 ].join("\n");
 
@@ -80,7 +90,10 @@ const VALUE_FLAGS = {
  * Repeatable flags collect every occurrence. Repeating beats a delimiter, which
  * would collide with the path characters these values contain.
  */
-const LIST_FLAGS = { "--exclude": "exclude" } as const;
+const LIST_FLAGS = {
+  "--exclude": "exclude",
+  "--rehype-plugin": "rehypePluginPaths",
+} as const;
 
 function isValueFlag(arg: string): arg is keyof typeof VALUE_FLAGS {
   return arg in VALUE_FLAGS;
@@ -100,6 +113,11 @@ export function parseBuildArgs(argv: string[]): BuildArgs {
   const single: Partial<Record<(typeof VALUE_FLAGS)[keyof typeof VALUE_FLAGS], string>> =
     {};
   const exclude: string[] = [];
+  const rehypePluginPaths: string[] = [];
+  const lists = { exclude, rehypePluginPaths } as const satisfies Record<
+    (typeof LIST_FLAGS)[keyof typeof LIST_FLAGS],
+    string[]
+  >;
 
   for (let i = 0; i < rest.length; i++) {
     const arg = rest[i];
@@ -112,7 +130,7 @@ export function parseBuildArgs(argv: string[]): BuildArgs {
         return { ok: false, error: `${arg} requires a value` };
       }
       if (isListFlag(arg)) {
-        exclude.push(value);
+        lists[LIST_FLAGS[arg]].push(value);
       } else {
         single[VALUE_FLAGS[arg]] = value;
       }
@@ -154,6 +172,7 @@ export function parseBuildArgs(argv: string[]): BuildArgs {
     homeLabel: single.homeLabel,
     searchIndexPath: single.searchIndexPath,
     scriptPath: single.scriptPath,
+    rehypePluginPaths,
     exclude,
   };
 }

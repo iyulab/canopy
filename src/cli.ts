@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
 import { mkdir, copyFile, readdir, readFile } from "node:fs/promises";
+import type { PluggableList } from "unified";
 import { build } from "./index.js";
 import { emitSite } from "./emit.js";
 import { parseNavSpec, type NavSpec } from "./nav-spec.js";
@@ -10,6 +12,57 @@ import { parseBuildArgs } from "./cli-args.js";
 import { bundleUsesKatex, KATEX_STYLESHEET } from "./katex.js";
 
 const require = createRequire(import.meta.url);
+
+/**
+ * A relative or absolute filesystem path, as opposed to a bare package
+ * specifier ("rehype-declart") that Node resolves through node_modules.
+ * Matches Node's own distinction for import specifiers: "./x", "../x", "/x",
+ * and a Windows drive-qualified path ("C:\x", "C:/x") are paths; everything
+ * else is bare.
+ */
+function isFilesystemSpecifier(specifier: string): boolean {
+  return (
+    specifier.startsWith("./") ||
+    specifier.startsWith("../") ||
+    specifier.startsWith("/") ||
+    /^[a-zA-Z]:[/\\]/.test(specifier)
+  );
+}
+
+/**
+ * Load `--rehype-plugin` module specifiers into a rehype plugin list.
+ *
+ * Each module's default export is used directly as a unified plugin — the
+ * same shape `.use()` already accepts for katex and Shiki internally, so a
+ * caller writes a plugin exactly the way any other unified/rehype plugin is
+ * written, with no canopy-specific wrapper.
+ *
+ * A filesystem path is resolved against the CLI's own working directory and
+ * turned into a file URL before `import()`: a bare relative path like
+ * "./my-plugin.js" is CLI-argument-relative (the caller's cwd), not
+ * module-relative, and only an absolute file URL disambiguates that on every
+ * platform. A bare package specifier ("rehype-declart") is passed to
+ * `import()` unresolved, exactly as written — Node's own resolution walks up
+ * from canopy's own install location to find it in the caller's
+ * node_modules, the normal way any installed dependency resolves.
+ */
+async function loadRehypePlugins(specifiers: readonly string[]): Promise<PluggableList> {
+  const plugins: PluggableList = [];
+  for (const specifier of specifiers) {
+    const resolved = isFilesystemSpecifier(specifier)
+      ? pathToFileURL(path.resolve(specifier)).href
+      : specifier;
+    const mod: unknown = await import(resolved);
+    const plugin = (mod as { default?: unknown }).default;
+    if (typeof plugin !== "function") {
+      throw new Error(
+        `--rehype-plugin ${specifier}: module has no default export (expected a unified plugin function)`,
+      );
+    }
+    plugins.push(plugin as PluggableList[number]);
+  }
+  return plugins;
+}
 
 /**
  * Copy KaTeX's stylesheet and woff2 fonts into the output so math renders
@@ -105,8 +158,23 @@ async function main(): Promise<void> {
     }
   }
 
+  let rehypePlugins: PluggableList | undefined;
+  if (args.rehypePluginPaths.length > 0) {
+    try {
+      rehypePlugins = await loadRehypePlugins(args.rehypePluginPaths);
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : String(error));
+      process.exitCode = 1;
+      return;
+    }
+  }
+
   const documents = await readVault(vault, args.exclude);
-  const bundle = await build({ documents, ...(nav ? { nav } : {}) });
+  const bundle = await build({
+    documents,
+    ...(nav ? { nav } : {}),
+    ...(rehypePlugins ? { rehypePlugins } : {}),
+  });
 
   // Report rather than fail: an omitted page may be deliberate, and canopy does
   // not know which. Saying so is what keeps the omission from being silent.

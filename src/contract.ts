@@ -9,6 +9,7 @@
  * boundary has leaked.
  */
 
+import type { PluggableList } from "unified";
 import type { NavNode } from "./navigation.js";
 import type { NavSpec, AppliedNav } from "./nav-spec.js";
 import type { OutlineItem } from "./outline.js";
@@ -40,6 +41,14 @@ export interface SourceTree {
    * where it came from — hand-written or generated are the same here.
    */
   nav?: NavSpec;
+  /**
+   * Rehype plugins extending canopy's own render pipeline, run at a fixed
+   * position (see render.ts's `buildProcessor` for exactly where and why).
+   * This is canopy's rendering surface, not a caller's domain — the plugins
+   * a caller wants are unified plugin instances, generic to any hast tree,
+   * the same shape canopy already uses for katex and Shiki internally.
+   */
+  rehypePlugins?: PluggableList;
 }
 
 /** A page that links to another page, recorded as a backlink. */

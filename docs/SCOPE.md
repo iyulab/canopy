@@ -16,7 +16,9 @@ served every caller badly and none of them could be changed independently.
 **Markdown tree in, deployable static site out.** Everything canopy does serves that
 transform:
 
-- **Rendering** — CommonMark + GFM, math, syntax highlighting, callouts, sanitized raw HTML
+- **Rendering** — CommonMark + GFM, math, syntax highlighting, callouts, sanitized raw HTML,
+  and a fixed extension point (`rehypePlugins` / `--rehype-plugin`) for a caller's own rehype
+  plugins, positioned after sanitize and before syntax highlighting
 - **Link resolution** — rewriting links between documents to relative hrefs, whether written
   as wikilinks or as ordinary markdown links, and inverting them into a backlink graph
 - **Structure** — a site hierarchy, derived from the document paths or supplied by the

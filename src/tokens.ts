@@ -10,8 +10,32 @@
  * names its design tokens this way appends them as a drop-in, keeping one
  * source of truth for the palette without coupling canopy to that consumer.
  *
- * Dark mode follows `prefers-color-scheme` so static sites adapt with no JS.
+ * Dark mode follows `prefers-color-scheme` by default, so static sites adapt
+ * with no JS — and a caller-supplied script can still force either palette
+ * with `data-theme="dark"`/`"light"` on `<html>`, since a script that wants
+ * to offer a manual toggle would otherwise have to redeclare canopy's entire
+ * palette itself to override it. The dark values live once, in `DARK_TOKENS`
+ * below, and both paths (the media query and the explicit attribute) read
+ * the same block, so the two can never drift apart.
  */
+const DARK_TOKENS = `
+    --bg-primary: #1e1f23;
+    --bg-secondary: #181a1d;
+    --text-normal: #dadde2;
+    --text-muted: #9aa0aa;
+    --text-faint: #6b7178;
+    --accent: #6d8bff;
+    --accent-hover: #859dff;
+    --border: rgba(255, 255, 255, 0.1);
+    --border-strong: rgba(255, 255, 255, 0.18);
+    /* Callout accents — same names as the consuming app's tokens so injection stays drop-in. */
+    --callout-note: #6d8bff;    --callout-note-bg: rgba(109, 139, 255, 0.12);
+    --callout-tip: #34d399;     --callout-tip-bg: rgba(52, 211, 153, 0.12);
+    --callout-warning: #f0b350; --callout-warning-bg: rgba(240, 179, 80, 0.12);
+    --callout-danger: #ff6b5e;  --callout-danger-bg: rgba(255, 107, 94, 0.12);
+    --callout-quote: #9aa0aa;   --callout-quote-bg: rgba(154, 160, 170, 0.12);
+`;
+
 export const CANOPY_TOKENS = `:root {
   --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   --font-monospace: "JetBrains Mono", "Cascadia Code", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
@@ -44,23 +68,16 @@ export const CANOPY_TOKENS = `:root {
   --callout-quote: #6a707c;   --callout-quote-bg: rgba(106, 112, 124, 0.08);
 }
 
+/* The system-preference path: applies unless a script has explicitly asked
+   for light instead. */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg-primary: #1e1f23;
-    --bg-secondary: #181a1d;
-    --text-normal: #dadde2;
-    --text-muted: #9aa0aa;
-    --text-faint: #6b7178;
-    --accent: #6d8bff;
-    --accent-hover: #859dff;
-    --border: rgba(255, 255, 255, 0.1);
-    --border-strong: rgba(255, 255, 255, 0.18);
-    /* Callout accents — same names as the consuming app's tokens so injection stays drop-in. */
-    --callout-note: #6d8bff;    --callout-note-bg: rgba(109, 139, 255, 0.12);
-    --callout-tip: #34d399;     --callout-tip-bg: rgba(52, 211, 153, 0.12);
-    --callout-warning: #f0b350; --callout-warning-bg: rgba(240, 179, 80, 0.12);
-    --callout-danger: #ff6b5e;  --callout-danger-bg: rgba(255, 107, 94, 0.12);
-    --callout-quote: #9aa0aa;   --callout-quote-bg: rgba(154, 160, 170, 0.12);
-  }
+  :root:not([data-theme="light"]) {
+${DARK_TOKENS}  }
 }
+
+/* The explicit-override path: applies regardless of system preference. Higher
+   specificity than the plain ":root" block above (an attribute selector added
+   to it), so source order does not matter here. */
+:root[data-theme="dark"] {
+${DARK_TOKENS}}
 `;

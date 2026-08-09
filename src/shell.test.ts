@@ -207,6 +207,21 @@ describe("renderPage", () => {
     expect(html).not.toContain("canopy-search");
   });
 
+  it("puts a hidden theme toggle in the top bar whenever one exists", () => {
+    const html = renderPage(page(), nav, { siteTitle: "Product Help" });
+    const topbarStart = html.indexOf('<header class="canopy-topbar">');
+    const topbarSection = html.slice(topbarStart, html.indexOf("</header>"));
+    expect(topbarSection).toContain('<button type="button" class="canopy-theme-toggle" hidden');
+  });
+
+  it("does not manufacture a top bar just to hold the theme toggle", () => {
+    // No title, logo, home, or search — today's chrome-free top edge for a
+    // genuinely bare site must survive the toggle's addition.
+    const html = renderPage(page(), nav);
+    expect(html).not.toContain("canopy-topbar");
+    expect(html).not.toContain("canopy-theme-toggle");
+  });
+
   it("links a caller-supplied script, deferred and relative to the page", () => {
     const html = renderPage(page({ sitePath: "guide/install.html" }), nav, {
       scriptPath: "assets/script.js",

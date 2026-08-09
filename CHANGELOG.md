@@ -15,6 +15,11 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 - **The sidebar now marks the page a reader is already on** with `aria-current="page"` on its
   link, styled in the accent color by default. A caller who wants different styling can target
   `[aria-current="page"]` directly — no new class name.
+- **A caller can now force light or dark regardless of system preference**, with
+  `data-theme="dark"` or `data-theme="light"` on `<html>` — the `prefers-color-scheme` default
+  is unchanged when neither is set. A hidden `.canopy-theme-toggle` button rides in the top bar
+  whenever one exists (for the same reason as `.canopy-search`: no script means it never shows),
+  ready for a caller-supplied script to reveal and wire up.
 
 ## [0.5.0] — 2026-08-09
 

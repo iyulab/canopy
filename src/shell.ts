@@ -229,10 +229,17 @@ export function renderPage(
   const search = options.search
     ? `<form class="canopy-search" role="search" hidden><input type="search" name="q" aria-label="Search"></form>`
     : "";
+  // No option gates this, unlike search: a caller-supplied script can flip a
+  // reader's color scheme regardless of what else the site configures, the
+  // same way the tokens it flips between (light/dark) need no field either.
+  // It only rides along when a topbar exists for another reason, though —
+  // manufacturing one just to hold a hidden button would cost every reader of
+  // an otherwise chrome-free site a visible padded bar (see .canopy-topbar).
+  const themeToggle = `<button type="button" class="canopy-theme-toggle" hidden aria-label="Toggle color theme"></button>`;
   const topbar =
     siteTitleLink === "" && homeLink === "" && search === ""
       ? ""
-      : `<header class="canopy-topbar">${siteTitleLink}${homeLink}${search}</header>`;
+      : `<header class="canopy-topbar">${siteTitleLink}${homeLink}${search}${themeToggle}</header>`;
 
   return `<!doctype html>
 <html lang="${escapeHtml(lang)}">

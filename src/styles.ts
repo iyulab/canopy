@@ -11,11 +11,20 @@ export const CALLOUT_ICON_PATHS = {
   quote: "M10 11H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v6a4 4 0 0 1-4 4M20 11h-4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v6a4 4 0 0 1-4 4",
 } as const;
 
-/** CSS mask url() for one callout icon — colored via background-color on the ::before. */
-function calloutIcon(path: string): string {
+/**
+ * CSS mask url() for a 24x24/2px-stroke icon, colored via `currentColor` or
+ * `background-color` on whatever element applies the mask. Shared by the
+ * callout icons and the theme toggle button below — one technique, one place
+ * that knows how to turn a stroke path into a maskable data URI.
+ */
+function maskIcon(path: string): string {
   const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='${path}'/></svg>`;
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
 }
+
+/** Feather's "sun" icon (24x24, 2px stroke) — same convention as CALLOUT_ICON_PATHS. */
+const THEME_TOGGLE_ICON_PATH =
+  "M12 17a5 5 0 100-10 5 5 0 000 10zM12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42";
 
 /**
  * Base layout stylesheet for the published site shell.
@@ -72,6 +81,25 @@ body {
   background: var(--bg-primary);
   color: var(--text-normal);
 }
+
+/* Hidden by default (see shell.ts) until a caller-supplied script reveals it
+   — same reasoning as .canopy-search. margin-left: auto pushes it to the bar's
+   right edge when nothing before it already claims that edge (i.e. no search);
+   the override below keeps it from fighting search for the same space when
+   both are present, so the pair reads as one right-aligned group. */
+.canopy-theme-toggle {
+  margin-left: auto;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: none;
+  background-color: var(--text-muted);
+  -webkit-mask: ${maskIcon(THEME_TOGGLE_ICON_PATH)} center / contain no-repeat;
+  mask: ${maskIcon(THEME_TOGGLE_ICON_PATH)} center / contain no-repeat;
+  cursor: pointer;
+}
+.canopy-theme-toggle:hover { background-color: var(--text-normal); }
+.canopy-search + .canopy-theme-toggle { margin-left: 0; }
 
 /* The sidebar tint and its divider paint here as a hard-stopped gradient,
    not as .canopy-sidebar's own background/border. This container spans the
@@ -201,11 +229,11 @@ body {
   border-radius: var(--radius-m);
   background: var(--callout-bg);
 }
-.canopy-content .callout-note { --callout-color: var(--callout-note); --callout-bg: var(--callout-note-bg); --callout-icon: ${calloutIcon(CALLOUT_ICON_PATHS.note)}; }
-.canopy-content .callout-tip { --callout-color: var(--callout-tip); --callout-bg: var(--callout-tip-bg); --callout-icon: ${calloutIcon(CALLOUT_ICON_PATHS.tip)}; }
-.canopy-content .callout-warning { --callout-color: var(--callout-warning); --callout-bg: var(--callout-warning-bg); --callout-icon: ${calloutIcon(CALLOUT_ICON_PATHS.warning)}; }
-.canopy-content .callout-danger { --callout-color: var(--callout-danger); --callout-bg: var(--callout-danger-bg); --callout-icon: ${calloutIcon(CALLOUT_ICON_PATHS.danger)}; }
-.canopy-content .callout-quote { --callout-color: var(--callout-quote); --callout-bg: var(--callout-quote-bg); --callout-icon: ${calloutIcon(CALLOUT_ICON_PATHS.quote)}; }
+.canopy-content .callout-note { --callout-color: var(--callout-note); --callout-bg: var(--callout-note-bg); --callout-icon: ${maskIcon(CALLOUT_ICON_PATHS.note)}; }
+.canopy-content .callout-tip { --callout-color: var(--callout-tip); --callout-bg: var(--callout-tip-bg); --callout-icon: ${maskIcon(CALLOUT_ICON_PATHS.tip)}; }
+.canopy-content .callout-warning { --callout-color: var(--callout-warning); --callout-bg: var(--callout-warning-bg); --callout-icon: ${maskIcon(CALLOUT_ICON_PATHS.warning)}; }
+.canopy-content .callout-danger { --callout-color: var(--callout-danger); --callout-bg: var(--callout-danger-bg); --callout-icon: ${maskIcon(CALLOUT_ICON_PATHS.danger)}; }
+.canopy-content .callout-quote { --callout-color: var(--callout-quote); --callout-bg: var(--callout-quote-bg); --callout-icon: ${maskIcon(CALLOUT_ICON_PATHS.quote)}; }
 .canopy-content .callout-title {
   display: flex;
   align-items: center;

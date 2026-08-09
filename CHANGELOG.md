@@ -29,6 +29,9 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
   Closed, it is a single compact line again — a `min-height: 100vh` left over from the desktop
   layout was stretching that line into a tall, mostly-empty band on narrow screens, which is
   fixed here too.
+- **An unlabelled code fence and a fence naming an unresolvable language now render the same
+  way**: themed plain-text code blocks — same background and font as every other fence, no
+  syntax coloring — rather than an unstyled block that read as a different kind of element.
 
 ## [0.5.0] — 2026-08-09
 

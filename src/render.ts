@@ -87,24 +87,6 @@ async function createWarmedHighlighter() {
   return highlighter;
 }
 
-/**
- * Highlighting is best-effort: a fence naming a language Shiki cannot resolve
- * renders as a plain code block, exactly as a fence with no language does. A
- * typo in a fence is an authoring slip, and failing a whole site build over one
- * would be out of proportion to it.
- *
- * Only that one failure is absorbed. Anything else Shiki reports is a defect in
- * canopy's own render configuration, not in the document, so it is rethrown and
- * fails the build where it can be seen. Shiki distinguishes the two by message
- * alone; render.test.ts pins the degradation, so if a future Shiki reworded it,
- * the suite fails rather than the behaviour changing unnoticed.
- */
-function absorbUnresolvedLanguage(error: unknown): void {
-  const unresolvedLanguage =
-    error instanceof Error && /is not included in this bundle/i.test(error.message);
-  if (!unresolvedLanguage) throw error;
-}
-
 const buildProcessor = async () =>
   unified()
   .use(remarkParse)
@@ -141,7 +123,16 @@ const buildProcessor = async () =>
     // cost proportional to the content: a grammar arrives in single-digit
     // milliseconds, and languages nobody writes are never loaded at all.
     lazy: true,
-    onError: absorbUnresolvedLanguage,
+    // A fence with no language, and a fence naming one Shiki cannot resolve,
+    // both render as plain "text" — themed and backgrounded like every other
+    // code block, just with no syntax coloring — rather than as an unstyled
+    // <pre> that looks like a different kind of element. A typo in a fence's
+    // language is an authoring slip, not a build-breaking error, so
+    // fallbackLanguage substitutes "text" for it before Shiki ever tries (and
+    // fails) to load the name — no onError absorption needed for that case
+    // anymore.
+    defaultLanguage: "text",
+    fallbackLanguage: "text",
   })
   .use(rehypeStringify)
   .freeze();

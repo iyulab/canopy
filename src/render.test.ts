@@ -53,20 +53,27 @@ describe("renderMarkdown", () => {
 
   // How a fence whose language cannot be resolved renders is a contract, not
   // an accident: highlighting is best-effort, so an unresolvable language
-  // degrades to a plain code block. A typo in a fence must never cost a whole
-  // site build. The next three tests pin that contract from both sides.
-  it("degrades an unknown language to a plain code block", async () => {
+  // falls back to plain "text" — themed and backgrounded like every other
+  // code block, just with no syntax coloring — rather than an unstyled <pre>
+  // that reads as a different kind of element. A typo in a fence must never
+  // cost a whole site build. The next three tests pin that contract.
+  it("degrades an unknown language to plain-text highlighting, not a bare <pre>", async () => {
     const html = await renderMarkdown("```not-a-real-lang\nhello <world>\n```");
-    expect(html).toContain('<code class="language-not-a-real-lang">');
-    expect(html).not.toContain("shiki");
+    expect(html).toContain("shiki");
     // The code survives verbatim, still escaped.
     expect(html).toContain("hello &#x3C;world>");
   });
 
-  it("leaves a fence with no language as a plain code block", async () => {
+  it("highlights a fence with no language the same way, as plain text", async () => {
     const html = await renderMarkdown("```\nplain text\n```");
-    expect(html).toContain("<pre><code>plain text");
-    expect(html).not.toContain("shiki");
+    expect(html).toContain("shiki");
+    expect(html).toContain("plain text");
+  });
+
+  it("renders an unknown language and no language identically — both are just \"text\"", async () => {
+    const unknown = await renderMarkdown("```not-a-real-lang\nsame text\n```");
+    const none = await renderMarkdown("```\nsame text\n```");
+    expect(unknown).toBe(none);
   });
 
   it("highlights a language beyond the ones loaded up front", async () => {

@@ -224,6 +224,17 @@ describe("renderPage", () => {
     expect(shallow).toContain('href="../"');
   });
 
+  // A root-absolute href already means "the domain root" regardless of the
+  // current page's depth — it needs no adjustment, and depth-prefixing it
+  // (as a naive "is this relative" check would) mangles it into "..//".
+  it("leaves a root-absolute home link exactly as given, at any depth", () => {
+    const html = renderPage(page({ sitePath: "guide/master/install.html" }), nav, {
+      homeUrl: "/",
+      homeLabel: "Product",
+    });
+    expect(html).toContain('href="/"');
+  });
+
   it("marks the sidebar link to the page being rendered as the current one", () => {
     // `page()`'s sitePath is "notes/idea.html", which `nav` also names.
     const html = renderPage(page(), nav);

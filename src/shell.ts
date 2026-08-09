@@ -1,4 +1,5 @@
 import type { RenderedPage, Backlink } from "./contract.js";
+import { isExternalUrl } from "./markdown-link.js";
 import { flattenNav, type NavNode } from "./navigation.js";
 import { relativeHref } from "./site-path.js";
 import { isOutlineUseful, type OutlineItem } from "./outline.js";
@@ -272,16 +273,18 @@ export function renderPage(
   const siteTitleLink = options.siteTitle
     ? `<a href="${escapeHtml(relativeHref(page.sitePath, "index.html"))}">${logo}${escapeHtml(options.siteTitle)}</a>`
     : logo;
-  // A scheme or protocol-relative URL addresses something outside the site
-  // and is used exactly as given. Anything else names a path from the site's
-  // own root — as `home.url: "../"` does for a product the site sits one
-  // level beneath — so it needs the same depth prefix every other internal
-  // link here gets from `relativeHref`, or it is only ever right at the site
-  // root.
+  // A scheme, protocol-relative, root-absolute, or fragment URL is left
+  // exactly as given — the same set `isExternalUrl` already carves out
+  // elsewhere, and for the same reason: a root-absolute href already means
+  // "the domain root" at any page depth, so adjusting it would break it.
+  // Anything else names a path from the site's own root — as `home.url:
+  // "../"` does for a product the site sits one level beneath — so it needs
+  // the same depth prefix every other internal link here gets from
+  // `relativeHref`, or it is only ever right at the site root.
   const homeHref =
     options.homeUrl === undefined
       ? undefined
-      : options.homeUrl.startsWith("//") || /^[a-z][a-z0-9+.-]*:/i.test(options.homeUrl)
+      : isExternalUrl(options.homeUrl)
         ? options.homeUrl
         : relativeHref(page.sitePath, "") + options.homeUrl;
   const homeLink =

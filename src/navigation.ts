@@ -99,3 +99,30 @@ export function buildNavigation(entries: NavEntry[]): NavNode[] {
   }
   return toNodes(root);
 }
+
+/** One page's position in the flattened reading order — label and target. */
+export interface FlatNavEntry {
+  sitePath: string;
+  label: string;
+}
+
+/**
+ * Depth-first order of every linked page in the tree — the order a reader
+ * encounters them following the sidebar top to bottom. A folder with its own
+ * index page is included at its own position, before its children, matching
+ * how the sidebar renders it (a node's own link, then its children's list).
+ *
+ * Takes any `NavNode[]`, derived (`buildNavigation`) or spec-driven
+ * (`applyNavSpec`) alike — both produce the same tree shape, so one function
+ * flattens either.
+ */
+export function flattenNav(nodes: NavNode[]): FlatNavEntry[] {
+  const entries: FlatNavEntry[] = [];
+  for (const node of nodes) {
+    if (node.sitePath !== undefined) {
+      entries.push({ sitePath: node.sitePath, label: node.label });
+    }
+    entries.push(...flattenNav(node.children));
+  }
+  return entries;
+}

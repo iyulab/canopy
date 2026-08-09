@@ -20,6 +20,9 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
   is unchanged when neither is set. A hidden `.canopy-theme-toggle` button rides in the top bar
   whenever one exists (for the same reason as `.canopy-search`: no script means it never shows),
   ready for a caller-supplied script to reveal and wire up.
+- **Every page now carries prev/next cards** (`.canopy-page-nav`) linking to its neighbors in
+  the sidebar's own reading order — the order a reader already sees, not a re-derived one.
+  Omitted at either end of that order, and for a single-page site.
 
 ### Changed
 

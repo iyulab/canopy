@@ -122,6 +122,52 @@ describe("renderPage", () => {
     expect(html).toContain(">The Plan</a>");
   });
 
+  describe("page navigation (prev/next)", () => {
+    // "idea" is nav's first flattened entry, "Home" its second and last —
+    // so idea has a next (Home) but no prev.
+    it("links to the next page in the sidebar's own order", () => {
+      const html = renderPage(page(), nav);
+      expect(html).toContain('<a class="canopy-next" rel="next" href="../index.html">Home</a>');
+      expect(html).not.toContain('class="canopy-prev"');
+    });
+
+    it("links to the previous page from the last page, with no next", () => {
+      const html = renderPage(page({ sitePath: "index.html" }), nav);
+      expect(html).toContain('<a class="canopy-prev" rel="prev" href="notes/idea.html">idea</a>');
+      expect(html).not.toContain('class="canopy-next"');
+    });
+
+    it("renders both neighbors for a page in the middle of the order", () => {
+      const three: NavNode[] = [
+        { label: "a", sitePath: "a.html", children: [] },
+        { label: "b", sitePath: "b.html", children: [] },
+        { label: "c", sitePath: "c.html", children: [] },
+      ];
+      const html = renderPage(page({ sitePath: "b.html" }), three);
+      expect(html).toContain('<a class="canopy-prev" rel="prev" href="a.html">a</a>');
+      expect(html).toContain('<a class="canopy-next" rel="next" href="c.html">c</a>');
+    });
+
+    it("omits the section entirely for a single-page tree", () => {
+      const html = renderPage(page(), [{ label: "idea", sitePath: "notes/idea.html", children: [] }]);
+      expect(html).not.toContain("canopy-page-nav");
+    });
+
+    it("omits the section for a page the navigation tree does not place", () => {
+      const html = renderPage(page({ sitePath: "orphan.html" }), nav);
+      expect(html).not.toContain("canopy-page-nav");
+    });
+
+    it("uses the neighbor's own nav label, not a re-derived title", () => {
+      const labeled: NavNode[] = [
+        { label: "Custom Label", sitePath: "a.html", children: [] },
+        { label: "b", sitePath: "b.html", children: [] },
+      ];
+      const html = renderPage(page({ sitePath: "b.html" }), labeled);
+      expect(html).toContain(">Custom Label</a>");
+    });
+  });
+
   it("omits the backlinks section when there are none", () => {
     expect(renderPage(page(), nav)).not.toContain("canopy-backlinks");
   });

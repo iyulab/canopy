@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildNavigation } from "./navigation.js";
+import { buildNavigation, flattenNav } from "./navigation.js";
 
 describe("buildNavigation", () => {
   it("nests pages under folders derived from their paths", () => {
@@ -52,5 +52,29 @@ describe("buildNavigation", () => {
       { sitePath: "alpha-dir/y.html" },
     ]);
     expect(nav.map((n) => n.label)).toEqual(["alpha-dir", "beta", "alpha", "zebra"]);
+  });
+});
+
+describe("flattenNav", () => {
+  it("orders a folder's own index page before its children, matching the sidebar", () => {
+    const nav = buildNavigation([
+      { sitePath: "guide/index.html" },
+      { sitePath: "guide/install.html" },
+      { sitePath: "about.html" },
+    ]);
+    expect(flattenNav(nav).map((entry) => entry.sitePath)).toEqual([
+      "guide/index.html",
+      "guide/install.html",
+      "about.html",
+    ]);
+  });
+
+  it("skips a folder with no index page of its own, but still descends into it", () => {
+    const nav = buildNavigation([{ sitePath: "notes/idea.html" }]);
+    expect(flattenNav(nav)).toEqual([{ sitePath: "notes/idea.html", label: "idea" }]);
+  });
+
+  it("returns nothing for an empty tree", () => {
+    expect(flattenNav([])).toEqual([]);
   });
 });

@@ -324,6 +324,28 @@ body {
 .canopy-backlinks a { color: var(--accent); }
 .canopy-backlinks a:hover { color: var(--accent-hover); }
 
+/* Prev/next cards. margin-left: auto on .canopy-next is the same technique
+   .canopy-search/.canopy-theme-toggle use to sit at the far edge of their
+   row — here it keeps "next" flush right even when "prev" is absent (the
+   first page), the same way it keeps "next" flush right in the top bar
+   whether or not search sits before it. No grid placement is given for the
+   wide layout below: unplaced, this lands in the next auto-placed row of
+   column 1 (.canopy-outline's sticky span covers rows 1/3 — .canopy-content
+   and .canopy-backlinks — so the outline tracks the article and stops
+   there, not stretching beside cards that are no longer part of it). */
+.canopy-page-nav {
+  display: flex;
+  gap: var(--sp-4);
+  margin-top: var(--sp-8);
+  padding-top: var(--sp-6);
+  border-top: 1px solid var(--border);
+}
+.canopy-page-nav a { color: var(--accent); text-decoration: none; }
+.canopy-page-nav a:hover { color: var(--accent-hover); text-decoration: underline; }
+.canopy-prev::before { content: "← "; }
+.canopy-next { margin-left: auto; text-align: right; }
+.canopy-next::after { content: " →"; }
+
 /* Shiki dual-theme: swap to the dark palette via the CSS variables Shiki
    emits (--shiki-dark*), so code blocks match the page's color scheme. */
 @media (prefers-color-scheme: dark) {

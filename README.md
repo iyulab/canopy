@@ -138,6 +138,10 @@ folder layout. Dot-prefixed directories (`.git`, editor and note-app config dire
 caches) are skipped, along with `node_modules`. KaTeX styles and fonts are bundled into `assets/`
 so math renders without a network dependency.
 
+Every page also gets prev/next cards (`.canopy-page-nav`) linking to its neighbors in that same
+order — the one a reader already sees in the sidebar, not a re-derived one. Omitted at either end
+of the order, and for a single-page site.
+
 ## Library API
 
 ```ts

@@ -1,5 +1,5 @@
 import type { RenderedPage, Backlink } from "./contract.js";
-import type { NavNode } from "./navigation.js";
+import { flattenNav, type NavNode } from "./navigation.js";
 import { relativeHref } from "./site-path.js";
 import { isOutlineUseful, type OutlineItem } from "./outline.js";
 import { declaredTitle, pageName } from "./title.js";
@@ -176,6 +176,33 @@ function renderBacklinks(backlinks: Backlink[], from: string): string {
 }
 
 /**
+ * Prev/next cards for the page's place in the sidebar's own reading order —
+ * a projection of the same tree renderNavList already walks, not a second
+ * source of truth. Labels are the neighboring NavNode's own label, never
+ * invented text, for the same reason a folder's index page names itself: the
+ * one name a reader already sees in the sidebar is the one this repeats.
+ *
+ * Omitted entirely for a page the navigation tree does not place (unplaced
+ * pages have no defined neighbor) and for a tree with only one page (neither
+ * neighbor exists) — there is nothing to link to either way.
+ */
+function renderPageNav(navigation: NavNode[], from: string): string {
+  const flat = flattenNav(navigation);
+  const at = flat.findIndex((entry) => entry.sitePath === from);
+  if (at === -1) return "";
+  const prev = flat[at - 1];
+  const next = flat[at + 1];
+  if (prev === undefined && next === undefined) return "";
+  const prevLink = prev
+    ? `<a class="canopy-prev" rel="prev" href="${escapeHtml(relativeHref(from, prev.sitePath))}">${escapeHtml(prev.label)}</a>`
+    : "";
+  const nextLink = next
+    ? `<a class="canopy-next" rel="next" href="${escapeHtml(relativeHref(from, next.sitePath))}">${escapeHtml(next.label)}</a>`
+    : "";
+  return `<nav class="canopy-page-nav" aria-label="Page navigation">${prevLink}${nextLink}</nav>`;
+}
+
+/**
  * Wrap a rendered page's HTML body into a complete, self-contained HTML
  * document: head with metadata and stylesheets, a navigation sidebar, the
  * content, and a backlinks section. All internal links are relative to this
@@ -258,6 +285,7 @@ ${topbar}
 ${renderOutline(page.outline)}
 <article class="canopy-content">${page.html}</article>
 ${renderBacklinks(page.backlinks, page.sitePath)}
+${renderPageNav(navigation, page.sitePath)}
 </main>
 </div>
 </body>

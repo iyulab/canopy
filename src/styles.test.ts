@@ -208,8 +208,17 @@ describe("top bar", () => {
   });
 
   it("still sizes the logo and dims the home link the same way it did in the sidebar", () => {
-    expect(BASE_CSS).toMatch(/\.canopy-logo\s*\{[^}]*max-height:\s*1\.75rem/);
+    expect(BASE_CSS).toMatch(/\.canopy-logo\s*\{[^}]*height:\s*1\.75rem/);
     expect(BASE_CSS).toMatch(/\.canopy-topbar\s*\.canopy-home\s*\{[^}]*color:\s*var\(--text-muted\)/);
+  });
+
+  it("sizes the logo with a definite height, not max-height, so it contributes its full width to the title link's intrinsic size", () => {
+    // A max-height-capped (indefinite) replaced element does not reliably
+    // contribute its rendered width when a flex item that is itself a flex
+    // container (.canopy-topbar > a) computes its own intrinsic width — the
+    // logo can end up contributing zero, so the title text wraps beside it
+    // despite room to spare in the bar. A definite height avoids that gap.
+    expect(BASE_CSS).not.toMatch(/\.canopy-logo\s*\{[^}]*max-height/);
   });
 
   it("wraps instead of forcing horizontal scroll on a narrow viewport", () => {

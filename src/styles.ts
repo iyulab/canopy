@@ -64,9 +64,21 @@ body {
   font-weight: var(--font-weight-semibold);
 }
 .canopy-topbar > a:not(.canopy-home) { display: flex; align-items: center; gap: var(--sp-2); }
-/* Capped rather than sized: a brand file supplies whatever it has, and a tall
-   logo must not grow the bar past a single line. */
-.canopy-logo { max-height: 1.75rem; max-width: 100%; width: auto; }
+/* A definite height, not max-height: a brand file supplies whatever it has,
+   and a tall logo must not grow the bar past a single line — max-height would
+   say that more precisely (cap, don't force), but it makes the logo's inline
+   contribution to .canopy-topbar > a's own intrinsic width indefinite, and
+   that indefinite replaced-element size is what the title text wraps around
+   despite room to spare: measured live, the anchor's computed width came out
+   equal to gap + text alone, as if the logo contributed zero, even though it
+   paints at its correct capped size right next to that too-narrow box (a
+   flex-basis:auto sizing gap most engines have for max-height-constrained
+   replaced children, not anything specific to this logo or this text). A
+   definite height gives the logo a definite aspect-ratio-derived width up
+   front, which the anchor's intrinsic-size pass can add in like any other
+   child — the trade is that a logo shorter than 1.75rem now scales up to fill
+   it instead of sitting at its own smaller natural size. */
+.canopy-logo { height: 1.75rem; max-width: 100%; width: auto; }
 /* Specificity beats .canopy-topbar a without !important, which would also
    override a caller's own stylesheet. */
 .canopy-topbar .canopy-home { font-weight: 400; font-size: 0.9em; color: var(--text-muted); }

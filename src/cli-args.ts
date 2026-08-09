@@ -27,6 +27,13 @@ export type BuildArgs =
       homeUrl?: string;
       /** Link text for `homeUrl`, in the site's own language. */
       homeLabel?: string;
+      /**
+       * Overrides for the reader chrome's own text (search, theme toggle, nav
+       * landmarks) — the reader-facing counterpart to `--lang`, which only
+       * changes what `<html lang>` declares. Keys left out keep their
+       * English default.
+       */
+      strings?: Record<string, string>;
       /** Output-relative path to write the search index JSON to. */
       searchIndexPath?: string;
       /**
@@ -59,6 +66,7 @@ export const USAGE = [
   "  --site-logo <path>         Vault-relative logo, shown beside the site title",
   "  --home-url <url>           Link back to the site this one sits beside",
   "  --home-label <text>        Link text for --home-url (required with it)",
+  "  --strings <json>           JSON object overriding the reader chrome's own text",
   "  --search-index <path>      Write a search index JSON file at this output-relative path",
   "  --script <path>            Carry this script into assets/ and link it, deferred, from every page",
   "  --rehype-plugin <path>     Load a rehype plugin module, run after sanitize and before Shiki (repeatable)",
@@ -82,6 +90,7 @@ const VALUE_FLAGS = {
   "--site-logo": "siteLogo",
   "--home-url": "homeUrl",
   "--home-label": "homeLabel",
+  "--strings": "stringsJson",
   "--search-index": "searchIndexPath",
   "--script": "scriptPath",
 } as const;
@@ -157,6 +166,20 @@ export function parseBuildArgs(argv: string[]): BuildArgs {
     return { ok: false, error: "--home-label needs --home-url" };
   }
 
+  let strings: Record<string, string> | undefined;
+  if (single.stringsJson !== undefined) {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(single.stringsJson);
+    } catch {
+      return { ok: false, error: "--strings: must be valid JSON" };
+    }
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      return { ok: false, error: "--strings: must be a JSON object" };
+    }
+    strings = parsed as Record<string, string>;
+  }
+
   return {
     ok: true,
     vault,
@@ -170,6 +193,7 @@ export function parseBuildArgs(argv: string[]): BuildArgs {
     siteLogo: single.siteLogo,
     homeUrl: single.homeUrl,
     homeLabel: single.homeLabel,
+    strings,
     searchIndexPath: single.searchIndexPath,
     scriptPath: single.scriptPath,
     rehypePluginPaths,

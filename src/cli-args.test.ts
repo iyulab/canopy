@@ -121,6 +121,32 @@ describe("parseBuildArgs", () => {
     expect(args).toEqual({ ok: false, error: "--home-label needs --home-url" });
   });
 
+  // `--lang` only changes what <html lang> declares; the reader chrome's own
+  // text (search, theme toggle, nav landmarks) needs a translation supplied
+  // separately, the same way `--home-label` supplies text `--home-url` cannot.
+  it("parses --strings as a JSON object of chrome text overrides", () => {
+    const args = parseBuildArgs([
+      "build",
+      "vault",
+      "--strings",
+      '{"search":"검색","toggleTheme":"테마 전환"}',
+    ]);
+    expect(args).toMatchObject({
+      ok: true,
+      strings: { search: "검색", toggleTheme: "테마 전환" },
+    });
+  });
+
+  it("rejects --strings that is not valid JSON", () => {
+    const args = parseBuildArgs(["build", "vault", "--strings", "{not json}"]);
+    expect(args).toMatchObject({ ok: false });
+  });
+
+  it("rejects --strings that is not a JSON object", () => {
+    const args = parseBuildArgs(["build", "vault", "--strings", '["search"]']);
+    expect(args).toEqual({ ok: false, error: '--strings: must be a JSON object' });
+  });
+
   it("parses --search-index", () => {
     const args = parseBuildArgs(["build", "vault", "--search-index", "search-index.json"]);
     expect(args).toMatchObject({ ok: true, searchIndexPath: "search-index.json" });

@@ -71,7 +71,29 @@ export interface ShellOptions {
    * what a caller gives it (see docs/SCOPE.md, "Author client-side code").
    */
   scriptPath?: string;
+  /**
+   * Overrides for the reader chrome's own text — search, the theme toggle,
+   * and the navigation landmarks. `lang` changes what `<html lang>` declares,
+   * but these are canopy's own UI, not vault content, so `lang` alone leaves
+   * them English; there is no built-in translation table, the same reasoning
+   * `homeLabel` already applies. Unset keys keep their English default.
+   */
+  strings?: {
+    search?: string;
+    toggleTheme?: string;
+    siteNav?: string;
+    pageNav?: string;
+    onThisPage?: string;
+  };
 }
+
+const DEFAULT_STRINGS = {
+  search: "Search",
+  toggleTheme: "Toggle color theme",
+  siteNav: "Site navigation",
+  pageNav: "Page navigation",
+  onThisPage: "On this page",
+} as const;
 
 /** MIME type for a favicon, inferred from its extension. */
 function iconType(sitePath: string): string | undefined {
@@ -145,7 +167,7 @@ function renderNavList(nodes: NavNode[], from: string, depth = 0): string {
  * rest of the shell works. Nesting mirrors heading depth so the list reads as
  * the structure it describes.
  */
-function renderOutline(outline: OutlineItem[]): string {
+function renderOutline(outline: OutlineItem[], label: string): string {
   if (!isOutlineUseful(outline)) {
     return "";
   }
@@ -156,7 +178,7 @@ function renderOutline(outline: OutlineItem[]): string {
       return `<li class="canopy-outline-l${depth}"><a href="#${escapeHtml(item.id)}">${escapeHtml(item.text)}</a></li>`;
     })
     .join("");
-  return `<nav class="canopy-outline" aria-label="On this page"><ul>${items}</ul></nav>`;
+  return `<nav class="canopy-outline" aria-label="${escapeHtml(label)}"><ul>${items}</ul></nav>`;
 }
 
 function renderBacklinks(backlinks: Backlink[], from: string): string {
@@ -186,7 +208,7 @@ function renderBacklinks(backlinks: Backlink[], from: string): string {
  * pages have no defined neighbor) and for a tree with only one page (neither
  * neighbor exists) — there is nothing to link to either way.
  */
-function renderPageNav(navigation: NavNode[], from: string): string {
+function renderPageNav(navigation: NavNode[], from: string, label: string): string {
   const flat = flattenNav(navigation);
   const at = flat.findIndex((entry) => entry.sitePath === from);
   if (at === -1) return "";
@@ -199,7 +221,7 @@ function renderPageNav(navigation: NavNode[], from: string): string {
   const nextLink = next
     ? `<a class="canopy-next" rel="next" href="${escapeHtml(relativeHref(from, next.sitePath))}">${escapeHtml(next.label)}</a>`
     : "";
-  return `<nav class="canopy-page-nav" aria-label="Page navigation">${prevLink}${nextLink}</nav>`;
+  return `<nav class="canopy-page-nav" aria-label="${escapeHtml(label)}">${prevLink}${nextLink}</nav>`;
 }
 
 /**
@@ -214,6 +236,7 @@ export function renderPage(
   options: ShellOptions = {},
 ): string {
   const lang = options.lang ?? "en";
+  const strings = { ...DEFAULT_STRINGS, ...options.strings };
   const stylesheets = options.stylesheets ?? ["tokens.css", "styles.css"];
   const title = pageTitle(page);
   const docTitle = options.siteTitle
@@ -249,12 +272,24 @@ export function renderPage(
   const siteTitleLink = options.siteTitle
     ? `<a href="${escapeHtml(relativeHref(page.sitePath, "index.html"))}">${logo}${escapeHtml(options.siteTitle)}</a>`
     : logo;
+  // A scheme or protocol-relative URL addresses something outside the site
+  // and is used exactly as given. Anything else names a path from the site's
+  // own root — as `home.url: "../"` does for a product the site sits one
+  // level beneath — so it needs the same depth prefix every other internal
+  // link here gets from `relativeHref`, or it is only ever right at the site
+  // root.
+  const homeHref =
+    options.homeUrl === undefined
+      ? undefined
+      : options.homeUrl.startsWith("//") || /^[a-z][a-z0-9+.-]*:/i.test(options.homeUrl)
+        ? options.homeUrl
+        : relativeHref(page.sitePath, "") + options.homeUrl;
   const homeLink =
-    options.homeUrl !== undefined && options.homeLabel !== undefined
-      ? `<a class="canopy-home" href="${escapeHtml(options.homeUrl)}">${escapeHtml(options.homeLabel)}</a>`
+    homeHref !== undefined && options.homeLabel !== undefined
+      ? `<a class="canopy-home" href="${escapeHtml(homeHref)}">${escapeHtml(options.homeLabel)}</a>`
       : "";
   const search = options.search
-    ? `<form class="canopy-search" role="search" hidden><input type="search" name="q" aria-label="Search"></form>`
+    ? `<form class="canopy-search" role="search" hidden><input type="search" name="q" aria-label="${escapeHtml(strings.search)}"></form>`
     : "";
   // No option gates this, unlike search: a caller-supplied script can flip a
   // reader's color scheme regardless of what else the site configures, the
@@ -262,7 +297,7 @@ export function renderPage(
   // It only rides along when a topbar exists for another reason, though —
   // manufacturing one just to hold a hidden button would cost every reader of
   // an otherwise chrome-free site a visible padded bar (see .canopy-topbar).
-  const themeToggle = `<button type="button" class="canopy-theme-toggle" hidden aria-label="Toggle color theme"></button>`;
+  const themeToggle = `<button type="button" class="canopy-theme-toggle" hidden aria-label="${escapeHtml(strings.toggleTheme)}"></button>`;
   const topbar =
     siteTitleLink === "" && homeLink === "" && search === ""
       ? ""
@@ -280,12 +315,12 @@ ${description}${icon}${links}${script}
 <body>
 ${topbar}
 <div class="canopy-layout">
-<aside class="canopy-sidebar"><details class="canopy-nav" open><summary aria-label="Site navigation"></summary><nav>${renderNavList(navigation, page.sitePath)}</nav></details></aside>
+<aside class="canopy-sidebar"><details class="canopy-nav" open><summary aria-label="${escapeHtml(strings.siteNav)}"></summary><nav>${renderNavList(navigation, page.sitePath)}</nav></details></aside>
 <main class="canopy-main">
-${renderOutline(page.outline)}
+${renderOutline(page.outline, strings.onThisPage)}
 <article class="canopy-content">${page.html}</article>
 ${renderBacklinks(page.backlinks, page.sitePath)}
-${renderPageNav(navigation, page.sitePath)}
+${renderPageNav(navigation, page.sitePath, strings.pageNav)}
 </main>
 </div>
 </body>

@@ -58,7 +58,14 @@ npx canopy build <vault-dir> [out-dir] [options]
 - `--site-title <title>` — override the site title (defaults to the vault folder name).
 - `--site-description <text>` — fill `<meta name="description">`, used by link previews.
 - `--lang <tag>` — BCP 47 language tag for `<html lang>` (defaults to `en`). Worth setting for
-  any non-English vault: assistive technology reads pronunciation rules from it.
+  any non-English vault: assistive technology reads pronunciation rules from it. It changes only
+  what `<html lang>` declares — the reader chrome's own text (search, theme toggle, nav
+  landmarks) is canopy's UI, not vault content, so it stays English unless `--strings` overrides
+  it.
+- `--strings <json>` — a JSON object overriding the reader chrome's own text: `search`,
+  `toggleTheme`, `siteNav`, `pageNav`, `onThisPage`. No built-in translation table — the same
+  reasoning `--home-label` already follows: this text has to be written in the site's own
+  language, and canopy has no way to guess it. Keys left out keep their English default.
 - `--site-icon <path>` — vault-relative favicon, linked from every page. Linked relatively, so
   it resolves from a sub-path — where the browser's implicit `/favicon.ico` guess fails. The
   build fails if the path is missing or excluded, rather than shipping a broken link.
@@ -68,7 +75,9 @@ npx canopy build <vault-dir> [out-dir] [options]
   already names the site.
 - `--home-url <url>` / `--home-label <text>` — a link back to the site this documentation
   sits beside. Both or neither: link text belongs in the site's own language, so there is no
-  default worth guessing.
+  default worth guessing. A scheme (`https://...`) or protocol-relative URL is used exactly as
+  given; anything else is treated as a path from the site's own root and resolved against each
+  page's depth, the same as every other internal link canopy writes.
 - `--tokens-css <path>` — CSS file appended after canopy's built-in tokens in `tokens.css`. A
   caller may override specific values (leaving the rest intact) or supply the entire vocabulary.
 - `--exclude <pattern>` — leave part of the vault unpublished. Repeatable. Accepts a directory

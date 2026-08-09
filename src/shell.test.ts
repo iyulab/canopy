@@ -204,6 +204,26 @@ describe("renderPage", () => {
     expect(sidebarSection).not.toContain("canopy-site-title");
   });
 
+  // An absolute homeUrl addresses something outside the site and is emitted
+  // exactly as given (the test above covers that). A relative one instead
+  // names a path from the site's own root — as `home.url: "../"` does for a
+  // product the site sits one level beneath — and every other internal link
+  // this function writes already adjusts for how deep the current page sits,
+  // so this one has to as well or it is only ever right at the site root.
+  it("resolves a relative home link against the page's depth in the site", () => {
+    const deep = renderPage(page({ sitePath: "guide/master/install.html" }), nav, {
+      homeUrl: "../",
+      homeLabel: "Product",
+    });
+    expect(deep).toContain('href="../../../"');
+
+    const shallow = renderPage(page({ sitePath: "index.html" }), nav, {
+      homeUrl: "../",
+      homeLabel: "Product",
+    });
+    expect(shallow).toContain('href="../"');
+  });
+
   it("marks the sidebar link to the page being rendered as the current one", () => {
     // `page()`'s sitePath is "notes/idea.html", which `nav` also names.
     const html = renderPage(page(), nav);
@@ -266,6 +286,46 @@ describe("renderPage", () => {
     const html = renderPage(page(), nav);
     expect(html).not.toContain("canopy-topbar");
     expect(html).not.toContain("canopy-theme-toggle");
+  });
+
+  // `lang` only changes what <html lang> declares; it was silently not enough
+  // on its own — every literal here stayed English regardless, which is the
+  // defect this closes. Unset keys keep their English default, the same
+  // fallback shape `stylesheets`/`iconPath` already use.
+  it("overrides the reader chrome's built-in strings, leaving unset ones at their default", () => {
+    const html = renderPage(
+      page({
+        outline: [
+          { level: 2, text: "First", id: "first" },
+          { level: 2, text: "Second", id: "second" },
+        ],
+      }),
+      nav,
+      {
+        search: true,
+        strings: {
+          search: "검색",
+          toggleTheme: "테마 전환",
+          siteNav: "사이트 메뉴",
+          pageNav: "페이지 이동",
+          onThisPage: "이 페이지에서",
+        },
+      },
+    );
+    expect(html).toContain('aria-label="검색"');
+    expect(html).toContain('aria-label="테마 전환"');
+    expect(html).toContain('aria-label="사이트 메뉴"');
+    expect(html).toContain('aria-label="페이지 이동"');
+    expect(html).toContain('aria-label="이 페이지에서"');
+    expect(html).not.toContain("Search");
+    expect(html).not.toContain("Toggle color theme");
+  });
+
+  it("falls back to English strings when no override is given", () => {
+    const html = renderPage(page({ sitePath: "guide/install.html" }), nav, { search: true });
+    expect(html).toContain('aria-label="Search"');
+    expect(html).toContain('aria-label="Toggle color theme"');
+    expect(html).toContain('aria-label="Site navigation"');
   });
 
   it("links a caller-supplied script, deferred and relative to the page", () => {

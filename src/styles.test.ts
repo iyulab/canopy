@@ -98,6 +98,23 @@ describe("sidebar column fill", () => {
     expect(mobileBlock).toMatch(/\.canopy-layout\s*\{[^}]*background:\s*var\(--bg-primary\)/);
     expect(mobileBlock).toMatch(/\.canopy-sidebar\s*\{[^}]*background:\s*var\(--bg-secondary\)/);
   });
+
+  it("releases the desktop 100vh floor, so a closed nav's compact row isn't stretched into a tall empty band", () => {
+    // Found live: with min-height: 100vh still in force, the single-column
+    // grid's two implicit rows (sidebar, main) default to align-content:
+    // stretch and split that 100vh between them regardless of how little
+    // content either row actually has — a closed disclosure's one-line
+    // control ends up padded out to a large fraction of the screen. Moot to
+    // release: the mobile background is already a plain fill matching body's
+    // own (test above), so a page shorter than the viewport looks identical
+    // whether .canopy-layout's box ends at its content or at 100vh.
+    const mobileBlock = BASE_CSS.match(/@media \(max-width: 40rem\) \{([\s\S]*)\}\s*$/)?.[1];
+    expect(mobileBlock).toMatch(/\.canopy-layout\s*\{[^}]*min-height:\s*auto/);
+    // The desktop rule must still set the 100vh floor — this only releases it
+    // on narrow screens.
+    const desktopCss = BASE_CSS.slice(0, BASE_CSS.indexOf("@media (max-width: 40rem)"));
+    expect(desktopCss).toMatch(/\.canopy-layout\s*\{[^}]*min-height:\s*100vh/);
+  });
 });
 
 describe("comment safety", () => {
@@ -134,13 +151,49 @@ describe("comment safety", () => {
 });
 
 describe("mobile navigation footprint", () => {
-  it("caps the always-open nav list well under half the header's prior share of the screen", () => {
+  it("caps the closed-disclosure's own line the same as before, unaffected by the open redesign", () => {
     // canopy ships the nav disclosure `open` unconditionally (no JS to remember a
     // closed state across page loads), so this cap is what a mobile reader sees
     // above the fold on every single page. Measured live (iyulab.github.io/canopy-page,
     // 375x667): the prior 40vh cap put the header+nav block at 66% of the viewport.
     expect(BASE_CSS).toContain(".canopy-nav > nav { max-height: 25vh; overflow-y: auto; }");
     expect(BASE_CSS).not.toContain("max-height: 40vh");
+  });
+
+  it("turns the open disclosure into a full-screen panel, not an in-flow block", () => {
+    const mobileBlock = BASE_CSS.match(/@media \(max-width: 40rem\) \{([\s\S]*)\}\s*$/)?.[1];
+    expect(mobileBlock).toBeDefined();
+    expect(mobileBlock).toMatch(/\.canopy-nav\[open\]\s*\{[^}]*position:\s*fixed/);
+    expect(mobileBlock).toMatch(/\.canopy-nav\[open\]\s*\{[^}]*inset:\s*0/);
+    // The old clamp must actually be gone for the open state, not just added
+    // to: a leftover max-height: 25vh on [open] > nav would silently cap the
+    // "full-screen" panel back down to a sliver.
+    expect(mobileBlock).toMatch(/\.canopy-nav\[open\]\s*>\s*nav\s*\{[^}]*max-height:\s*none/);
+  });
+
+  it("stops the page behind the open panel from also scrolling", () => {
+    const mobileBlock = BASE_CSS.match(/@media \(max-width: 40rem\) \{([\s\S]*)\}\s*$/)?.[1];
+    expect(mobileBlock).toMatch(/body:has\(\.canopy-nav\[open\]\)\s*\{[^}]*overflow:\s*hidden/);
+    // Scoped to the mobile breakpoint: this selector matches on every desktop
+    // page too, since [open] ships in the HTML unconditionally — outside the
+    // media query it would permanently disable desktop scrolling everywhere.
+    const desktopCss = BASE_CSS.slice(0, BASE_CSS.indexOf("@media (max-width: 40rem)"));
+    expect(desktopCss).not.toMatch(/body:has/);
+  });
+
+  it("replaces the native disclosure marker with an icon that swaps between closed and open", () => {
+    const mobileBlock = BASE_CSS.match(/@media \(max-width: 40rem\) \{([\s\S]*)\}\s*$/)?.[1];
+    expect(mobileBlock).toMatch(/\.canopy-nav\s*>\s*summary\s*\{[^}]*list-style:\s*none/);
+    // Two different mask-image data URIs — the closed (menu) and open (x)
+    // icons must actually differ, or the control would give no visual signal
+    // that clicking it now closes the panel rather than opening it.
+    const closedIcon = mobileBlock?.match(/\.canopy-nav\s*>\s*summary::before\s*\{[^}]*mask:\s*(url\("[^"]+"\))/)?.[1];
+    const openIcon = mobileBlock?.match(
+      /\.canopy-nav\[open\]\s*>\s*summary::before\s*\{[^}]*mask-image:\s*(url\("[^"]+"\))/,
+    )?.[1];
+    expect(closedIcon).toBeDefined();
+    expect(openIcon).toBeDefined();
+    expect(openIcon).not.toBe(closedIcon);
   });
 });
 

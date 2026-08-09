@@ -21,6 +21,15 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
   whenever one exists (for the same reason as `.canopy-search`: no script means it never shows),
   ready for a caller-supplied script to reveal and wire up.
 
+### Changed
+
+- **The mobile navigation panel is now a full-screen overlay while open**, replacing the
+  in-flow block that used to push page content down (capped at a fraction of the viewport
+  height). Its control is now a menu/close icon rather than the native disclosure marker.
+  Closed, it is a single compact line again — a `min-height: 100vh` left over from the desktop
+  layout was stretching that line into a tall, mostly-empty band on narrow screens, which is
+  fixed here too.
+
 ## [0.5.0] — 2026-08-09
 
 ### Added

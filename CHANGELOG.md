@@ -8,6 +8,24 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [0.8.0] — 2026-08-09
+
+### Added
+
+- **`--strings <json>`** (and the library option `ShellOptions.strings`) overrides the reader
+  chrome's own built-in text: search, the theme toggle, and the site/page/outline navigation
+  landmarks. `--lang` only ever changed what `<html lang>` declares; this text is canopy's own
+  UI, not vault content, so it stayed English regardless. No built-in translation table — the
+  same reasoning `--home-label` already follows, since link text has to be written in the
+  site's own language. Keys left unset keep their English default.
+
+### Changed
+
+- **`--home-url` resolves a relative value against each page's depth**, the same way every other
+  internal link canopy writes already does. A scheme, protocol-relative, root-absolute, or
+  fragment value is still used exactly as given. Previously a relative value was emitted
+  verbatim, which only rendered correctly for pages at the site root.
+
 ## [0.7.0] — 2026-08-09
 
 ### Added

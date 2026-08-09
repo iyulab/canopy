@@ -122,10 +122,16 @@ function renderNavList(nodes: NavNode[], from: string, depth = 0): string {
   const items = nodes
     .map((node) => {
       const label = escapeHtml(node.label);
-      const link =
-        node.sitePath !== undefined
-          ? `<a href="${escapeHtml(relativeHref(from, node.sitePath))}">${label}</a>`
-          : `<span>${label}</span>`;
+      let link: string;
+      if (node.sitePath === undefined) {
+        link = `<span>${label}</span>`;
+      } else {
+        // The standard way to mark the current item in a set of links (MDN:
+        // aria-current), so a caller can style it with `[aria-current="page"]`
+        // rather than canopy inventing a class name for the same thing.
+        const current = node.sitePath === from ? ' aria-current="page"' : "";
+        link = `<a href="${escapeHtml(relativeHref(from, node.sitePath))}"${current}>${label}</a>`;
+      }
       return `<li class="canopy-nav-l${depth}">${link}${renderNavList(node.children, from, depth + 1)}</li>`;
     })
     .join("");

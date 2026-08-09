@@ -158,6 +158,24 @@ describe("renderPage", () => {
     expect(sidebarSection).not.toContain("canopy-site-title");
   });
 
+  it("marks the sidebar link to the page being rendered as the current one", () => {
+    // `page()`'s sitePath is "notes/idea.html", which `nav` also names.
+    const html = renderPage(page(), nav);
+    const sidebar = html.slice(html.indexOf("canopy-sidebar"), html.indexOf("canopy-main"));
+    expect(sidebar).toContain('<a href="idea.html" aria-current="page">idea</a>');
+  });
+
+  it("leaves every other sidebar link unmarked", () => {
+    const html = renderPage(page(), nav);
+    const sidebar = html.slice(html.indexOf("canopy-sidebar"), html.indexOf("canopy-main"));
+    expect(sidebar).toContain('<a href="../index.html">Home</a>');
+  });
+
+  it("marks no sidebar link current for a page the nav does not list", () => {
+    const html = renderPage(page({ sitePath: "orphan.html" }), nav);
+    expect(html).not.toContain("aria-current");
+  });
+
   it("omits the logo and home link when they are not given", () => {
     const html = renderPage(page(), nav, { siteTitle: "Product Help" });
     expect(html).not.toContain("canopy-logo");

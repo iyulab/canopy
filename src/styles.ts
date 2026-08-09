@@ -149,6 +149,11 @@ body {
    .canopy-nav-l{n} directly, now that depth is exposed in the markup. */
 .canopy-nav-l0 > a, .canopy-nav-l0 > span { font-weight: var(--font-weight-semibold); }
 
+/* The page a reader is already on, styled the same way the on-page outline
+   already styles read-only context: an accent color rather than a new
+   background, so it works at every nav depth without a size change. */
+.canopy-sidebar a[aria-current="page"] { color: var(--accent); font-weight: var(--font-weight-semibold); }
+
 /* A disclosure that ships open: the desktop layout is unchanged and needs no
    override, while a narrow screen can collapse the list entirely.
    [open] is load-bearing, not decoration: a reader can close the disclosure on a

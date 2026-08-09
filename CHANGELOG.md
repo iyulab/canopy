@@ -8,6 +8,14 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [Unreleased]
+
+### Added
+
+- **The sidebar now marks the page a reader is already on** with `aria-current="page"` on its
+  link, styled in the accent color by default. A caller who wants different styling can target
+  `[aria-current="page"]` directly — no new class name.
+
 ## [0.5.0] — 2026-08-09
 
 ### Added

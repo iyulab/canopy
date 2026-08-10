@@ -122,6 +122,16 @@ describe("renderPage", () => {
     expect(html).toContain(">The Plan</a>");
   });
 
+  it("overrides the backlinks heading via strings.backlinks", () => {
+    const html = renderPage(
+      page({ backlinks: [{ sitePath: "notes/plan.html", title: "The Plan" }] }),
+      nav,
+      { strings: { backlinks: "관련 문서" } },
+    );
+    expect(html).toContain("관련 문서");
+    expect(html).not.toContain("Linked references");
+  });
+
   describe("page navigation (prev/next)", () => {
     // "idea" is nav's first flattened entry, "Home" its second and last —
     // so idea has a next (Home) but no prev.
@@ -391,6 +401,13 @@ describe("renderContentsPage", () => {
     expect(html).toContain("<title>Contents · My Vault</title>");
     const bare = renderContentsPage(contentsNav);
     expect(bare).toContain("<title>Contents</title>");
+  });
+
+  it("overrides the title and heading via strings.indexTitle", () => {
+    const html = renderContentsPage(contentsNav, { strings: { indexTitle: "목차" } });
+    expect(html).toContain("<title>목차</title>");
+    expect(html).toContain("<h1>목차</h1>");
+    expect(html).not.toContain("Contents");
   });
 
   it("renders a valid document for an empty site", () => {

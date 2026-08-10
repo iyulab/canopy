@@ -8,6 +8,17 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [Unreleased]
+
+### Added
+
+- **`--strings` gains `indexTitle` and `backlinks`.** The synthetic contents page `emitSite`
+  writes at the site root (when a vault has no root index page of its own) had its `<title>`
+  and `<h1>` hardcoded to "Contents", and the backlinks section heading was hardcoded to
+  "Linked references" — both were reader chrome text that fell outside `--strings`' coverage
+  by oversight, the same category of text its other five keys already override. Unset, both
+  keep their English default.
+
 ## [0.8.0] — 2026-08-09
 
 ### Added

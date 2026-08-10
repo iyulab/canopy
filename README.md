@@ -63,9 +63,11 @@ npx canopy build <vault-dir> [out-dir] [options]
   landmarks) is canopy's UI, not vault content, so it stays English unless `--strings` overrides
   it.
 - `--strings <json>` — a JSON object overriding the reader chrome's own text: `search`,
-  `toggleTheme`, `siteNav`, `pageNav`, `onThisPage`. No built-in translation table — the same
-  reasoning `--home-label` already follows: this text has to be written in the site's own
-  language, and canopy has no way to guess it. Keys left out keep their English default.
+  `toggleTheme`, `siteNav`, `pageNav`, `onThisPage`, `indexTitle` (the auto-generated contents
+  page's title/heading), `backlinks` (a page's "linked references" section heading). No
+  built-in translation table — the same reasoning `--home-label` already follows: this text has
+  to be written in the site's own language, and canopy has no way to guess it. Keys left out
+  keep their English default.
 - `--site-icon <path>` — vault-relative favicon, linked from every page. Linked relatively, so
   it resolves from a sub-path — where the browser's implicit `/favicon.ico` guess fails. The
   build fails if the path is missing or excluded, rather than shipping a broken link.

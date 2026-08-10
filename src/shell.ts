@@ -85,6 +85,10 @@ export interface ShellOptions {
     siteNav?: string;
     pageNav?: string;
     onThisPage?: string;
+    /** Title and heading of the synthetic contents page `renderContentsPage` emits. */
+    indexTitle?: string;
+    /** Heading over a page's list of pages that link to it. */
+    backlinks?: string;
   };
 }
 
@@ -94,6 +98,8 @@ const DEFAULT_STRINGS = {
   siteNav: "Site navigation",
   pageNav: "Page navigation",
   onThisPage: "On this page",
+  indexTitle: "Contents",
+  backlinks: "Linked references",
 } as const;
 
 /** MIME type for a favicon, inferred from its extension. */
@@ -182,7 +188,7 @@ function renderOutline(outline: OutlineItem[], label: string): string {
   return `<nav class="canopy-outline" aria-label="${escapeHtml(label)}"><ul>${items}</ul></nav>`;
 }
 
-function renderBacklinks(backlinks: Backlink[], from: string): string {
+function renderBacklinks(backlinks: Backlink[], from: string, heading: string): string {
   if (backlinks.length === 0) {
     return "";
   }
@@ -195,7 +201,7 @@ function renderBacklinks(backlinks: Backlink[], from: string): string {
       return `<li><a href="${href}">${label}</a></li>`;
     })
     .join("");
-  return `<section class="canopy-backlinks"><h2>Linked references</h2><ul>${items}</ul></section>`;
+  return `<section class="canopy-backlinks"><h2>${escapeHtml(heading)}</h2><ul>${items}</ul></section>`;
 }
 
 /**
@@ -322,7 +328,7 @@ ${topbar}
 <main class="canopy-main">
 ${renderOutline(page.outline, strings.onThisPage)}
 <article class="canopy-content">${page.html}</article>
-${renderBacklinks(page.backlinks, page.sitePath)}
+${renderBacklinks(page.backlinks, page.sitePath, strings.backlinks)}
 ${renderPageNav(navigation, page.sitePath, strings.pageNav)}
 </main>
 </div>
@@ -341,11 +347,12 @@ export function renderContentsPage(
   navigation: NavNode[],
   options: ShellOptions = {},
 ): string {
+  const title = options.strings?.indexTitle ?? DEFAULT_STRINGS.indexTitle;
   const page: RenderedPage = {
     sourcePath: "",
     sitePath: "index.html",
-    frontmatter: { title: "Contents" },
-    html: `<h1>Contents</h1><div class="canopy-contents">${renderNavList(navigation, "index.html")}</div>`,
+    frontmatter: { title },
+    html: `<h1>${escapeHtml(title)}</h1><div class="canopy-contents">${renderNavList(navigation, "index.html")}</div>`,
     backlinks: [],
     // The contents page *is* a navigation list; an outline of it would repeat itself.
     outline: [],

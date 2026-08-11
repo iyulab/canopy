@@ -21,4 +21,12 @@ describe("CANOPY_TOKENS", () => {
     const occurrences = CANOPY_TOKENS.split("--bg-primary: #1e1f23;").length - 1;
     expect(occurrences).toBe(2);
   });
+
+  it("derives the sidebar active-page tint from --accent, not a fixed hex", () => {
+    // A hardcoded rgba() here would silently mismatch a consumer that overrides
+    // only --accent (the one customization path README.md documents) — the
+    // sidebar tint would stay canopy's default blue under a re-colored theme.
+    expect(CANOPY_TOKENS).toMatch(/--sidebar-active-bg:\s*color-mix\(in srgb, var\(--accent\)/);
+    expect(CANOPY_TOKENS).not.toMatch(/--sidebar-active-bg:\s*rgba\(/);
+  });
 });

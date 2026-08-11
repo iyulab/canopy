@@ -28,7 +28,10 @@ const DARK_TOKENS = `
     --accent-hover: #859dff;
     --border: rgba(255, 255, 255, 0.1);
     --border-strong: rgba(255, 255, 255, 0.18);
-    --sidebar-active-bg: rgba(109, 139, 255, 0.12);
+    /* Derived from --accent, not a fixed hex, so a consumer who overrides only
+       --accent (the one customization path README.md documents) still gets a
+       matching tint instead of a leftover default-blue wash. */
+    --sidebar-active-bg: color-mix(in srgb, var(--accent) 12%, transparent);
     /* Callout accents — same names as the consuming app's tokens so injection stays drop-in. */
     --callout-note: #6d8bff;    --callout-note-bg: rgba(109, 139, 255, 0.12);
     --callout-tip: #34d399;     --callout-tip-bg: rgba(52, 211, 153, 0.12);
@@ -61,7 +64,7 @@ export const CANOPY_TOKENS = `:root {
   --accent-hover: #3a5be0;
   --border: rgba(0, 0, 0, 0.1);
   --border-strong: rgba(0, 0, 0, 0.18);
-  --sidebar-active-bg: rgba(74, 108, 240, 0.08);
+  --sidebar-active-bg: color-mix(in srgb, var(--accent) 8%, transparent);
   /* Callout accents — same names as the consuming app's tokens so injection stays drop-in. */
   --callout-note: #2f6fed;    --callout-note-bg: rgba(47, 111, 237, 0.08);
   --callout-tip: #0a8a57;     --callout-tip-bg: rgba(10, 138, 87, 0.08);

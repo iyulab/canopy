@@ -363,6 +363,25 @@ describe("navigation depth styling", () => {
   });
 });
 
+describe("sidebar active page", () => {
+  it("gives the current page a tinted background, not just color/weight", () => {
+    expect(BASE_CSS).toMatch(
+      /\.canopy-sidebar a\[aria-current="page"\]\s*\{[^}]*background:\s*var\(--sidebar-active-bg\)/,
+    );
+  });
+
+  it("cancels its own padding with a matching negative margin, so the label doesn't shift", () => {
+    // A pill treatment adds horizontal padding to give the background room; without
+    // an equal-and-opposite margin the label's left edge would jump right relative
+    // to every sibling item that has no background.
+    const rule = extractBlock(BASE_CSS, '.canopy-sidebar a[aria-current="page"] {');
+    const padding = rule.match(/padding:\s*[\d.]+\w*\s+var\((--[\w-]+)\)/)?.[1];
+    const margin = rule.match(/margin:\s*0\s+calc\(var\((--[\w-]+)\)\s*\*\s*-1\)/)?.[1];
+    expect(padding).toBeDefined();
+    expect(margin).toBe(padding);
+  });
+});
+
 /**
  * Finds the block opened by `marker` (its own literal text, ending in "{")
  * and returns everything up to its balanced closing "}". A plain regex can't

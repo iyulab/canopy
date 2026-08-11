@@ -27,6 +27,12 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
   (not a `[!type]` callout) gets a quiet left border and muted text distinct from a callout's own
   tint, and list items space apart without a phantom gap before the first one — all read from the
   same `--sp-*`/`--font-weight-semibold` tokens the rest of the shell already uses.
+- **The sidebar's current-page entry now has a tinted background, not just color and weight.**
+  A reader scanning a long, deeply nested nav tree could still lose track of which entry marked
+  the page they were already on. The active entry is now a background pill, colored from
+  `--sidebar-active-bg` (a new token, `--accent`'s own color at the same opacity convention the
+  callout backgrounds already use) — sized to the label itself rather than the full row, so it
+  needs no coordination with a nested list's own indentation at any depth.
 
 ### Fixed
 

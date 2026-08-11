@@ -211,10 +211,22 @@ body {
    .canopy-nav-l{n} directly, now that depth is exposed in the markup. */
 .canopy-nav-l0 > a, .canopy-nav-l0 > span { font-weight: var(--font-weight-semibold); }
 
-/* The page a reader is already on, styled the same way the on-page outline
-   already styles read-only context: an accent color rather than a new
-   background, so it works at every nav depth without a size change. */
-.canopy-sidebar a[aria-current="page"] { color: var(--accent); font-weight: var(--font-weight-semibold); }
+/* The page a reader is already on. A tinted pill rather than a full-row bar:
+   padding+background on the <a> itself needs no coordination with the
+   nested <ul>'s own padding-left (a row-spanning treatment would), so it
+   works at every nav depth unchanged. The negative margin cancels the
+   added horizontal padding so the label's left edge still lines up with
+   every sibling item that has no background. --sidebar-active-bg reuses
+   --accent's own color at the callout-bg opacity convention (0.12 dark /
+   0.08 light — see tokens.ts) rather than introducing a new hue. */
+.canopy-sidebar a[aria-current="page"] {
+  color: var(--accent);
+  font-weight: var(--font-weight-semibold);
+  background: var(--sidebar-active-bg);
+  border-radius: var(--radius-m);
+  padding: 1px var(--sp-2);
+  margin: 0 calc(var(--sp-2) * -1);
+}
 
 /* A disclosure that ships open: the desktop layout is unchanged and needs no
    override, while a narrow screen can collapse the list entirely.

@@ -228,6 +228,10 @@ none, since a one-line contents list says nothing the page does not already show
   and a fence naming a language canopy cannot resolve, both render as themed plain-text code
   blocks — same background and font as every other fence, no syntax coloring — rather than an
   unstyled block that reads as a different kind of element. A typo in a fence never fails a build.
+- Headings get an id derived from their own text (`## Some Title` → `some-title`), unless one is
+  given explicitly with a trailing `{#id}` (`## Some Title {#stable-id}`) — for a heading whose
+  wording is expected to change but whose fragment (used by `[[note#heading]]`, or linked from
+  outside the vault) should not.
 - Wikilinks: `[[note]]`, `[[note|alias]]`, `[[note#heading]]` — resolved tree-wide to relative links,
   with a backlink graph. Unresolved links degrade to plain text.
 - Markdown links to other notes (`[text](note.md)`, including the reference-style

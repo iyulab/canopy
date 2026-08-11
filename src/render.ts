@@ -16,6 +16,7 @@ import remarkMathSubset from "./remark-math-subset.js";
 import remarkCallout from "./remark-callout.js";
 import remarkWikiLink, { type WikiContext } from "./remark-wikilink.js";
 import remarkMarkdownLink from "./remark-markdown-link.js";
+import rehypeHeadingId from "./rehype-heading-id.js";
 
 /**
  * The markdown -> HTML pipeline:
@@ -128,6 +129,12 @@ const buildProcessor = async (rehypePlugins: PluggableList) =>
   .use(remarkRehype, { allowDangerousHtml: true })
   .use(rehypeRaw)
   .use(rehypeSanitize, sanitizeSchema)
+  // Runs after sanitize for the same reason rehype-slug (next) does: sanitize's
+  // default schema prefixes any id it finds with "user-content-" to guard
+  // against DOM clobbering, which would make an explicit `{#id}` disagree with
+  // every id rehype-slug derives. Runs *before* rehype-slug, which skips a
+  // heading that already carries an id — so an explicit `{#id}` always wins.
+  .use(rehypeHeadingId)
   // rehype-slug runs *after* sanitize so heading ids are not clobbered with a
   // "user-content-" prefix; this keeps `[[note#heading]]` fragments matching.
   .use(rehypeSlug)

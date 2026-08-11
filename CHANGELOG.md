@@ -10,6 +10,17 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
 ## [Unreleased]
 
+### Added
+
+- **A heading may declare its own id.** `## Some Title {#stable-id}` sets the heading's id to
+  `stable-id` instead of whatever github-slugger would derive from its current wording — for a
+  heading expected to be reworded later whose fragment (used by `[[note#heading]]`, or linked
+  from outside the vault) should not move with it. Canopy already assigned every heading an id;
+  there was previously no way to pin one, so a heading with no stable id and a reader relying on
+  its fragment anyway had encoded that reliance nowhere the renderer could see it — the wording
+  changed, the id changed with it, and the link broke silently. A heading with no `{#id}` is
+  unaffected.
+
 ### Fixed
 
 - **The search index's body text ran block elements together with no space.** `htmlToText`

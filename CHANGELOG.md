@@ -20,6 +20,13 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
   its fragment anyway had encoded that reliance nowhere the renderer could see it — the wording
   changed, the id changed with it, and the link broke silently. A heading with no `{#id}` is
   unaffected.
+- **A page's own prose now reads the shell's typography, not the browser's defaults.** Headings,
+  blockquotes, and lists inside a page's content had no rules of their own — every other part of
+  the shell (sidebar, outline, topbar) already read from the spacing/type tokens, but the article
+  itself did not. Headings get a size scale and consistent vertical rhythm, a plain `>` quote
+  (not a `[!type]` callout) gets a quiet left border and muted text distinct from a callout's own
+  tint, and list items space apart without a phantom gap before the first one — all read from the
+  same `--sp-*`/`--font-weight-semibold` tokens the rest of the shell already uses.
 
 ### Fixed
 

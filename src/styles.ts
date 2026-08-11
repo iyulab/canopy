@@ -238,10 +238,63 @@ body {
   width: 100%;
 }
 
+/* Base prose rhythm. Every value reads from the same spacing/type tokens the
+   rest of the shell already uses (--sp-*, --font-weight-semibold) rather than
+   introducing a second, article-only scale — a page's own content is meant to
+   look like it belongs to the same design as its chrome, not a pasted-in
+   typography plugin.
+   The page's own <h1> renders inside .canopy-content too (shell.ts puts the
+   document's rendered HTML straight into it, title and all), so a
+   heading-only top margin would still leave a gap above the very first thing
+   on the page — :first-child/:last-child trims whatever that first and last
+   element actually are, the same rule Tailwind Typography's "prose" class and
+   GitHub's own markdown-body stylesheet both use for the same reason. */
+.canopy-content > :first-child { margin-top: 0; }
+.canopy-content > :last-child { margin-bottom: 0; }
+
+.canopy-content h1, .canopy-content h2, .canopy-content h3,
+.canopy-content h4, .canopy-content h5, .canopy-content h6 {
+  margin: var(--sp-8) 0 var(--sp-4);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.25;
+}
+.canopy-content h1 { font-size: 1.875em; }
+.canopy-content h2 { font-size: 1.5em; }
+.canopy-content h3 { font-size: 1.25em; }
+.canopy-content h4 { font-size: 1.125em; }
+.canopy-content h5, .canopy-content h6 { font-size: 1em; }
+
+.canopy-content p, .canopy-content ul, .canopy-content ol, .canopy-content table {
+  margin: var(--sp-4) 0;
+}
+.canopy-content ul, .canopy-content ol { padding-left: var(--sp-6); }
+.canopy-content li + li { margin-top: var(--sp-2); }
+
+/* A plain \`>\` quote, not a \`[!type]\` callout (the .callout class below wins
+   on specificity over this element selector, so a callout's own border/tint
+   is unaffected). Muted rather than accented: an unmarked quote is quieter
+   than a callout by design, the same distinction a callout's color already
+   exists to make against it. */
+.canopy-content blockquote {
+  margin: var(--sp-4) 0;
+  padding: 0 var(--sp-4);
+  border-left: 3px solid var(--border-strong);
+  color: var(--text-muted);
+}
+.canopy-content blockquote > :first-child { margin-top: 0; }
+.canopy-content blockquote > :last-child { margin-bottom: 0; }
+
+.canopy-content hr {
+  margin: var(--sp-8) 0;
+  border: none;
+  border-top: 1px solid var(--border);
+}
+
 .canopy-content a { color: var(--accent); }
 .canopy-content a:hover { color: var(--accent-hover); }
 .canopy-content img { max-width: 100%; height: auto; }
 .canopy-content pre {
+  margin: var(--sp-4) 0;
   padding: var(--sp-4);
   border-radius: var(--radius-m);
   overflow-x: auto;

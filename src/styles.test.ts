@@ -6,6 +6,53 @@ import { BASE_CSS } from "./styles.js";
  * regression harness — so these assert on the generated stylesheet text the
  * same way shell.test.ts asserts on generated HTML text.
  */
+describe("content typography", () => {
+  it("trims the top/bottom margin of whatever the first and last rendered element is", () => {
+    // The page's own <h1> renders inside .canopy-content (shell.ts puts the
+    // document's HTML straight into it), so a heading-only top margin would
+    // still leave a gap above the very first thing on the page.
+    expect(BASE_CSS).toMatch(/\.canopy-content\s*>\s*:first-child\s*\{[^}]*margin-top:\s*0/);
+    expect(BASE_CSS).toMatch(/\.canopy-content\s*>\s*:last-child\s*\{[^}]*margin-bottom:\s*0/);
+  });
+
+  it("gives every heading level a distinct size, largest first", () => {
+    const sizes = ["h1", "h2", "h3", "h4"].map((tag) => {
+      const em = BASE_CSS.match(new RegExp(`\\.canopy-content ${tag} \\{ font-size: ([\\d.]+)em`))?.[1];
+      if (em === undefined) throw new Error(`no font-size rule for .canopy-content ${tag}`);
+      return Number(em);
+    });
+    for (let i = 1; i < sizes.length; i++) {
+      expect(sizes[i], `${["h1", "h2", "h3", "h4"][i]} should be smaller than the level above it`).toBeLessThan(
+        sizes[i - 1] as number,
+      );
+    }
+  });
+
+  it("reads heading weight and vertical rhythm from the same tokens the rest of the shell uses", () => {
+    // Not a second, article-only scale — --sp-8/--sp-4 already space every
+    // other block in the shell (see e.g. .canopy-main, .canopy-outline).
+    expect(BASE_CSS).toMatch(/\.canopy-content h1,[\s\S]{0,200}font-weight:\s*var\(--font-weight-semibold\)/);
+    expect(BASE_CSS).toMatch(/\.canopy-content h1,[\s\S]{0,200}margin:\s*var\(--sp-8\) 0 var\(--sp-4\)/);
+  });
+
+  it("distinguishes a plain blockquote from a callout, and does not fight the callout's own styling", () => {
+    // .callout's own rule (a class selector) already outranks this element
+    // selector on specificity regardless of source order, so this only has
+    // to prove the plain-quote rule exists and reads a different token
+    // (--border-strong / --text-muted) than a callout's --callout-color.
+    expect(BASE_CSS).toMatch(/\.canopy-content blockquote\s*\{[^}]*border-left:\s*3px solid var\(--border-strong\)/);
+    expect(BASE_CSS).toMatch(/\.canopy-content blockquote\s*\{[^}]*color:\s*var\(--text-muted\)/);
+    expect(BASE_CSS).not.toMatch(/\.canopy-content blockquote\s*\{[^}]*--callout-color/);
+  });
+
+  it("spaces list items apart without adding a gap before the first one", () => {
+    // li + li (not li) is deliberate: a single-item list, or the first item
+    // of any list, should not carry a phantom top gap the way li alone would.
+    expect(BASE_CSS).toMatch(/\.canopy-content li \+ li\s*\{[^}]*margin-top:/);
+    expect(BASE_CSS).not.toMatch(/\.canopy-content li\s*\{[^}]*margin-top:/);
+  });
+});
+
 describe("sidebar scroll", () => {
   it("keeps the desktop sidebar pinned to the viewport, independent of main's scroll", () => {
     // A grid item stretches to the tallest sibling by default, so `.canopy-sidebar`

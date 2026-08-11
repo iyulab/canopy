@@ -24,6 +24,11 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
   would go. It now swaps to a moon once dark is actually in effect — via the system preference
   or an explicit `data-theme="dark"` override, the same two-path split the palette itself
   already uses.
+- **`htmlToText` left numeric character references undecoded.** It only knew five named
+  entities; a `<`/`>` inside inline code comes back from rehype-stringify as a numeric
+  reference (`&#x3C;`), which passed through untouched into search snippets and extracted
+  heading text. Every decimal and hex numeric reference is now decoded generally, rather than
+  adding named entities one at a time as each is noticed.
 
 ## [0.9.0] — 2026-08-11
 

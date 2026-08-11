@@ -241,6 +241,37 @@ describe("theme toggle icon", () => {
   });
 });
 
+describe("shiki dual-theme", () => {
+  it("also switches code blocks dark via an explicit data-theme override, not only the system preference", () => {
+    // Found live: a reader whose system prefers light but who clicks the
+    // toggle into dark sees every other pixel on the page go dark
+    // (data-theme drives tokens.ts's palette) while a fenced code block
+    // stayed on the light Shiki theme — the media-query-only rule never
+    // read data-theme at all, the same gap the theme-toggle icon and
+    // tokens.ts's own palette both already close with a second, explicit
+    // path.
+    expect(BASE_CSS).toMatch(/:root\[data-theme="dark"\]\s*\.shiki\s*,/);
+    expect(BASE_CSS).toMatch(/:root\[data-theme="dark"\]\s*\.shiki\s*span\s*\{[^}]*background-color:\s*var\(--shiki-dark-bg\)\s*!important/);
+  });
+
+  it("scopes the system-preference path to readers who have not explicitly asked for light", () => {
+    // Without :not([data-theme="light"]), a reader whose system prefers dark
+    // but who explicitly picked light via the toggle would see every other
+    // pixel go light (tokens.ts's own :root:not([data-theme="light"]) path
+    // stops applying) while code blocks stayed dark — the same
+    // disagreement as the bug above, mirrored the other way.
+    //
+    // BASE_CSS has two separate (prefers-color-scheme: dark) blocks: the
+    // theme-toggle icon's (tested above, in "theme toggle icon") and this
+    // one, further down where Shiki's rules live — searching from just past
+    // where the first one starts reaches this second block instead of
+    // re-matching the first.
+    const firstMediaQuery = BASE_CSS.indexOf("@media (prefers-color-scheme: dark) {");
+    const shikiDarkBlock = extractBlock(BASE_CSS, "@media (prefers-color-scheme: dark) {", firstMediaQuery + 1);
+    expect(shikiDarkBlock).toMatch(/:root:not\(\[data-theme="light"\]\)\s*\.shiki\s*,/);
+  });
+});
+
 describe("top bar", () => {
   it("spans the full width above the sidebar/main grid, not inside the sidebar", () => {
     // The header used to live inside .canopy-sidebar as .canopy-site-title; it now
@@ -293,8 +324,8 @@ describe("navigation depth styling", () => {
  * query has — this is the same "avoid a parser dependency, model just enough
  * of the mechanism" approach the "comment safety" tests above already use.
  */
-function extractBlock(css: string, marker: string): string {
-  const start = css.indexOf(marker);
+function extractBlock(css: string, marker: string, fromIndex = 0): string {
+  const start = css.indexOf(marker, fromIndex);
   if (start === -1) throw new Error(`marker not found: ${marker}`);
   let depth = 0;
   for (let i = start; i < css.length; i++) {

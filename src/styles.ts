@@ -377,13 +377,24 @@ body {
 .canopy-next::after { content: " →"; }
 
 /* Shiki dual-theme: swap to the dark palette via the CSS variables Shiki
-   emits (--shiki-dark*), so code blocks match the page's color scheme. */
+   emits (--shiki-dark*), so code blocks match the page's color scheme. Both
+   paths tokens.ts's own palette already resolves through — the system
+   preference, and an explicit data-theme override that wins regardless of
+   it. The media query alone left a code block on the light palette for a
+   reader whose system prefers light but who clicked the toggle into dark:
+   every other pixel on the page went dark (data-theme drives it), the code
+   block did not (nothing here read data-theme at all). */
 @media (prefers-color-scheme: dark) {
-  .shiki,
-  .shiki span {
+  :root:not([data-theme="light"]) .shiki,
+  :root:not([data-theme="light"]) .shiki span {
     color: var(--shiki-dark) !important;
     background-color: var(--shiki-dark-bg) !important;
   }
+}
+:root[data-theme="dark"] .shiki,
+:root[data-theme="dark"] .shiki span {
+  color: var(--shiki-dark) !important;
+  background-color: var(--shiki-dark-bg) !important;
 }
 
 @media (max-width: 40rem) {

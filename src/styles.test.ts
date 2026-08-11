@@ -197,6 +197,50 @@ describe("mobile navigation footprint", () => {
   });
 });
 
+describe("theme toggle icon", () => {
+  it("swaps to a different icon once dark is actually in effect, via the same two-path split tokens.ts's palette uses", () => {
+    // ISSUE-canopy-20260811-theme-toggle-icon-static: the button used a single
+    // fixed mask-image, so clicking it into dark mode left a reader looking at
+    // the same icon the light page just had — no signal of which theme is
+    // current or which way a click goes. tokens.ts already solves the same
+    // "system preference, or an explicit override that wins regardless of it"
+    // problem for the palette; the icon has to resolve the same way or it can
+    // show dark's icon while the media query still has light's colors active
+    // (or vice versa).
+    const baseIcon = BASE_CSS.match(
+      /\.canopy-theme-toggle\s*\{[^}]*mask:\s*(url\("[^"]+"\))/,
+    )?.[1];
+    const systemDarkBlock = extractBlock(BASE_CSS, "@media (prefers-color-scheme: dark) {");
+    const systemDarkIcon = systemDarkBlock.match(
+      /:root:not\(\[data-theme="light"\]\)\s*\.canopy-theme-toggle\s*\{[^}]*mask-image:\s*(url\("[^"]+"\))/,
+    )?.[1];
+    const explicitDarkIcon = BASE_CSS.match(
+      /:root\[data-theme="dark"\]\s*\.canopy-theme-toggle\s*\{[^}]*mask-image:\s*(url\("[^"]+"\))/,
+    )?.[1];
+    expect(baseIcon).toBeDefined();
+    expect(systemDarkIcon).toBeDefined();
+    expect(explicitDarkIcon).toBeDefined();
+    // The two dark paths must agree with each other, and both must differ
+    // from the light default — otherwise one of the three theme states shows
+    // the wrong icon.
+    expect(systemDarkIcon).toBe(explicitDarkIcon);
+    expect(systemDarkIcon).not.toBe(baseIcon);
+  });
+
+  it("keeps the system-preference icon rule inside its own media query, not applied unconditionally", () => {
+    // A rule written outside @media (prefers-color-scheme: dark) would show
+    // the dark icon on every reader's screen regardless of their system
+    // preference. BASE_CSS has a second, unrelated (prefers-color-scheme:
+    // dark) block further down for Shiki's code-block colors — extractBlock
+    // finds the first such block, which is this one (the icon rule sits with
+    // the rest of the top bar, near the top of the sheet).
+    const systemDarkBlock = extractBlock(BASE_CSS, "@media (prefers-color-scheme: dark) {");
+    expect(systemDarkBlock).toMatch(/:root:not\(\[data-theme="light"\]\)\s*\.canopy-theme-toggle\s*\{/);
+    const beforeFirstMediaQuery = BASE_CSS.slice(0, BASE_CSS.indexOf("@media (prefers-color-scheme: dark) {"));
+    expect(beforeFirstMediaQuery).not.toMatch(/\.canopy-theme-toggle\s*\{[^}]*mask-image:/);
+  });
+});
+
 describe("top bar", () => {
   it("spans the full width above the sidebar/main grid, not inside the sidebar", () => {
     // The header used to live inside .canopy-sidebar as .canopy-site-title; it now

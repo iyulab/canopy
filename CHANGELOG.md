@@ -8,6 +8,23 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [Unreleased]
+
+### Fixed
+
+- **The search index's body text ran block elements together with no space.** `htmlToText`
+  (shared by the search index and heading-text extraction) stripped every tag identically, so
+  a table's `<td>a</td><td>b</td>` read as `ab` and a list's `<li>` items ran into each other
+  the same way — any page with a table or a multi-item list produced an unreadable search
+  snippet. Block-level tag boundaries (`<p> <li> <tr> <td> <th> <br>` and similar) now become
+  a space before markup is stripped; inline tags (`<code> <strong> <a>`) are left as before,
+  since text adjacent in the source should stay adjacent.
+- **The theme toggle's icon never changed.** The button showed the same sun icon whether the
+  page was light or dark, giving no signal of which theme was current or which way a click
+  would go. It now swaps to a moon once dark is actually in effect — via the system preference
+  or an explicit `data-theme="dark"` override, the same two-path split the palette itself
+  already uses.
+
 ## [0.9.0] — 2026-08-11
 
 ### Added

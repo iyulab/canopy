@@ -26,6 +26,9 @@ function maskIcon(path: string): string {
 const THEME_TOGGLE_ICON_PATH =
   "M12 17a5 5 0 100-10 5 5 0 000 10zM12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42";
 
+/** Feather's "moon" icon (24x24, 2px stroke) — shown once dark mode is in effect. */
+const THEME_TOGGLE_DARK_ICON_PATH = "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z";
+
 /** Feather's "menu" and "x" icons — the mobile nav disclosure's control, closed and open. */
 const MOBILE_NAV_MENU_ICON_PATH = "M3 12h18M3 6h18M3 18h18";
 const MOBILE_NAV_CLOSE_ICON_PATH = "M18 6 6 18M6 6l12 12";
@@ -116,6 +119,21 @@ body {
 }
 .canopy-theme-toggle:hover { background-color: var(--text-normal); }
 .canopy-search + .canopy-theme-toggle { margin-left: 0; }
+/* The icon shown once dark is actually in effect — the same two-path split
+   tokens.ts's palette uses below it (system preference, then an explicit
+   data-theme override that wins regardless of it), so the icon never
+   disagrees with the colors already on screen: a reader sees a moon exactly
+   when the page is dark, not only after a click that merely requests it. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .canopy-theme-toggle {
+    -webkit-mask-image: ${maskIcon(THEME_TOGGLE_DARK_ICON_PATH)};
+    mask-image: ${maskIcon(THEME_TOGGLE_DARK_ICON_PATH)};
+  }
+}
+:root[data-theme="dark"] .canopy-theme-toggle {
+  -webkit-mask-image: ${maskIcon(THEME_TOGGLE_DARK_ICON_PATH)};
+  mask-image: ${maskIcon(THEME_TOGGLE_DARK_ICON_PATH)};
+}
 
 /* The sidebar tint and its divider paint here as a hard-stopped gradient,
    not as .canopy-sidebar's own background/border. This container spans the

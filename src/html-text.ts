@@ -31,6 +31,13 @@ export function htmlToText(html: string): string {
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
+    // rehype-stringify emits a numeric reference for a character it cannot
+    // name (Shiki's own escaping of `<`/`>` inside inline code came out as
+    // `&#x3C;`, not `&lt;`, on real content) — decoding every numeric
+    // reference generally, decimal or hex, covers those without chasing each
+    // one the named list above misses.
+    .replace(/&#(\d+);/g, (_, code: string) => String.fromCodePoint(Number(code)))
+    .replace(/&#[xX]([0-9a-fA-F]+);/g, (_, hex: string) => String.fromCodePoint(Number.parseInt(hex, 16)))
     .replace(/&amp;/g, "&")
     .replace(/\s+/g, " ")
     .trim();

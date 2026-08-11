@@ -38,4 +38,12 @@ describe("htmlToText", () => {
   it("decodes entities after boundaries are resolved", () => {
     expect(htmlToText("<td>a &amp; b</td><td>c</td>")).toBe("a & b c");
   });
+
+  it("decodes numeric character references, decimal and hex alike", () => {
+    // rehype-stringify escapes `<` inside inline code as &#x3C;, not &lt; —
+    // a real page hitting this: reference/settings.md's `<meta name="...">`
+    // written as inline code came out as "&#x3C;meta ...>" before this.
+    expect(htmlToText("&#x3C;meta&#x3E;")).toBe("<meta>");
+    expect(htmlToText("&#60;meta&#62;")).toBe("<meta>");
+  });
 });

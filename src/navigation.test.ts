@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { ancestorPath, buildNavigation, flattenNav, subtreeContains } from "./navigation.js";
+import {
+  ancestorPath,
+  buildNavigation,
+  flattenNav,
+  type NavNode,
+  subtreeContains,
+} from "./navigation.js";
 
 describe("buildNavigation", () => {
   it("nests pages under folders derived from their paths", () => {
@@ -79,15 +85,21 @@ describe("flattenNav", () => {
   });
 });
 
+function mustFind(nodes: NavNode[], label: string): NavNode {
+  const found = nodes.find((n) => n.label === label);
+  if (found === undefined) throw new Error(`fixture missing a "${label}" node`);
+  return found;
+}
+
 describe("subtreeContains", () => {
   const nav = buildNavigation([
     { sitePath: "guide/orders/index.html" },
     { sitePath: "guide/orders/payables.html" },
     { sitePath: "guide/reports/statement.html" },
   ]);
-  const guide = nav.find((n) => n.label === "guide")!;
-  const orders = guide.children.find((n) => n.label === "orders")!;
-  const reports = guide.children.find((n) => n.label === "reports")!;
+  const guide = mustFind(nav, "guide");
+  const orders = mustFind(guide.children, "orders");
+  const reports = mustFind(guide.children, "reports");
 
   it("is true for the node's own page", () => {
     expect(subtreeContains(orders, "guide/orders/index.html")).toBe(true);

@@ -326,8 +326,8 @@ ${topbar}
 <div class="canopy-layout">
 <aside class="canopy-sidebar"><details class="canopy-nav" open><summary aria-label="${escapeHtml(strings.siteNav)}"></summary><nav>${renderNavList(navigation, page.sitePath)}</nav></details></aside>
 <main class="canopy-main">
-${renderOutline(page.outline, strings.onThisPage)}
 <article class="canopy-content">${page.html}</article>
+${renderOutline(page.outline, strings.onThisPage)}
 ${renderBacklinks(page.backlinks, page.sitePath, strings.backlinks)}
 ${renderPageNav(navigation, page.sitePath, strings.pageNav)}
 </main>

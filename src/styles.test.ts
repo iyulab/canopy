@@ -424,10 +424,10 @@ describe("on-page outline", () => {
     // position: absolute computed "beside the text" as an offset from
     // .canopy-main's own edge; position: sticky's inset properties instead
     // offset from the box's own in-flow position, so simply swapping the
-    // position value would leave the outline in flow at the top of
-    // .canopy-main (before .canopy-content, per the markup order in
-    // shell.ts) rather than beside it. Placing .canopy-content, .canopy-outline
-    // and .canopy-backlinks on an explicit grid is what keeps "beside" true
+    // position value would leave the outline in flow where its markup sits
+    // in .canopy-main (after .canopy-content, per shell.ts) rather than
+    // beside it. Placing .canopy-content, .canopy-outline and
+    // .canopy-backlinks on an explicit grid is what keeps "beside" true
     // once "sticky" needs the box to stay in flow.
     const desktopBlock = extractBlock(BASE_CSS, "@media (min-width: 75rem) {");
     expect(desktopBlock).toMatch(/\.canopy-main:has\(\.canopy-outline\)\s*\{[^}]*display:\s*grid/);
@@ -455,12 +455,13 @@ describe("on-page outline", () => {
     expect(desktopBlock).toMatch(/\.canopy-outline\s*\{[^}]*align-self:\s*start/);
   });
 
-  it("stacks above the article in normal flow below the breakpoint, unaffected by the desktop grid", () => {
+  it("stacks below the article in normal flow below the breakpoint, unaffected by the desktop grid", () => {
     // Below 75rem there is no side-by-side column — the outline renders
-    // wherever the markup places it (before .canopy-content, per shell.ts),
+    // wherever the markup places it (after .canopy-content, per shell.ts),
     // full width, exactly like before this change.
     const base = BASE_CSS.slice(0, BASE_CSS.indexOf("@media (min-width: 75rem)"));
     expect(base).toMatch(/\.canopy-outline\s*\{[^}]*border-left:\s*2px solid var\(--border\)/);
+    expect(base).toMatch(/\.canopy-outline\s*\{[^}]*margin:\s*var\(--sp-8\) 0 var\(--sp-6\)/);
     expect(base).not.toMatch(/\.canopy-outline\s*\{[^}]*position:\s*sticky/);
   });
 });

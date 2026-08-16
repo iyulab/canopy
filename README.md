@@ -296,6 +296,17 @@ specificity, a bare `:root` override applies to **both** schemes:
 }
 ```
 
+**A custom property canopy doesn't read is not an error — it's silently ignored.** There is no
+warning if a stylesheet sets a variable the shell never looks at; the page just keeps canopy's
+default for that value, and the build still exits 0. This is the trap moving an existing docs
+site onto canopy tends to spring: a stylesheet carried over from a previous tool's own token
+vocabulary (a VitePress `--vp-c-*` set, a Docusaurus `--ifm-*` set, `.dark`/`.light` class
+toggles instead of an attribute) looks like it should work, and produces a page that renders
+fine — just with none of the intended colors, because nothing in it actually matched. Check the
+rendered page (inspect a computed `--accent`, or just look for the color you set), not only that
+the build succeeded. Dark mode is an attribute, not a class: canopy toggles `[data-theme="dark"]`
+on `<html>` (see `--script`, above), never adds a class to anything.
+
 ---
 
 ## Self-hosting

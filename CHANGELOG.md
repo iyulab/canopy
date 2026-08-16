@@ -8,6 +8,18 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [Unreleased]
+
+### Fixed
+
+- **The on-this-page outline now follows the article instead of preceding it.** Below the
+  width where the outline moves beside the text, it rendered before `.canopy-content` in
+  document order — a reader on a narrow viewport, or anyone using assistive technology at any
+  width, reached a list of the page's own headings before the page itself. The outline now
+  follows the article in markup order, matching the order a reader without room for the
+  side-by-side layout actually encounters the two; the side-by-side layout itself is
+  unaffected, since it places both by an explicit grid rather than by document order.
+
 ## [0.10.0] — 2026-08-11
 
 ### Added

@@ -353,10 +353,17 @@ body {
 .canopy-content .callout > :last-child { margin-bottom: 0; }
 .canopy-content .callout > p { margin: var(--sp-2) 0; }
 
-/* On-this-page outline. Beside the text on a wide screen, above it when there is
-   no room — a plain anchor list, no script, like the rest of the shell. */
+/* On-this-page outline. Beside the text on a wide screen, after it when there is
+   no room — a plain anchor list, no script, like the rest of the shell. Placed
+   after .canopy-content in shell.ts's own markup (not before it) so a reader
+   without room for the wide layout below reaches the article before the list
+   of its own headings — the DOM order this box inherits when unpositioned is
+   also what assistive tech reads, so the fix has to live in markup order, not
+   just in how this box is later repositioned onto the grid. margin-top gives
+   it room under the article it now follows; the grid below resets margin to 0
+   once this box is pulled beside the text instead of following it in flow. */
 .canopy-outline {
-  margin: 0 0 var(--sp-6);
+  margin: var(--sp-8) 0 var(--sp-6);
   padding: var(--sp-3) var(--sp-4);
   border-left: 2px solid var(--border);
   font-size: 0.9em;

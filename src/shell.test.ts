@@ -443,6 +443,19 @@ describe("page outline", () => {
     ).not.toContain("canopy-outline");
   });
 
+  it("places the outline after the article, not before it", () => {
+    // A narrow viewport (no room for the beside-the-text grid) falls back to
+    // plain document flow, and flow order is markup order — the same order
+    // assistive tech reads regardless of viewport. A reader arriving on a
+    // narrow screen must reach the article before a list of its own
+    // headings, not the other way around.
+    const html = renderPage(page({ outline }), nav);
+    const contentAt = html.indexOf('<article class="canopy-content">');
+    const outlineAt = html.indexOf('<nav class="canopy-outline"');
+    expect(contentAt).toBeGreaterThan(-1);
+    expect(outlineAt).toBeGreaterThan(contentAt);
+  });
+
   it("indents relative to the shallowest heading present", () => {
     // A page whose headings start at h3 should not be indented as if an absent
     // h2 were above them.

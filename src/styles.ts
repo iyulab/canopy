@@ -66,6 +66,24 @@ body {
   border-bottom: 1px solid var(--border);
   font-weight: var(--font-weight-semibold);
 }
+/* Every other link the shell draws (sidebar, content, outline, backlinks,
+   page-nav) sets its own rest/hover colors; the topbar's two links —
+   the site title and .canopy-home — were the one place nothing did, so
+   both rendered in the browser's own default link blue with a permanent
+   underline instead of reading as chrome. .canopy-home's own rule below
+   still wins on specificity for color at rest (two classes beat one class
+   plus a type), so this only supplies the site-title link's rest color and
+   the underline reset shared by both; :hover here (two classes plus this
+   pseudo-class) outranks .canopy-home's plain rule, so hover still reaches
+   it too. */
+.canopy-topbar > a {
+  color: var(--text-normal);
+  text-decoration: none;
+}
+.canopy-topbar > a:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
 .canopy-topbar > a:not(.canopy-home) { display: flex; align-items: center; gap: var(--sp-2); }
 /* A definite height, not max-height: a brand file supplies whatever it has,
    and a tall logo must not grow the bar past a single line — max-height would

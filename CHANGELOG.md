@@ -12,6 +12,11 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
 ### Fixed
 
+- **The topbar's site-title and home links no longer render in the browser's default blue with
+  a permanent underline.** Every other link the shell draws (sidebar, content, outline,
+  backlinks, page-nav) sets its own rest/hover colors; the topbar was the one place nothing did,
+  so a site with a title, a logo, or a `home` link carried unstyled browser-default links across
+  its top edge.
 - **The on-this-page outline now follows the article instead of preceding it.** Below the
   width where the outline moves beside the text, it rendered before `.canopy-content` in
   document order — a reader on a narrow viewport, or anyone using assistive technology at any

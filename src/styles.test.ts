@@ -334,6 +334,15 @@ describe("top bar", () => {
     expect(BASE_CSS).toMatch(/\.canopy-topbar\s*\.canopy-home\s*\{[^}]*color:\s*var\(--text-muted\)/);
   });
 
+  it("styles the site-title link like chrome, not like the browser's default blue underline", () => {
+    // Every other link the shell draws sets its own rest/hover colors; the
+    // topbar's two links were the one place nothing did, so both rendered in
+    // the UA default link color with a permanent underline.
+    expect(BASE_CSS).toMatch(/\.canopy-topbar\s*>\s*a\s*\{[^}]*color:\s*var\(--text-normal\)/);
+    expect(BASE_CSS).toMatch(/\.canopy-topbar\s*>\s*a\s*\{[^}]*text-decoration:\s*none/);
+    expect(BASE_CSS).toMatch(/\.canopy-topbar\s*>\s*a:hover\s*\{[^}]*color:\s*var\(--accent\)/);
+  });
+
   it("sizes the logo with a definite height, not max-height, so it contributes its full width to the title link's intrinsic size", () => {
     // A max-height-capped (indefinite) replaced element does not reliably
     // contribute its rendered width when a flex item that is itself a flex

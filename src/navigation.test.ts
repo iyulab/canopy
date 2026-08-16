@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildNavigation, flattenNav } from "./navigation.js";
+import { ancestorPath, buildNavigation, flattenNav, subtreeContains } from "./navigation.js";
 
 describe("buildNavigation", () => {
   it("nests pages under folders derived from their paths", () => {
@@ -76,5 +76,67 @@ describe("flattenNav", () => {
 
   it("returns nothing for an empty tree", () => {
     expect(flattenNav([])).toEqual([]);
+  });
+});
+
+describe("subtreeContains", () => {
+  const nav = buildNavigation([
+    { sitePath: "guide/orders/index.html" },
+    { sitePath: "guide/orders/payables.html" },
+    { sitePath: "guide/reports/statement.html" },
+  ]);
+  const guide = nav.find((n) => n.label === "guide")!;
+  const orders = guide.children.find((n) => n.label === "orders")!;
+  const reports = guide.children.find((n) => n.label === "reports")!;
+
+  it("is true for the node's own page", () => {
+    expect(subtreeContains(orders, "guide/orders/index.html")).toBe(true);
+  });
+
+  it("is true for a page nested anywhere below it", () => {
+    expect(subtreeContains(orders, "guide/orders/payables.html")).toBe(true);
+  });
+
+  it("is false for a page in a sibling subtree", () => {
+    expect(subtreeContains(orders, "guide/reports/statement.html")).toBe(false);
+    expect(subtreeContains(reports, "guide/orders/payables.html")).toBe(false);
+  });
+
+  it("is false for a page that isn't in the tree at all", () => {
+    expect(subtreeContains(orders, "index.html")).toBe(false);
+  });
+});
+
+describe("ancestorPath", () => {
+  const nav = buildNavigation([
+    { sitePath: "guide/orders/index.html" },
+    { sitePath: "guide/orders/payables.html" },
+    { sitePath: "about.html" },
+  ]);
+
+  it("returns the chain from the root to the page, inclusive", () => {
+    expect(ancestorPath(nav, "guide/orders/payables.html").map((n) => n.label)).toEqual([
+      "guide",
+      "orders",
+      "payables",
+    ]);
+  });
+
+  it("stops at a single-node chain for a top-level page", () => {
+    expect(ancestorPath(nav, "about.html").map((n) => n.label)).toEqual(["about"]);
+  });
+
+  it("returns a folder's own index page as the chain's own last entry, not one past it", () => {
+    // "orders" folder's index page *is* the "orders" node (buildNavigation
+    // folds a folder's index into the folder node itself) — the chain ends
+    // there, it does not add a separate "index" entry after it.
+    expect(ancestorPath(nav, "guide/orders/index.html").map((n) => n.label)).toEqual([
+      "guide",
+      "orders",
+    ]);
+  });
+
+  it("returns nothing for a page not in the tree", () => {
+    expect(ancestorPath(nav, "index.html")).toEqual([]);
   });
 });

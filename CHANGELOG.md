@@ -10,6 +10,21 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
 ## [Unreleased]
 
+### Added
+
+- **Sidebar groups collapse.** A nav entry with children now renders as its own
+  `<details class="canopy-nav-group">` rather than a permanently-expanded nested list — closed
+  by default, open exactly along the path to the page a reader is on, computed fresh per page
+  with no script and nothing to remember across page loads. A long, deeply nested tree no longer
+  shows every branch expanded at once regardless of where the reader actually is.
+- **A breadcrumb trail.** The topbar can now show the ancestor path to the current page (`Guide
+  / Orders / Payables`) — a projection of the same tree the sidebar already walks, not a second
+  source of truth. Rides along only when the topbar already exists for another reason (a title,
+  a logo, `home`, or search), the same rule the theme toggle already follows, and is omitted for
+  a top-level page or one the tree doesn't place at all, where a one-entry trail would say
+  nothing the page's own `<h1>` doesn't already say. `strings.breadcrumb` overrides its
+  accessible label (default `"Breadcrumb"`).
+
 ### Changed
 
 - **The sidebar's current-page background tint is stronger: 8%/12% (light/dark) → 16%/22%.** A

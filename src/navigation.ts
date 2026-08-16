@@ -100,6 +100,34 @@ export function buildNavigation(entries: NavEntry[]): NavNode[] {
   return toNodes(root);
 }
 
+/**
+ * Whether `from` is this node's own page or reachable through any of its
+ * descendants — the ancestor-path test a collapsible sidebar group's default
+ * open/closed state reads (see shell.ts's `renderNavList`): a group opens
+ * exactly when the current page sits somewhere inside it, so a reader lands
+ * on a page with its own place in the tree already expanded and every
+ * unrelated group collapsed, with no script and no stored state to go stale.
+ */
+export function subtreeContains(node: NavNode, from: string): boolean {
+  if (node.sitePath === from) return true;
+  return node.children.some((child) => subtreeContains(child, from));
+}
+
+/**
+ * The chain of nodes from the root to `from`, inclusive — the trail a
+ * breadcrumb reads (see shell.ts's `renderBreadcrumb`). Empty when `from`
+ * isn't in the tree at all (the synthetic contents page, most commonly),
+ * since there is no trail to show for a page with no place in it.
+ */
+export function ancestorPath(nodes: NavNode[], from: string): NavNode[] {
+  for (const node of nodes) {
+    if (node.sitePath === from) return [node];
+    const childPath = ancestorPath(node.children, from);
+    if (childPath.length > 0) return [node, ...childPath];
+  }
+  return [];
+}
+
 /** One page's position in the flattened reading order — label and target. */
 export interface FlatNavEntry {
   sitePath: string;

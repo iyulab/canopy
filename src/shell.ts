@@ -1,6 +1,6 @@
 import type { RenderedPage, Backlink } from "./contract.js";
 import { isExternalUrl } from "./markdown-link.js";
-import { flattenNav, type NavNode } from "./navigation.js";
+import { ancestorPath, flattenNav, subtreeContains, type NavNode } from "./navigation.js";
 import { relativeHref } from "./site-path.js";
 import { isOutlineUseful, type OutlineItem } from "./outline.js";
 import { declaredTitle, pageName } from "./title.js";
@@ -89,6 +89,8 @@ export interface ShellOptions {
     indexTitle?: string;
     /** Heading over a page's list of pages that link to it. */
     backlinks?: string;
+    /** Accessible label for the topbar's ancestor-trail nav (see `renderBreadcrumb`). */
+    breadcrumb?: string;
   };
 }
 
@@ -100,6 +102,7 @@ const DEFAULT_STRINGS = {
   onThisPage: "On this page",
   indexTitle: "Contents",
   backlinks: "Linked references",
+  breadcrumb: "Breadcrumb",
 } as const;
 
 /** MIME type for a favicon, inferred from its extension. */
@@ -143,6 +146,20 @@ export function pageTitle(page: RenderedPage): string {
  * Tree depth as a class per item, the same pattern renderOutline uses for
  * headings — so a consumer can style deeper levels without re-deriving depth
  * from <ul> nesting.
+ *
+ * A node with children renders as its own `<details class="canopy-nav-group">`
+ * — a different class from the outer `.canopy-nav` disclosure shell.ts already
+ * wraps the whole tree in, so a group never picks up that one's mobile
+ * full-screen-overlay styling. It opens exactly when `from` sits somewhere in
+ * its own subtree (`subtreeContains`) — computed fresh on every page, so a
+ * long nav tree shows the reader's own place in it already expanded and
+ * everything unrelated collapsed, with no script and nothing to remember
+ * across page loads. The node's own link (or label, for a folder with none)
+ * sits inside <summary>: a click on it still navigates like any link (a
+ * fresh page load replaces the disclosure entirely, so there's no stale
+ * "toggled but didn't navigate" state to worry about); a click on the
+ * chevron/padding around it toggles, the native <details> behavior with no
+ * script needed for either.
  */
 function renderNavList(nodes: NavNode[], from: string, depth = 0): string {
   if (nodes.length === 0) {
@@ -161,7 +178,12 @@ function renderNavList(nodes: NavNode[], from: string, depth = 0): string {
         const current = node.sitePath === from ? ' aria-current="page"' : "";
         link = `<a href="${escapeHtml(relativeHref(from, node.sitePath))}"${current}>${label}</a>`;
       }
-      return `<li class="canopy-nav-l${depth}">${link}${renderNavList(node.children, from, depth + 1)}</li>`;
+      if (node.children.length === 0) {
+        return `<li class="canopy-nav-l${depth}">${link}</li>`;
+      }
+      const open = subtreeContains(node, from) ? " open" : "";
+      const childList = renderNavList(node.children, from, depth + 1);
+      return `<li class="canopy-nav-l${depth}"><details class="canopy-nav-group"${open}><summary>${link}</summary>${childList}</details></li>`;
     })
     .join("");
   return `<ul>${items}</ul>`;
@@ -186,6 +208,36 @@ function renderOutline(outline: OutlineItem[], label: string): string {
     })
     .join("");
   return `<nav class="canopy-outline" aria-label="${escapeHtml(label)}"><ul>${items}</ul></nav>`;
+}
+
+/**
+ * The trail from the site root to this page — "Guide / Orders / Payables" —
+ * a projection of the same tree renderNavList already walks, not a second
+ * source of truth (the same reasoning renderPageNav below already applies to
+ * prev/next). Omitted for a page the tree does not place at all (the
+ * synthetic contents page, most commonly) and for a page at the tree's own
+ * top level: a one-entry trail says nothing a reader doesn't already read in
+ * the page's own <h1>, the same reasoning isOutlineUseful already applies to
+ * a single heading.
+ */
+function renderBreadcrumb(navigation: NavNode[], from: string, label: string): string {
+  const chain = ancestorPath(navigation, from);
+  if (chain.length < 2) {
+    return "";
+  }
+  const items = chain
+    .map((node) => {
+      const text = escapeHtml(node.label);
+      // The trail's own last crumb, and any ancestor folder with no index
+      // page of its own, has nothing to link to — the same fallback
+      // renderNavList already uses for the same case.
+      if (node.sitePath === undefined || node.sitePath === from) {
+        return `<li>${text}</li>`;
+      }
+      return `<li><a href="${escapeHtml(relativeHref(from, node.sitePath))}">${text}</a></li>`;
+    })
+    .join("");
+  return `<nav class="canopy-breadcrumb" aria-label="${escapeHtml(label)}"><ol>${items}</ol></nav>`;
 }
 
 function renderBacklinks(backlinks: Backlink[], from: string, heading: string): string {
@@ -279,6 +331,7 @@ export function renderPage(
   const siteTitleLink = options.siteTitle
     ? `<a href="${escapeHtml(relativeHref(page.sitePath, "index.html"))}">${logo}${escapeHtml(options.siteTitle)}</a>`
     : logo;
+  const breadcrumb = renderBreadcrumb(navigation, page.sitePath, strings.breadcrumb);
   // A scheme, protocol-relative, root-absolute, or fragment URL is left
   // exactly as given — the same set `isExternalUrl` already carves out
   // elsewhere, and for the same reason: a root-absolute href already means
@@ -307,10 +360,13 @@ export function renderPage(
   // manufacturing one just to hold a hidden button would cost every reader of
   // an otherwise chrome-free site a visible padded bar (see .canopy-topbar).
   const themeToggle = `<button type="button" class="canopy-theme-toggle" hidden aria-label="${escapeHtml(strings.toggleTheme)}"></button>`;
+  // Like the theme toggle above, breadcrumb rides along only when the topbar
+  // already exists for another reason — it never manufactures one by itself,
+  // the same "a genuinely chrome-free site stays chrome-free" guarantee.
   const topbar =
     siteTitleLink === "" && homeLink === "" && search === ""
       ? ""
-      : `<header class="canopy-topbar">${siteTitleLink}${homeLink}${search}${themeToggle}</header>`;
+      : `<header class="canopy-topbar">${siteTitleLink}${breadcrumb}${homeLink}${search}${themeToggle}</header>`;
 
   return `<!doctype html>
 <html lang="${escapeHtml(lang)}">

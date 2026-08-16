@@ -384,7 +384,48 @@ describe("navigation depth styling", () => {
     // `renderOutline` already exposes tree depth as `canopy-outline-l{n}`; the sidebar
     // nav renders the same kind of tree but never exposed depth at all, so no consumer
     // could style it by level without re-deriving depth from DOM nesting.
-    expect(BASE_CSS).toMatch(/\.canopy-nav-l0\s*>\s*a,\s*\.canopy-nav-l0\s*>\s*span\s*\{[^}]*font-weight:\s*var\(--font-weight-semibold\)/);
+    expect(BASE_CSS).toMatch(
+      /\.canopy-nav-l0\s*>\s*a,\s*\.canopy-nav-l0\s*>\s*span,\s*\.canopy-nav-l0\s*>\s*details\s*>\s*summary\s*>\s*a,\s*\.canopy-nav-l0\s*>\s*details\s*>\s*summary\s*>\s*span\s*\{[^}]*font-weight:\s*var\(--font-weight-semibold\)/,
+    );
+  });
+
+  it("styles a top-level folder's link the same way whether it's a leaf or a collapsible group", () => {
+    // A folder now wraps its link in <details><summary> instead of leaving it
+    // as .canopy-nav-l0's own direct child — both shapes need the same weight.
+    expect(BASE_CSS).toMatch(
+      /\.canopy-nav-l0\s*>\s*details\s*>\s*summary\s*>\s*a,\s*\.canopy-nav-l0\s*>\s*details\s*>\s*summary\s*>\s*span\s*\{/,
+    );
+  });
+});
+
+describe("collapsible sidebar groups", () => {
+  it("suppresses the native disclosure marker and draws a chevron instead", () => {
+    expect(BASE_CSS).toMatch(/\.canopy-nav-group\s*>\s*summary\s*\{[^}]*list-style:\s*none/);
+    expect(BASE_CSS).toMatch(
+      /\.canopy-nav-group\s*>\s*summary::-webkit-details-marker\s*\{[^}]*display:\s*none/,
+    );
+    expect(BASE_CSS).toMatch(/\.canopy-nav-group\s*>\s*summary::before\s*\{[^}]*mask:\s*(url\("[^"]+"\))/);
+  });
+
+  it("rotates the same chevron open rather than swapping to a second icon", () => {
+    expect(BASE_CSS).toMatch(
+      /\.canopy-nav-group\[open\]\s*>\s*summary::before\s*\{[^}]*transform:\s*rotate\(90deg\)/,
+    );
+  });
+
+  it("is a different class from the outer mobile-overlay disclosure, so a group never inherits its full-screen styling", () => {
+    const mobileBlock = extractBlock(BASE_CSS, "@media (max-width: 40rem) {");
+    expect(mobileBlock).not.toMatch(/\.canopy-nav-group\[open\]\s*\{[^}]*position:\s*fixed/);
+  });
+});
+
+describe("breadcrumb", () => {
+  it("separates entries with a slash rather than a bullet, and skips the last one", () => {
+    expect(BASE_CSS).toMatch(/\.canopy-breadcrumb li:not\(:last-child\)::after\s*\{[^}]*content:\s*"\/"/);
+  });
+
+  it("resets the topbar's own semibold back to normal, so the trail doesn't outweigh the site title", () => {
+    expect(BASE_CSS).toMatch(/\.canopy-breadcrumb\s*\{[^}]*font-weight:\s*400/);
   });
 });
 

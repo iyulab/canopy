@@ -381,6 +381,92 @@ describe("renderPage", () => {
     // one level in: "idea", a child of "notes"
     expect(html).toContain('<li class="canopy-nav-l1">');
   });
+
+  it("wraps a folder node's children in a collapsible group, but leaves a leaf as a plain item", () => {
+    const html = renderPage(page(), nav);
+    expect(html).toContain('<li class="canopy-nav-l0"><details class="canopy-nav-group"');
+    expect(html).toContain("<summary><span>notes</span></summary>");
+    // "Home" is a leaf (no children) — no <details> wrapper for it.
+    expect(html).toContain('<li class="canopy-nav-l0"><a href="../index.html">Home</a></li>');
+  });
+
+  it("opens a group whose subtree contains the current page, and leaves an unrelated one closed", () => {
+    const branching: NavNode[] = [
+      { label: "notes", children: [{ label: "idea", sitePath: "notes/idea.html", children: [] }] },
+      { label: "other", children: [{ label: "thing", sitePath: "other/thing.html", children: [] }] },
+    ];
+    const html = renderPage(page(), branching);
+    // page() is "notes/idea.html" — the "notes" group's subtree contains it,
+    // "other"'s does not.
+    expect(html).toContain('<details class="canopy-nav-group" open><summary><span>notes</span>');
+    expect(html).toContain('<details class="canopy-nav-group"><summary><span>other</span>');
+  });
+
+  it("navigating a linked group node's own link works the same as any other link", () => {
+    // A group whose own node has a sitePath (a folder with its own index
+    // page) still links from inside <summary> — the group being collapsible
+    // doesn't cost the folder's own page a way to reach it directly.
+    const linkedGroup: NavNode[] = [
+      {
+        label: "guide",
+        sitePath: "guide/index.html",
+        children: [{ label: "install", sitePath: "guide/install.html", children: [] }],
+      },
+    ];
+    const html = renderPage(page({ sitePath: "guide/install.html" }), linkedGroup);
+    expect(html).toContain('<summary><a href="index.html">guide</a></summary>');
+  });
+});
+
+describe("breadcrumb", () => {
+  const nested: NavNode[] = [
+    {
+      label: "guide",
+      children: [
+        {
+          label: "orders",
+          sitePath: "guide/orders/index.html",
+          children: [{ label: "payables", sitePath: "guide/orders/payables.html", children: [] }],
+        },
+      ],
+    },
+  ];
+
+  it("renders the ancestor trail for a nested page", () => {
+    const html = renderPage(page({ sitePath: "guide/orders/payables.html" }), nested, {
+      siteTitle: "Docs",
+    });
+    expect(html).toContain('<nav class="canopy-breadcrumb" aria-label="Breadcrumb">');
+    expect(html).toContain("<li>guide</li>");
+    expect(html).toContain('<li><a href="index.html">orders</a></li>');
+    expect(html).toContain("<li>payables</li>");
+  });
+
+  it("omits the breadcrumb for a top-level page — a one-entry trail says nothing the <h1> doesn't", () => {
+    // "Home" (outer `nav` fixture) sits at the tree's own top level: its
+    // ancestor chain is itself alone.
+    const html = renderPage(page({ sitePath: "index.html" }), nav, { siteTitle: "Docs" });
+    expect(html).not.toContain("canopy-breadcrumb");
+  });
+
+  it("omits the breadcrumb for a page the tree doesn't place at all", () => {
+    const html = renderPage(page({ sitePath: "unplaced.html" }), nested, { siteTitle: "Docs" });
+    expect(html).not.toContain("canopy-breadcrumb");
+  });
+
+  it("never manufactures a topbar just to hold the breadcrumb, the same guarantee the theme toggle already gets", () => {
+    const html = renderPage(page({ sitePath: "guide/orders/payables.html" }), nested);
+    expect(html).not.toContain("canopy-topbar");
+    expect(html).not.toContain("canopy-breadcrumb");
+  });
+
+  it("localizes the breadcrumb's aria-label via strings.breadcrumb", () => {
+    const html = renderPage(page({ sitePath: "guide/orders/payables.html" }), nested, {
+      siteTitle: "Docs",
+      strings: { breadcrumb: "이동 경로" },
+    });
+    expect(html).toContain('aria-label="이동 경로"');
+  });
 });
 
 describe("renderContentsPage", () => {

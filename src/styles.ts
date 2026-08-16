@@ -34,6 +34,14 @@ const MOBILE_NAV_MENU_ICON_PATH = "M3 12h18M3 6h18M3 18h18";
 const MOBILE_NAV_CLOSE_ICON_PATH = "M18 6 6 18M6 6l12 12";
 
 /**
+ * Feather's "chevron-right" icon (24x24, 2px stroke) — a collapsible sidebar
+ * group's disclosure indicator. One path, not a pair like the mobile nav
+ * control above: open/closed is a 90deg rotation of the same glyph (see
+ * .canopy-nav-group[open] below), not two different icons to swap between.
+ */
+const NAV_GROUP_CHEVRON_ICON_PATH = "M9 18l6-6-6-6";
+
+/**
  * Feather's "search" icon (24x24, 2px stroke) — a circle drawn as two arcs
  * (maskIcon wraps a single <path>, which can hold more than one subpath) plus
  * the handle as a second subpath, the same magnifying glass every reader
@@ -112,6 +120,44 @@ body {
    override a caller's own stylesheet. */
 .canopy-topbar .canopy-home { font-weight: 400; font-size: 0.9em; color: var(--text-muted); }
 .canopy-home::before { content: "← "; }
+
+/* The ancestor trail (renderBreadcrumb): an <ol> laid out as a row, a "/"
+   between each pair of entries rather than after every one (:not(:last-child)
+   guards that), and no bullet — a breadcrumb reads as a path, not a list.
+   No width/overflow handling of its own: a trail with nowhere left to fit
+   wraps to its own line the same way everything else in .canopy-topbar
+   already does (flex-wrap: wrap, above), rather than this duplicating that
+   with a second, competing overflow strategy. font-weight resets
+   .canopy-topbar's own semibold (set for the site title) back to normal —
+   a trail of equally-bold entries would fight the title for visual weight
+   instead of reading as secondary to it. */
+.canopy-breadcrumb {
+  font-weight: 400;
+  font-size: 0.9em;
+  color: var(--text-muted);
+}
+.canopy-breadcrumb ol {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.canopy-breadcrumb li:not(:last-child)::after {
+  content: "/";
+  margin: 0 var(--sp-2);
+  color: var(--text-faint);
+}
+/* The trail's own last crumb (the page a reader is already on) is never a
+   link — the same reasoning aria-current="page" already gives the sidebar's
+   own current entry, restated as a plain <li> here (see renderBreadcrumb)
+   rather than a second attribute a <nav><ol> has no reason to repeat. It
+   reads in the normal text color, not muted like the rest of the trail, so
+   it stands out as the trail's own endpoint. */
+.canopy-breadcrumb li:last-child { color: var(--text-normal); }
+.canopy-breadcrumb a { color: inherit; text-decoration: none; }
+.canopy-breadcrumb a:hover { color: var(--accent); text-decoration: underline; }
 
 /* Pushed to the far edge of the bar when a title/logo/home shares it; alone,
    it simply starts the bar. Hidden by default (see shell.ts) until a
@@ -255,8 +301,56 @@ body {
 /* Minimal default hierarchy: only the top level is distinguished, matching the
    minimal-configuration principle already applied to Wave 1 (no predefined
    multi-level color themes) — a consumer who wants more can target
-   .canopy-nav-l{n} directly, now that depth is exposed in the markup. */
-.canopy-nav-l0 > a, .canopy-nav-l0 > span { font-weight: var(--font-weight-semibold); }
+   .canopy-nav-l{n} directly, now that depth is exposed in the markup. A
+   top-level folder's link sits inside <details><summary> rather than as
+   .canopy-nav-l0's own direct child (see .canopy-nav-group below), so both
+   shapes need naming here — a leaf's link is a direct child, a folder's is
+   one summary deeper. */
+.canopy-nav-l0 > a,
+.canopy-nav-l0 > span,
+.canopy-nav-l0 > details > summary > a,
+.canopy-nav-l0 > details > summary > span {
+  font-weight: var(--font-weight-semibold);
+}
+
+/* A sidebar group with children — see renderNavList's own doc comment for
+   why this is a separate class from .canopy-nav (the outer mobile-overlay
+   disclosure) rather than reusing it. display: flex on <summary> is what
+   suppresses the native disclosure triangle (a browser only draws one on a
+   summary still in its default display: list-item), so list-style: none is
+   belt-and-suspenders for the browsers that draw one anyway — the same pair
+   .canopy-nav's own mobile control below already uses. */
+.canopy-nav-group > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  list-style: none;
+  cursor: pointer;
+}
+.canopy-nav-group > summary::-webkit-details-marker { display: none; }
+/* The chevron rotates 90deg open rather than swapping to a second icon —
+   one glyph, not a pair, since "expanded" is a rotation of "collapsed" and
+   not a different shape the way the mobile menu/x control's two icons are. */
+.canopy-nav-group > summary::before {
+  content: "";
+  flex: none;
+  width: 0.75rem;
+  height: 0.75rem;
+  background-color: var(--text-muted);
+  -webkit-mask: ${maskIcon(NAV_GROUP_CHEVRON_ICON_PATH)} center / contain no-repeat;
+  mask: ${maskIcon(NAV_GROUP_CHEVRON_ICON_PATH)} center / contain no-repeat;
+  transition: transform 0.15s ease;
+}
+.canopy-nav-group[open] > summary::before { transform: rotate(90deg); }
+/* The link/label inside <summary> takes the rest of the row — without this,
+   a flex summary sizes each child to its own content and the link's own
+   click target ends at its text, not the full row width a sibling leaf's
+   <li><a> already gives a reader. */
+.canopy-nav-group > summary > a,
+.canopy-nav-group > summary > span {
+  flex: 1;
+  min-width: 0;
+}
 
 /* The page a reader is already on. A tinted pill rather than a full-row bar:
    padding+background on the <a> itself needs no coordination with the
@@ -264,8 +358,9 @@ body {
    works at every nav depth unchanged. The negative margin cancels the
    added horizontal padding so the label's left edge still lines up with
    every sibling item that has no background. --sidebar-active-bg reuses
-   --accent's own color at the callout-bg opacity convention (0.12 dark /
-   0.08 light — see tokens.ts) rather than introducing a new hue. */
+   --accent's own color (0.22 dark / 0.16 light — see tokens.ts for why this
+   runs higher than the callout backgrounds' own opacity) rather than
+   introducing a new hue. */
 .canopy-sidebar a[aria-current="page"] {
   color: var(--accent);
   font-weight: var(--font-weight-semibold);

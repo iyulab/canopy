@@ -12,6 +12,9 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
 ### Fixed
 
+- **The search input now shows a placeholder and a magnifying-glass icon instead of an empty
+  box.** It carried an `aria-label` but no `placeholder`, and no icon — sound for a screen reader,
+  but a sighted reader had nothing telling them what the box was for until they clicked it.
 - **The topbar's site-title and home links no longer render in the browser's default blue with
   a permanent underline.** Every other link the shell draws (sidebar, content, outline,
   backlinks, page-nav) sets its own rest/hover colors; the topbar was the one place nothing did,

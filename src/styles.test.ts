@@ -363,6 +363,22 @@ describe("top bar", () => {
   });
 });
 
+describe("search icon", () => {
+  it("draws a magnifying glass inside the input, not just an empty box", () => {
+    expect(BASE_CSS).toMatch(/\.canopy-search\s*\{[^}]*position:\s*relative/);
+    expect(BASE_CSS).toMatch(/\.canopy-search::before\s*\{[^}]*mask:\s*(url\("[^"]+"\))/);
+    // Inert glyph, not a control — a click on it must still reach the input
+    // it sits on top of.
+    expect(BASE_CSS).toMatch(/\.canopy-search::before\s*\{[^}]*pointer-events:\s*none/);
+  });
+
+  it("gives the input room for the icon instead of drawing it on top of typed text", () => {
+    expect(BASE_CSS).toMatch(
+      /\.canopy-search input\[type="search"\]\s*\{[^}]*padding:\s*var\(--sp-2\) var\(--sp-2\) var\(--sp-2\) calc\(1rem \+ var\(--sp-2\) \* 2\)/,
+    );
+  });
+});
+
 describe("navigation depth styling", () => {
   it("gives the sidebar tree a default weight distinction for its top level", () => {
     // `renderOutline` already exposes tree depth as `canopy-outline-l{n}`; the sidebar

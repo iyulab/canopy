@@ -277,6 +277,9 @@ describe("renderPage", () => {
     const topbarSection = html.slice(topbarStart, topbarEnd);
     expect(topbarSection).toContain('<form class="canopy-search" role="search" hidden>');
     expect(topbarSection).toContain('<input type="search"');
+    // A blank box with no hint of what it's for reads as broken, not empty —
+    // the placeholder carries the same text the aria-label already does.
+    expect(topbarSection).toContain('placeholder="Search"');
     // A script wires it up and reveals it; without one, hidden keeps a broken
     // control from ever being seen (see docs/SCOPE.md — canopy carries scripts
     // it is given, it does not author them).

@@ -34,6 +34,14 @@ const MOBILE_NAV_MENU_ICON_PATH = "M3 12h18M3 6h18M3 18h18";
 const MOBILE_NAV_CLOSE_ICON_PATH = "M18 6 6 18M6 6l12 12";
 
 /**
+ * Feather's "search" icon (24x24, 2px stroke) — a circle drawn as two arcs
+ * (maskIcon wraps a single <path>, which can hold more than one subpath) plus
+ * the handle as a second subpath, the same magnifying glass every reader
+ * already recognizes from every other search box.
+ */
+const SEARCH_ICON_PATH = "M3 11a8 8 0 1 0 16 0 8 8 0 1 0-16 0M21 21l-4.35-4.35";
+
+/**
  * Base layout stylesheet for the published site shell.
  *
  * Every color, font, and spacing value is a shared design token (see
@@ -108,11 +116,32 @@ body {
 /* Pushed to the far edge of the bar when a title/logo/home shares it; alone,
    it simply starts the bar. Hidden by default (see shell.ts) until a
    caller-supplied script reveals it, so this rule only ever affects layout
-   after that script has run. */
-.canopy-search { margin-left: auto; }
+   after that script has run. position: relative so ::before below can place
+   the icon inside the input regardless of what a caller's own tokens.css
+   does — a caller carrying canopy-page's search UI happens to set this too
+   (its own .canopy-search-results dropdown needs it), but this shell has no
+   way to know that, so it supplies its own rather than depending on a
+   caller's CSS for its own icon to position correctly. */
+.canopy-search { margin-left: auto; position: relative; }
+/* Same masked-icon technique as .canopy-theme-toggle and the mobile nav
+   control above — an inert glyph, not a button, so pointer-events: none
+   lets a click straight through to the input underneath it. */
+.canopy-search::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: var(--sp-2);
+  transform: translateY(-50%);
+  width: 1rem;
+  height: 1rem;
+  background-color: var(--text-muted);
+  -webkit-mask: ${maskIcon(SEARCH_ICON_PATH)} center / contain no-repeat;
+  mask: ${maskIcon(SEARCH_ICON_PATH)} center / contain no-repeat;
+  pointer-events: none;
+}
 .canopy-search input[type="search"] {
   font: inherit;
-  padding: var(--sp-2);
+  padding: var(--sp-2) var(--sp-2) var(--sp-2) calc(1rem + var(--sp-2) * 2);
   border: 1px solid var(--border);
   border-radius: var(--radius-m);
   background: var(--bg-primary);

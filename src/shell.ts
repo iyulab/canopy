@@ -298,7 +298,7 @@ export function renderPage(
       ? `<a class="canopy-home" href="${escapeHtml(homeHref)}">${escapeHtml(options.homeLabel)}</a>`
       : "";
   const search = options.search
-    ? `<form class="canopy-search" role="search" hidden><input type="search" name="q" aria-label="${escapeHtml(strings.search)}"></form>`
+    ? `<form class="canopy-search" role="search" hidden><input type="search" name="q" placeholder="${escapeHtml(strings.search)}" aria-label="${escapeHtml(strings.search)}"></form>`
     : "";
   // No option gates this, unlike search: a caller-supplied script can flip a
   // reader's color scheme regardless of what else the site configures, the

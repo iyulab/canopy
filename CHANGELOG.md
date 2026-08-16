@@ -10,6 +10,14 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
 ## [Unreleased]
 
+### Changed
+
+- **The sidebar's current-page background tint is stronger: 8%/12% (light/dark) → 16%/22%.** A
+  callout background sits alongside an icon, a bold title, and a left border, so 8%/12% reads as
+  supporting texture there; carrying the *entire* current-entry signal alone (color and weight
+  were already shown insufficient by themselves — see the commit that added this tint) in a
+  long, deeply nested nav tree needs more than a callout's supporting-texture value.
+
 ### Fixed
 
 - **The search input now shows a placeholder and a magnifying-glass icon instead of an empty

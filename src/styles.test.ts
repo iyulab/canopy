@@ -461,11 +461,15 @@ describe("mobile topbar", () => {
     expect(mobileBlock).toMatch(/\.canopy-breadcrumb\s*\{[^}]*display:\s*none/);
   });
 
-  it("collapses search to icon width and expands it on focus, rather than reserving a full text box", () => {
+  it("collapses search to icon width and expands it while focus is anywhere in the form, rather than reserving a full text box", () => {
     const mobileBlock = BASE_CSS.match(/@media \(max-width: 40rem\) \{([\s\S]*)\}\s*$/)?.[1];
     expect(mobileBlock).toBeDefined();
     expect(mobileBlock).toMatch(/\.canopy-search input\[type="search"\]\s*\{[^}]*width:\s*2\.25rem/);
-    expect(mobileBlock).toMatch(/\.canopy-search input\[type="search"\]:focus\s*\{[^}]*width:\s*12rem/);
+    // :focus-within on the form, not :focus on the input: a caller's search
+    // script renders its results list as a child of .canopy-search, so a tap
+    // on a result moves focus to a link inside the form, not out of it — the
+    // box must not collapse mid-tap.
+    expect(mobileBlock).toMatch(/\.canopy-search:focus-within input\[type="search"\]\s*\{[^}]*width:\s*12rem/);
   });
 
   it("shrinks only the input, not the form, so it stays on the same flex line as the title/home link and the theme toggle", () => {

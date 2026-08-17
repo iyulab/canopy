@@ -630,14 +630,20 @@ body {
      size of its own beyond its child's, so shrinking the input is what shrinks
      the whole control, and .canopy-search's un-widthed box keeps sizing to
      content exactly like it did before this rule, which is what keeps it on
-     the same flex line as the title/home link and, via the adjacency rule
-     below, right next to the theme toggle rather than each wrapping to a row
-     of its own. */
+     the same flex line as the title/home link and, via the shared-wrapper
+     rule above, right next to the theme toggle rather than each wrapping to a
+     row of its own.
+     Expansion is keyed off :focus-within on the form, not :focus on the
+     input: a caller's search script (see docs/SCOPE.md) renders its results
+     list as a child of this same .canopy-search form, so a reader tapping a
+     result moves focus to a link inside the form, not away from it — :focus
+     alone would collapse the box out from under a tap in progress before the
+     click could land. */
   .canopy-search input[type="search"] {
     width: 2.25rem;
     transition: width 0.15s ease;
   }
-  .canopy-search input[type="search"]:focus { width: 12rem; }
+  .canopy-search:focus-within input[type="search"] { width: 12rem; }
 
   /* One column now, so there is no column boundary left for the desktop
      gradient (above) to mark — reset to a plain fill. .canopy-sidebar takes

@@ -8,7 +8,7 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
-## [Unreleased]
+## [0.11.1] — 2026-08-17
 
 ### Fixed
 
@@ -19,9 +19,10 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 - **The mobile topbar no longer stacks three separate rows of chrome before a reader reaches
   the page.** The breadcrumb — redundant with the sidebar's own expanded-to-current-page state
   once a reader opens it — is dropped below the topbar's own width; search collapses to its
-  icon and expands on focus instead of reserving a full text box at all times; and search and
-  the theme toggle now share one wrapping unit, so a narrow topbar wraps them together rather
-  than stranding the toggle alone on a row of its own.
+  icon and expands while focus is anywhere inside the search form instead of reserving a full
+  text box at all times (so tapping a result from a caller's search script doesn't collapse the
+  box out from under the tap); and search and the theme toggle now share one wrapping unit, so
+  a narrow topbar wraps them together rather than stranding the toggle alone on a row of its own.
 
 ## [0.11.0] — 2026-08-17
 

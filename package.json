@@ -1,6 +1,6 @@
 {
   "name": "@iyulab/canopy",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "Publishing renderer: turn a tree of markdown notes into a static website.",
   "type": "module",
   "license": "MIT",

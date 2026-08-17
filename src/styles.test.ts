@@ -446,6 +446,36 @@ describe("sidebar active page", () => {
     expect(padding).toBeDefined();
     expect(margin).toBe(padding);
   });
+
+  it("fills the row instead of just wrapping the label, so the tint reads as a full-width bar", () => {
+    // The <a> is inline by default; without display: block its background
+    // only ever covers the text it wraps, leaving the rest of the row bare.
+    expect(BASE_CSS).toMatch(/\.canopy-sidebar a\[aria-current="page"\]\s*\{[^}]*display:\s*block/);
+  });
+});
+
+describe("mobile topbar", () => {
+  it("hides the ancestor trail, which would otherwise wrap onto a row of its own", () => {
+    const mobileBlock = BASE_CSS.match(/@media \(max-width: 40rem\) \{([\s\S]*)\}\s*$/)?.[1];
+    expect(mobileBlock).toBeDefined();
+    expect(mobileBlock).toMatch(/\.canopy-breadcrumb\s*\{[^}]*display:\s*none/);
+  });
+
+  it("collapses search to icon width and expands it on focus, rather than reserving a full text box", () => {
+    const mobileBlock = BASE_CSS.match(/@media \(max-width: 40rem\) \{([\s\S]*)\}\s*$/)?.[1];
+    expect(mobileBlock).toBeDefined();
+    expect(mobileBlock).toMatch(/\.canopy-search input\[type="search"\]\s*\{[^}]*width:\s*2\.25rem/);
+    expect(mobileBlock).toMatch(/\.canopy-search input\[type="search"\]:focus\s*\{[^}]*width:\s*12rem/);
+  });
+
+  it("shrinks only the input, not the form, so it stays on the same flex line as the title/home link and the theme toggle", () => {
+    // .canopy-search itself must stay un-widthed here: giving the form its own
+    // fixed size (rather than the input) would change how it wraps relative to
+    // its topbar siblings, including breaking the adjacency rule that keeps
+    // the theme toggle right next to it instead of wrapping to its own row.
+    const mobileBlock = BASE_CSS.match(/@media \(max-width: 40rem\) \{([\s\S]*)\}\s*$/)?.[1];
+    expect(mobileBlock).not.toMatch(/\.canopy-search\s*\{[^}]*(width|flex):/);
+  });
 });
 
 /**

@@ -159,16 +159,25 @@ body {
 .canopy-breadcrumb a { color: inherit; text-decoration: none; }
 .canopy-breadcrumb a:hover { color: var(--accent); text-decoration: underline; }
 
-/* Pushed to the far edge of the bar when a title/logo/home shares it; alone,
-   it simply starts the bar. Hidden by default (see shell.ts) until a
-   caller-supplied script reveals it, so this rule only ever affects layout
-   after that script has run. position: relative so ::before below can place
-   the icon inside the input regardless of what a caller's own tokens.css
-   does — a caller carrying canopy-page's search UI happens to set this too
-   (its own .canopy-search-results dropdown needs it), but this shell has no
-   way to know that, so it supplies its own rather than depending on a
-   caller's CSS for its own icon to position correctly. */
-.canopy-search { margin-left: auto; position: relative; }
+/* .canopy-topbar-controls (shell.ts) — not .canopy-search or
+   .canopy-theme-toggle individually — owns the "pushed to the far edge, or
+   simply starts the bar when alone" placement: search and the toggle wrap as
+   one unit when the topbar runs out of room (see the wrapper's own comment in
+   shell.ts for why), so only their shared box needs margin-left: auto. */
+.canopy-topbar-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-left: auto;
+}
+/* Hidden by default (see shell.ts) until a caller-supplied script reveals it.
+   position: relative so ::before below can place the icon inside the input
+   regardless of what a caller's own tokens.css does — a caller carrying
+   canopy-page's search UI happens to set this too (its own
+   .canopy-search-results dropdown needs it), but this shell has no way to
+   know that, so it supplies its own rather than depending on a caller's CSS
+   for its own icon to position correctly. */
+.canopy-search { position: relative; }
 /* Same masked-icon technique as .canopy-theme-toggle and the mobile nav
    control above — an inert glyph, not a button, so pointer-events: none
    lets a click straight through to the input underneath it. */
@@ -195,12 +204,8 @@ body {
 }
 
 /* Hidden by default (see shell.ts) until a caller-supplied script reveals it
-   — same reasoning as .canopy-search. margin-left: auto pushes it to the bar's
-   right edge when nothing before it already claims that edge (i.e. no search);
-   the override below keeps it from fighting search for the same space when
-   both are present, so the pair reads as one right-aligned group. */
+   — same reasoning as .canopy-search. */
 .canopy-theme-toggle {
-  margin-left: auto;
   width: 1.5rem;
   height: 1.5rem;
   padding: 0;
@@ -211,7 +216,6 @@ body {
   cursor: pointer;
 }
 .canopy-theme-toggle:hover { background-color: var(--text-normal); }
-.canopy-search + .canopy-theme-toggle { margin-left: 0; }
 /* The icon shown once dark is actually in effect — the same two-path split
    tokens.ts's palette uses below it (system preference, then an explicit
    data-theme override that wins regardless of it), so the icon never
@@ -362,6 +366,7 @@ body {
    runs higher than the callout backgrounds' own opacity) rather than
    introducing a new hue. */
 .canopy-sidebar a[aria-current="page"] {
+  display: block;
   color: var(--accent);
   font-weight: var(--font-weight-semibold);
   background: var(--sidebar-active-bg);
@@ -612,6 +617,28 @@ body {
 }
 
 @media (max-width: 40rem) {
+  /* The ancestor trail repeats what the sidebar's own expanded-to-current-item
+     state already shows once a reader opens it, and on a narrow screen it was
+     the one topbar entry likely to wrap onto a line of its own — dropped here
+     rather than left to fight the title/search/theme row for space. */
+  .canopy-breadcrumb { display: none; }
+  /* Collapsed to just its icon so the title row has room for the theme toggle
+     beside it instead of wrapping to a row of its own — the input is still a
+     real, focusable text field, not a button that opens something else, so
+     this has to keep working with no script (see docs/SCOPE.md). The width
+     is set on the input itself, not on .canopy-search — .canopy-search has no
+     size of its own beyond its child's, so shrinking the input is what shrinks
+     the whole control, and .canopy-search's un-widthed box keeps sizing to
+     content exactly like it did before this rule, which is what keeps it on
+     the same flex line as the title/home link and, via the adjacency rule
+     below, right next to the theme toggle rather than each wrapping to a row
+     of its own. */
+  .canopy-search input[type="search"] {
+    width: 2.25rem;
+    transition: width 0.15s ease;
+  }
+  .canopy-search input[type="search"]:focus { width: 12rem; }
+
   /* One column now, so there is no column boundary left for the desktop
      gradient (above) to mark — reset to a plain fill. .canopy-sidebar takes
      its tint back here instead: stacked above .canopy-main rather than

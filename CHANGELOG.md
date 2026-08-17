@@ -8,6 +8,21 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [Unreleased]
+
+### Fixed
+
+- **The sidebar's current-page highlight now fills the row.** The tint previously wrapped only
+  the label text, leaving the rest of the row bare — every other row-level target (a hover, a
+  group's own summary) already spans the full width, so the current-page marker read as
+  narrower and less confident than its neighbors.
+- **The mobile topbar no longer stacks three separate rows of chrome before a reader reaches
+  the page.** The breadcrumb — redundant with the sidebar's own expanded-to-current-page state
+  once a reader opens it — is dropped below the topbar's own width; search collapses to its
+  icon and expands on focus instead of reserving a full text box at all times; and search and
+  the theme toggle now share one wrapping unit, so a narrow topbar wraps them together rather
+  than stranding the toggle alone on a row of its own.
+
 ## [0.11.0] — 2026-08-17
 
 ### Added

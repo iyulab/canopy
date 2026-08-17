@@ -363,10 +363,21 @@ export function renderPage(
   // Like the theme toggle above, breadcrumb rides along only when the topbar
   // already exists for another reason — it never manufactures one by itself,
   // the same "a genuinely chrome-free site stays chrome-free" guarantee.
+  //
+  // Search and the theme toggle share one wrapper rather than sitting as two
+  // separate flex children of .canopy-topbar: a narrow topbar can wrap either
+  // of them onto a second line (see .canopy-topbar's own flex-wrap), and
+  // without a shared box each wraps independently — search alone stays
+  // right-aligned via its own margin, but the toggle right after it (sized to
+  // fill whatever gap search left behind) can then land on a *third* line by
+  // itself, flush left, reading as a stray icon rather than as this pair. One
+  // wrapper wraps as one unit, so the two always land together and stay
+  // right-aligned together, on whichever line they end up on.
+  const controls = `<div class="canopy-topbar-controls">${search}${themeToggle}</div>`;
   const topbar =
     siteTitleLink === "" && homeLink === "" && search === ""
       ? ""
-      : `<header class="canopy-topbar">${siteTitleLink}${breadcrumb}${homeLink}${search}${themeToggle}</header>`;
+      : `<header class="canopy-topbar">${siteTitleLink}${breadcrumb}${homeLink}${controls}</header>`;
 
   return `<!doctype html>
 <html lang="${escapeHtml(lang)}">

@@ -10,6 +10,16 @@ describe("renderMarkdown", () => {
     expect(html).toContain("<em>emphasis</em>");
   });
 
+  it("closes ** emphasis immediately followed by a CJK character", async () => {
+    // Plain CommonMark treats the closing `**` as non-flanking here: the
+    // character just inside it (a backtick, closing the code span) is
+    // punctuation, and the character just outside it (a Korean particle) is
+    // neither whitespace nor punctuation. Without CJK-aware handling this
+    // renders as literal asterisks instead of closing the <strong>.
+    const html = await renderMarkdown("**`강조`**를 확인합니다.");
+    expect(html).toContain("<strong><code>강조</code></strong>를");
+  });
+
   it("renders GFM tables", async () => {
     const html = await renderMarkdown("| a | b |\n| - | - |\n| 1 | 2 |");
     expect(html).toContain("<table>");

@@ -2,6 +2,7 @@ import { unified, type PluggableList } from "unified";
 import { VFile } from "vfile";
 import remarkParse from "remark-parse";
 import remarkGfm from "remark-gfm";
+import remarkCjkFriendly from "remark-cjk-friendly/parseOnly";
 import remarkMath from "remark-math";
 import remarkRehype from "remark-rehype";
 import rehypeRaw from "rehype-raw";
@@ -112,6 +113,15 @@ const buildProcessor = async (rehypePlugins: PluggableList) =>
   unified()
   .use(remarkParse)
   .use(remarkGfm)
+  // CommonMark's emphasis rule treats `**` as closing only when the character
+  // just outside it is whitespace/punctuation or the character just inside it
+  // isn't — a rule written for scripts that use spaces between words. CJK text
+  // has neither: a Korean particle or Japanese/Chinese punctuation sits flush
+  // against the marker with no space, so `**label**를` never closes. Parsing
+  // only (no `/bidi`): canopy never serializes back to markdown, so the
+  // reverse mdast-util-to-markdown patch this package also offers is dead
+  // weight here.
+  .use(remarkCjkFriendly)
   .use(remarkMath)
   // Conservative math subset: currency-safe guards on single-$ spans and
   // standalone-line $$..$$ promotion to display math (see remark-math-subset).

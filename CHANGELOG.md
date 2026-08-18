@@ -8,6 +8,18 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [0.11.2] — 2026-08-18
+
+### Fixed
+
+- **`**` now closes correctly when a CJK character follows it with no space.** CommonMark's
+  right-flanking rule for a closing `**` requires the character just after it to be whitespace
+  or punctuation whenever the character just before it is punctuation — a rule written for
+  scripts that separate words with spaces. Chinese, Japanese, and Korean prose has neither: a
+  particle or a full-width punctuation mark sits flush against the marker, so emphasis around
+  CJK text routinely failed to close and rendered as literal asterisks. Canopy's markdown
+  pipeline now accounts for this via `remark-cjk-friendly`.
+
 ## [0.11.1] — 2026-08-17
 
 ### Fixed

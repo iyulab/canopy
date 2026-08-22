@@ -8,6 +8,31 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [Unreleased]
+
+### Added
+
+- **An external-link icon on `home` when it points outside the site.** `home.url` sits right
+  after the breadcrumb, which never leaves the site — so a reader had no reason to expect an
+  outside link to look identical to it. Marked only for a genuine different-origin URL (an
+  explicit scheme, or a protocol-relative `//host` one); a root-absolute `home.url` (this site's
+  own domain root) is left unmarked, since it stays on the same site.
+- **A scroll-edge shadow on code blocks wider than the viewport.** `overflow-x: auto` alone gave
+  no sign that a cut-off right edge was scrollable rather than just where the code stopped, on
+  any OS/browser that hides its scrollbar until hovered. A shadow now appears at whichever edge
+  still has more to scroll to, and disappears once scrolled there — no script, tied to the
+  block's own scroll position via CSS alone.
+
+### Fixed
+
+- **The on-page outline now shows its own label, not just a screen-reader-only `aria-label`.**
+  `strings.onThisPage` was already configurable, but the only place it appeared was an
+  `aria-label` on the outline's `<nav>` — the sidebar showed a bare list of headings with
+  nothing naming it. `renderBacklinks`, the shell's other `strings`-labelled aside in the same
+  column, already showed its label as a visible `<h2>`; the outline now matches it. The
+  `aria-label` stays alongside the heading — a page carries more than one `<nav>` landmark, and
+  that is what tells them apart in a screen reader's landmark list.
+
 ## [0.11.2] — 2026-08-18
 
 ### Fixed

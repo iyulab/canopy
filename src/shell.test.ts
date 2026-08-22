@@ -201,6 +201,9 @@ describe("renderPage", () => {
     expect(html).toContain('alt=""');
     expect(html).toContain('href="https://example.test/"');
     expect(html).toContain("제품 홈");
+    // Marked as leaving the site — see the dedicated describe block below
+    // for the internal/external distinction itself.
+    expect(html).toContain('class="canopy-home canopy-home-external"');
     // The top bar wraps the header content and sits outside (before) the
     // sidebar/main grid, not inside the sidebar.
     const topbarStart = html.indexOf('<header class="canopy-topbar">');
@@ -243,6 +246,36 @@ describe("renderPage", () => {
       homeLabel: "Product",
     });
     expect(html).toContain('href="/"');
+  });
+
+  // home sits right after the breadcrumb in the topbar, and the breadcrumb
+  // never leaves the site — a reader has every reason to expect the same of
+  // home unless canopy tells them otherwise. It already knows which case it
+  // is (the relative/root-absolute tests above use the same isExternalUrl
+  // check to decide whether to depth-prefix the href), so marking it is
+  // exposing information canopy already has, not inferring anything new.
+  describe("marking an external home link", () => {
+    it("adds canopy-home-external for an absolute URL", () => {
+      const html = renderPage(page(), nav, { homeUrl: "https://example.test/", homeLabel: "Product" });
+      expect(html).toContain('class="canopy-home canopy-home-external"');
+    });
+
+    it("does not mark a relative home link", () => {
+      const html = renderPage(page(), nav, { homeUrl: "../", homeLabel: "Product" });
+      expect(html).toContain('class="canopy-home"');
+      expect(html).not.toContain("canopy-home-external");
+    });
+
+    it("does not mark a root-absolute home link — it stays on the same site, just at its domain root", () => {
+      const html = renderPage(page(), nav, { homeUrl: "/", homeLabel: "Product" });
+      expect(html).toContain('class="canopy-home"');
+      expect(html).not.toContain("canopy-home-external");
+    });
+
+    it("marks a protocol-relative URL — a different host, even without an explicit scheme", () => {
+      const html = renderPage(page(), nav, { homeUrl: "//other.example/", homeLabel: "Product" });
+      expect(html).toContain('class="canopy-home canopy-home-external"');
+    });
   });
 
   it("marks the sidebar link to the page being rendered as the current one", () => {
@@ -522,6 +555,23 @@ describe("page outline", () => {
     );
     // No script: the anchors point at ids the page already carries.
     expect(html).not.toContain("<script");
+  });
+
+  // renderBacklinks, the shell's other strings-labelled aside in the same
+  // column, already shows its label as a visible <h2> — the outline had only
+  // ever exposed the same label via aria-label, invisible to a sighted
+  // reader. The aria-label stays too: a page can carry more than one <nav>
+  // landmark, and that is what tells them apart in a screen reader's
+  // landmark list, a job the <h2> does not do.
+  it("shows the outline's own label as a visible heading, matching renderBacklinks", () => {
+    const html = renderPage(page({ outline }), nav);
+    expect(html).toContain('<nav class="canopy-outline" aria-label="On this page"><h2>On this page</h2>');
+  });
+
+  it("overrides the outline heading via strings.onThisPage, in both the visible heading and the label", () => {
+    const html = renderPage(page({ outline }), nav, { strings: { onThisPage: "이 페이지에서" } });
+    expect(html).toContain('aria-label="이 페이지에서"><h2>이 페이지에서</h2>');
+    expect(html).not.toContain(">On this page<");
   });
 
   it("omits an outline that would not help", () => {

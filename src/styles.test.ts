@@ -319,6 +319,57 @@ describe("shiki dual-theme", () => {
   });
 });
 
+describe("code block scroll-edge fade", () => {
+  // overflow-x: auto alone leaves a wide block's cut-off edge looking like
+  // the code just stopped there on any OS/browser that hides its scrollbar
+  // until hovered — the "scroll shadow" technique (a shadow pair fixed to
+  // the box's own edges, covered by a cover pair fixed to the content's
+  // edges) is the no-script affordance for that. Verified live (not just
+  // by asserting the CSS) that this actually renders a visible edge and
+  // responds to scroll position — see the issue draft's Resolution.
+  it("pins a shadow pair to the box's own edges (the default attachment, unaffected by scrolling)", () => {
+    expect(BASE_CSS).toMatch(/\.canopy-content pre\s*\{[^}]*overflow-x:\s*auto/);
+    expect(BASE_CSS).toMatch(
+      /\.canopy-content pre\s*\{[^}]*background-attachment:\s*local,\s*local,\s*scroll,\s*scroll/,
+    );
+    expect(BASE_CSS).toMatch(/\.canopy-content pre\s*\{[^}]*linear-gradient\(to right, rgba\(0, 0, 0, 0\.15\), transparent\)/);
+    expect(BASE_CSS).toMatch(/\.canopy-content pre\s*\{[^}]*linear-gradient\(to left, rgba\(0, 0, 0, 0\.15\), transparent\)/);
+  });
+
+  it("pins a cover pair to the content's own edges, hiding the shadow except where there's more to scroll to", () => {
+    // local (not the default scroll) is what ties these to the *content*
+    // rather than the box, so a cover scrolls out from under its shadow
+    // exactly when the reader has scrolled away from that edge.
+    expect(BASE_CSS).toMatch(/\.canopy-content pre\s*\{[^}]*linear-gradient\(to right, #fff 60%, transparent\)/);
+    expect(BASE_CSS).toMatch(/\.canopy-content pre\s*\{[^}]*linear-gradient\(to left, #fff 60%, transparent\)/);
+    // Covers listed first — background layers paint top-to-bottom in
+    // declaration order, so the cover has to come before the shadow it's
+    // meant to hide, not after.
+    const preBlock = extractBlock(BASE_CSS, ".canopy-content pre {", BASE_CSS.indexOf(".canopy-content pre {"));
+    const backgroundImage = /background-image:\s*([^;]+);/.exec(preBlock)?.[1] ?? "";
+    const coverAt = backgroundImage.indexOf("#fff");
+    const shadowAt = backgroundImage.indexOf("rgba(0, 0, 0, 0.15)");
+    expect(coverAt).toBeGreaterThan(-1);
+    expect(shadowAt).toBeGreaterThan(coverAt);
+  });
+
+  it("swaps the cover's color to --shiki-dark-bg in dark mode, both paths — the shadow itself is unchanged", () => {
+    // Same two-path shape as the Shiki color/background override above: the
+    // system-preference block and the explicit data-theme override.
+    const firstMediaQuery = BASE_CSS.indexOf("@media (prefers-color-scheme: dark) {");
+    const shikiDarkBlock = extractBlock(BASE_CSS, "@media (prefers-color-scheme: dark) {", firstMediaQuery + 1);
+    expect(shikiDarkBlock).toMatch(
+      /:root:not\(\[data-theme="light"\]\)\s*\.canopy-content pre\s*\{[^}]*linear-gradient\(to right, var\(--shiki-dark-bg\) 60%, transparent\)/,
+    );
+    expect(shikiDarkBlock).toMatch(
+      /:root:not\(\[data-theme="light"\]\)\s*\.canopy-content pre\s*\{[^}]*linear-gradient\(to right, rgba\(0, 0, 0, 0\.15\), transparent\)/,
+    );
+    expect(BASE_CSS).toMatch(
+      /:root\[data-theme="dark"\]\s*\.canopy-content pre\s*\{[^}]*linear-gradient\(to left, var\(--shiki-dark-bg\) 60%, transparent\)/,
+    );
+  });
+});
+
 describe("top bar", () => {
   it("spans the full width above the sidebar/main grid, not inside the sidebar", () => {
     // The header used to live inside .canopy-sidebar as .canopy-site-title; it now

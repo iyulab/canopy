@@ -207,7 +207,12 @@ function renderOutline(outline: OutlineItem[], label: string): string {
       return `<li class="canopy-outline-l${depth}"><a href="#${escapeHtml(item.id)}">${escapeHtml(item.text)}</a></li>`;
     })
     .join("");
-  return `<nav class="canopy-outline" aria-label="${escapeHtml(label)}"><ul>${items}</ul></nav>`;
+  // aria-label stays alongside the visible <h2>, not replaced by it: a page
+  // can carry more than one <nav> landmark (site nav, page nav, this one),
+  // and the label is what tells them apart in a screen reader's landmark
+  // list — the <h2> only adds a sighted reader's version of the same name,
+  // matching renderBacklinks below, which already shows its own heading.
+  return `<nav class="canopy-outline" aria-label="${escapeHtml(label)}"><h2>${escapeHtml(label)}</h2><ul>${items}</ul></nav>`;
 }
 
 /**
@@ -346,9 +351,23 @@ export function renderPage(
       : isExternalUrl(options.homeUrl)
         ? options.homeUrl
         : relativeHref(page.sitePath, "") + options.homeUrl;
+  // A reader reaching this link right after the breadcrumb (both sit in the
+  // same spot in the topbar) has every reason to expect it stays inside the
+  // site, the way the breadcrumb always does — canopy already knows when
+  // that expectation is wrong, so it marks it rather than staying silent.
+  //
+  // Deliberately narrower than isExternalUrl above: that check answers "does
+  // this href need depth-prefixing", and root-absolute ("/") and a bare
+  // fragment both answer no to that while staying on this same site — a
+  // root-absolute home.url addresses this site's own domain root, not
+  // somewhere else. "Leaves the site" only actually holds for an explicit
+  // scheme (https:, mailto:, ...) or a protocol-relative "//host" URL.
+  const homeLeavesSite =
+    options.homeUrl !== undefined &&
+    (options.homeUrl.startsWith("//") || /^[a-z][a-z0-9+.-]*:/i.test(options.homeUrl));
   const homeLink =
     homeHref !== undefined && options.homeLabel !== undefined
-      ? `<a class="canopy-home" href="${escapeHtml(homeHref)}">${escapeHtml(options.homeLabel)}</a>`
+      ? `<a class="canopy-home${homeLeavesSite ? " canopy-home-external" : ""}" href="${escapeHtml(homeHref)}">${escapeHtml(options.homeLabel)}</a>`
       : "";
   const search = options.search
     ? `<form class="canopy-search" role="search" hidden><input type="search" name="q" placeholder="${escapeHtml(strings.search)}" aria-label="${escapeHtml(strings.search)}"></form>`

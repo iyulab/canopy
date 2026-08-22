@@ -50,6 +50,17 @@ const NAV_GROUP_CHEVRON_ICON_PATH = "M9 18l6-6-6-6";
 const SEARCH_ICON_PATH = "M3 11a8 8 0 1 0 16 0 8 8 0 1 0-16 0M21 21l-4.35-4.35";
 
 /**
+ * Feather's "external-link" icon (24x24, 2px stroke) — three subpaths
+ * (a window frame, a corner bracket, and the diagonal arrow through it),
+ * combined the same way SEARCH_ICON_PATH above combines two. Feather ships
+ * these as a <path>/<polyline>/<line> trio; maskIcon only accepts one <path>,
+ * so the polyline's three points became an h/v pair and the line became a
+ * plain M...L, rather than three separate mask layers for one glyph.
+ */
+const EXTERNAL_LINK_ICON_PATH =
+  "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3";
+
+/**
  * Base layout stylesheet for the published site shell.
  *
  * Every color, font, and spacing value is a shared design token (see
@@ -120,6 +131,26 @@ body {
    override a caller's own stylesheet. */
 .canopy-topbar .canopy-home { font-weight: 400; font-size: 0.9em; color: var(--text-muted); }
 .canopy-home::before { content: "← "; }
+/* home.url can name a page outside the site entirely (settings lets it be
+   any URL, not just an internal path) — and it sits right after the
+   breadcrumb, which never leaves the site, so a reader has every reason to
+   expect the same here unless told otherwise. The icon is the telling:
+   isExternalUrl already decides this in shell.ts, so nothing here
+   re-derives it. currentColor (not a fixed var(--text-muted), unlike this
+   file's other mask icons) is deliberate: it's what lets the icon dim/light
+   up together with .canopy-home's own hover color change above, with no
+   second rule needed to keep the two in sync. */
+.canopy-home-external::after {
+  content: "";
+  display: inline-block;
+  width: 0.7em;
+  height: 0.7em;
+  margin-left: 0.25em;
+  vertical-align: -0.05em;
+  background-color: currentColor;
+  -webkit-mask: ${maskIcon(EXTERNAL_LINK_ICON_PATH)} center / contain no-repeat;
+  mask: ${maskIcon(EXTERNAL_LINK_ICON_PATH)} center / contain no-repeat;
+}
 
 /* The ancestor trail (renderBreadcrumb): an <ol> laid out as a row, a "/"
    between each pair of entries rather than after every one (:not(:last-child)
@@ -452,11 +483,52 @@ body {
 .canopy-content a { color: var(--accent); }
 .canopy-content a:hover { color: var(--accent-hover); }
 .canopy-content img { max-width: 100%; height: auto; }
+/* overflow-x: auto alone leaves a wide block's cut-off right edge looking
+   like the code just stopped there, on any OS/browser that hides its
+   scrollbar until hovered. The four layers below are the standard no-script
+   "scroll shadow" affordance for that (the technique widely credited to Lea
+   Verou): a shadow pair, always painted at this box's own visible edges
+   (background-attachment: scroll — the default, named explicitly here so
+   the contrast with the cover pair below reads as intentional, not an
+   omission) and a cover pair the same width as the background, positioned
+   at the *content's* own two ends (background-attachment: local, so it
+   scrolls together with the content rather than staying put in the
+   viewport). At rest, a cover sits exactly on top of the shadow at
+   whichever end there's nothing left to scroll to — content start and box
+   start coincide there, so the opaque cover fully hides that edge's shadow.
+   Scrolling moves the local-attached cover out from under the
+   scroll-attached shadow at the end being scrolled away from, revealing it,
+   while the far cover (approaching its own matching end) hides that
+   shadow again once fully scrolled. A block that never needs to scroll
+   keeps both shadows covered at all times.
+   Layer order matters: covers are listed first, so they paint on top of
+   the shadows. The cover color matches Shiki's own github-light background
+   (its inline background-color, #fff) so a covered shadow reads as simply
+   absent rather than as a mismatched patch; the dark-mode pair below
+   substitutes --shiki-dark-bg, the same custom property (set inline by
+   Shiki on this same element) the .shiki dark override already reads for
+   background-color itself. Verified empirically (an isolated fixture,
+   scrolled programmatically to each end) rather than assumed from the
+   recipe alone — an earlier, simpler two-layer version of this rule
+   (fade-to-background-color only, no separate shadow, no explicit
+   background-size) looked plausible but rendered with no visible effect at
+   all once actually checked in a browser: a same-color fade painted over a
+   background already that color composites to no visible edge, of course,
+   in hindsight, but that wasn't obvious captured only in the CSS itself. */
 .canopy-content pre {
   margin: var(--sp-4) 0;
   padding: var(--sp-4);
   border-radius: var(--radius-m);
   overflow-x: auto;
+  background-image:
+    linear-gradient(to right, #fff 60%, transparent),
+    linear-gradient(to left, #fff 60%, transparent),
+    linear-gradient(to right, rgba(0, 0, 0, 0.15), transparent),
+    linear-gradient(to left, rgba(0, 0, 0, 0.15), transparent);
+  background-repeat: no-repeat;
+  background-size: var(--sp-6) 100%, var(--sp-6) 100%, var(--sp-2) 100%, var(--sp-2) 100%;
+  background-position: 0 0, 100% 0, 0 0, 100% 0;
+  background-attachment: local, local, scroll, scroll;
 }
 .canopy-content code { font-family: var(--font-monospace); }
 .canopy-content table { border-collapse: collapse; }
@@ -515,6 +587,7 @@ body {
   border-left: 2px solid var(--border);
   font-size: 0.9em;
 }
+.canopy-outline h2 { font-size: 1em; color: var(--text-muted); }
 .canopy-outline ul { list-style: none; margin: 0; padding: 0; }
 .canopy-outline li { margin: var(--sp-2) 0; }
 .canopy-outline a { color: var(--text-muted); text-decoration: none; }
@@ -609,11 +682,33 @@ body {
     color: var(--shiki-dark) !important;
     background-color: var(--shiki-dark-bg) !important;
   }
+  /* The scroll shadow's cover pair above is colored for github-light's
+     #fff — swapped here to --shiki-dark-bg (same variable the override just
+     above reads) so a covered shadow still reads as absent, not as a
+     mismatched light patch on a dark block. The shadow pair itself
+     (rgba(0, 0, 0, 0.15)) is unchanged: still a readable darkening over
+     --shiki-dark-bg, the same way it is over #fff. background-size/
+     position/attachment are the base rule's own, untouched — only the
+     four gradients' colors differ here. */
+  :root:not([data-theme="light"]) .canopy-content pre {
+    background-image:
+      linear-gradient(to right, var(--shiki-dark-bg) 60%, transparent),
+      linear-gradient(to left, var(--shiki-dark-bg) 60%, transparent),
+      linear-gradient(to right, rgba(0, 0, 0, 0.15), transparent),
+      linear-gradient(to left, rgba(0, 0, 0, 0.15), transparent);
+  }
 }
 :root[data-theme="dark"] .shiki,
 :root[data-theme="dark"] .shiki span {
   color: var(--shiki-dark) !important;
   background-color: var(--shiki-dark-bg) !important;
+}
+:root[data-theme="dark"] .canopy-content pre {
+  background-image:
+    linear-gradient(to right, var(--shiki-dark-bg) 60%, transparent),
+    linear-gradient(to left, var(--shiki-dark-bg) 60%, transparent),
+    linear-gradient(to right, rgba(0, 0, 0, 0.15), transparent),
+    linear-gradient(to left, rgba(0, 0, 0, 0.15), transparent);
 }
 
 @media (max-width: 40rem) {

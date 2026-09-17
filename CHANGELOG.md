@@ -17,7 +17,8 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
   the fallback), so a site no longer presents one identical summary on every page. The Open
   Graph basics — `og:title`, `og:description`, `og:type` (`website` for the front page,
   `article` elsewhere), `og:site_name` — and a `twitter:card` are written on every page; they
-  need nothing absolute. The tags that do — `<link rel="canonical">`, `og:url`, `og:image`, and
+  need nothing absolute, so they appear on every site built with this version, with no flag to
+  turn them off — a consumer diffing output against 0.12.0 will see them and should. The tags that do — `<link rel="canonical">`, `og:url`, `og:image`, and
   `<link rel="alternate" hreflang>` — appear only once `--site-url` names where the site is
   published, so a build without it is byte-for-byte as portable as before, and body links stay
   relative either way. `--site-image` (or a page's own frontmatter `image:`) supplies the

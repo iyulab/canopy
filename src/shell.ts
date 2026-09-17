@@ -43,7 +43,10 @@ export interface ShellOptions {
    * are meaningless unless absolute: `rel="canonical"`, `og:url`, `og:image`,
    * and the `hreflang` alternates. Unset, none of those is written and the
    * output is exactly as portable as before (a site opened straight from a
-   * local folder never needs them).
+   * local folder never needs them). Taken as given: the CLI checks its
+   * `--site-url` for an `http(s)://` scheme, but a library caller passing
+   * this directly is responsible for it being absolute — a bare path here
+   * would be joined into "canonical" URLs that are nothing of the kind.
    */
   siteUrl?: string;
   /**

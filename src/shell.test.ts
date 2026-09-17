@@ -806,3 +806,19 @@ describe("head metadata", () => {
     expect(head(html)).toContain('content="a &quot;quoted&quot; &lt;tag&gt;"');
   });
 });
+
+describe("head metadata: a regional site language beside a plain-language edition", () => {
+  it("lists both ko-KR (this site) and ko (the map's) — different hreflang tags, not a duplicate", () => {
+    // `lang` and an alternate key are compared as written: "ko-KR" and "ko"
+    // are two tags to a crawler, and a site that really has both editions
+    // must name both. Collapsing them would silently drop one.
+    const html = renderPage(page(), nav, {
+      lang: "ko-KR",
+      siteUrl: "https://example.test/kr",
+      alternates: { ko: "https://example.test/ko" },
+    });
+    const head = html.slice(0, html.indexOf("</head>"));
+    expect(head).toContain('hreflang="ko-KR" href="https://example.test/kr/notes/idea.html"');
+    expect(head).toContain('hreflang="ko" href="https://example.test/ko/notes/idea.html"');
+  });
+});

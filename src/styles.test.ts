@@ -455,12 +455,50 @@ describe("collapsible sidebar groups", () => {
     expect(BASE_CSS).toMatch(
       /\.canopy-nav-group\s*>\s*summary::-webkit-details-marker\s*\{[^}]*display:\s*none/,
     );
-    expect(BASE_CSS).toMatch(/\.canopy-nav-group\s*>\s*summary::before\s*\{[^}]*mask:\s*(url\("[^"]+"\))/);
+    expect(BASE_CSS).toMatch(/\.canopy-nav-group\s*>\s*summary::after\s*\{[^}]*mask:\s*(url\("[^"]+"\))/);
+  });
+
+  it("places the chevron at the row's trailing edge, so labels at one depth share a left edge whether or not they have children", () => {
+    // A leading chevron (::before) was the one thing a group row had that a
+    // leaf row didn't, so the two kinds of label at the same depth started at
+    // two different x positions. Trailing (::after + margin-left: auto), every
+    // label at a depth starts where its siblings do.
+    expect(BASE_CSS).toMatch(/\.canopy-sidebar \.canopy-nav-group\s*>\s*summary::after\s*\{[^}]*margin-left:\s*auto/);
+    expect(BASE_CSS).not.toMatch(/\.canopy-nav-group\s*>\s*summary::before\s*\{/);
+  });
+
+  it("keeps the trailing push and the row's link styling out of a page's own contents list", () => {
+    // The same tree renders inside .canopy-contents on the synthesized index
+    // page. There, a group's link must stay a content link (.canopy-content's
+    // accent), not inherit the summary's text color, and the chevron must
+    // follow its label rather than be pushed to a prose column's far edge —
+    // so both rules are scoped to .canopy-sidebar, and the unscoped chevron
+    // rule carries no margin-left of its own.
+    const unscopedChevron = extractBlock(BASE_CSS, "\n.canopy-nav-group > summary::after {");
+    expect(unscopedChevron).not.toMatch(/margin-left/);
+    expect(BASE_CSS).not.toMatch(/\n\.canopy-nav-group\s*>\s*summary\s*>\s*a,[^{]*\{[^}]*color:\s*inherit/);
+    expect(BASE_CSS).toMatch(
+      /\.canopy-sidebar \.canopy-nav-group\s*>\s*summary\s*>\s*a,\s*\.canopy-sidebar \.canopy-nav-group\s*>\s*summary\s*>\s*span\s*\{[^}]*color:\s*inherit/,
+    );
+  });
+
+  it("keeps the chevron on a wrapped label's first line rather than floating between lines", () => {
+    // The chevron's box is one line tall (the row's line-height), the glyph
+    // masked to its center, and the row aligns its items to the start — so
+    // on a two-line label the glyph sits beside the first line, where the
+    // eye looks for it, instead of centered against the whole block.
+    const chevron = extractBlock(BASE_CSS, ".canopy-nav-group > summary::after {");
+    expect(chevron).toMatch(/height:\s*1\.5em/);
+    // The leading newline anchors the marker to the unscoped base rule — the
+    // same substring also occurs inside the sidebar-scoped row rule earlier
+    // in the file, which indexOf would otherwise find first.
+    const row = extractBlock(BASE_CSS, "\n.canopy-nav-group > summary {");
+    expect(row).toMatch(/align-items:\s*flex-start/);
   });
 
   it("rotates the same chevron open rather than swapping to a second icon", () => {
     expect(BASE_CSS).toMatch(
-      /\.canopy-nav-group\[open\]\s*>\s*summary::before\s*\{[^}]*transform:\s*rotate\(90deg\)/,
+      /\.canopy-nav-group\[open\]\s*>\s*summary::after\s*\{[^}]*transform:\s*rotate\(90deg\)/,
     );
   });
 
@@ -480,28 +518,72 @@ describe("breadcrumb", () => {
   });
 });
 
-describe("sidebar active page", () => {
-  it("gives the current page a tinted background, not just color/weight", () => {
+describe("sidebar rows", () => {
+  const ROW_SELECTOR =
+    /\.canopy-sidebar li\s*>\s*a,\s*\.canopy-sidebar li\s*>\s*span,\s*\.canopy-sidebar \.canopy-nav-group\s*>\s*summary\s*\{/;
+
+  it("styles a leaf's link and a group's whole summary as one kind of row", () => {
+    // One padding/radius/hover rule for both shapes, so a leaf and a group at
+    // the same depth line up and highlight identically — rather than the
+    // group's <summary> being a bare flex container around a padded link.
+    const row = BASE_CSS.match(new RegExp(`${ROW_SELECTOR.source}[^}]*}`))?.[0];
+    expect(row).toBeDefined();
+    expect(row).toMatch(/padding:\s*var\(--sp-1\) var\(--sp-2\)/);
+    expect(row).toMatch(/border-radius:\s*var\(--radius-m\)/);
+    expect(row).toMatch(/display:\s*flex/);
+  });
+
+  it("gives a hovered row a background surface rather than an underline", () => {
     expect(BASE_CSS).toMatch(
-      /\.canopy-sidebar a\[aria-current="page"\]\s*\{[^}]*background:\s*var\(--sidebar-active-bg\)/,
+      /\.canopy-sidebar li\s*>\s*a:hover,\s*\.canopy-sidebar \.canopy-nav-group\s*>\s*summary:hover\s*\{[^}]*background:\s*var\(--sidebar-hover-bg\)/,
+    );
+    expect(BASE_CSS).not.toMatch(/\.canopy-sidebar a:hover\s*\{[^}]*text-decoration:\s*underline/);
+  });
+
+  it("draws a keyboard focus ring inside the row's own box", () => {
+    expect(BASE_CSS).toMatch(
+      /\.canopy-sidebar li\s*>\s*a:focus-visible,\s*\.canopy-sidebar \.canopy-nav-group\s*>\s*summary:focus-visible\s*\{[^}]*outline-offset:\s*-2px/,
     );
   });
 
-  it("cancels its own padding with a matching negative margin, so the label doesn't shift", () => {
-    // A pill treatment adds horizontal padding to give the background room; without
-    // an equal-and-opposite margin the label's left edge would jump right relative
-    // to every sibling item that has no background.
-    const rule = extractBlock(BASE_CSS, '.canopy-sidebar a[aria-current="page"] {');
-    const padding = rule.match(/padding:\s*[\d.]+\w*\s+var\((--[\w-]+)\)/)?.[1];
-    const margin = rule.match(/margin:\s*0\s+calc\(var\((--[\w-]+)\)\s*\*\s*-1\)/)?.[1];
-    expect(padding).toBeDefined();
-    expect(margin).toBe(padding);
+  it("steps the nav's type one size down from the body, like the outline already does", () => {
+    const sidebar = extractBlock(BASE_CSS, ".canopy-sidebar {");
+    expect(sidebar).toMatch(/font-size:\s*0\.9em/);
+    // Restored to the body's size on the single-column layout, where the nav
+    // is a full-screen panel with nothing beside it to compete with.
+    const mobileBlock = extractBlock(BASE_CSS, "@media (max-width: 40rem) {");
+    expect(mobileBlock).toMatch(/\.canopy-sidebar\s*\{[^}]*font-size:\s*1em/);
   });
 
-  it("fills the row instead of just wrapping the label, so the tint reads as a full-width bar", () => {
-    // The <a> is inline by default; without display: block its background
-    // only ever covers the text it wraps, leaving the rest of the row bare.
-    expect(BASE_CSS).toMatch(/\.canopy-sidebar a\[aria-current="page"\]\s*\{[^}]*display:\s*block/);
+  it("marks a nested list with a guide line under its parent's label", () => {
+    const nested = extractBlock(BASE_CSS, ".canopy-sidebar ul ul {");
+    expect(nested).toMatch(/border-left:\s*1px solid var\(--border\)/);
+  });
+});
+
+describe("sidebar active page", () => {
+  const ACTIVE_SELECTOR =
+    /\.canopy-sidebar li\s*>\s*a\[aria-current="page"\],\s*\.canopy-sidebar \.canopy-nav-group\s*>\s*summary:has\(>\s*a\[aria-current="page"\]\)\s*\{/;
+
+  it("gives the current page a tinted background, not just color/weight", () => {
+    expect(BASE_CSS).toMatch(new RegExp(`${ACTIVE_SELECTOR.source}[^}]*background:\\s*var\\(--sidebar-active-bg\\)`));
+  });
+
+  it("tints a current group's whole summary row, chevron included, not just the link inside it", () => {
+    // A group's link sits inside <summary> beside the chevron; tinting only
+    // the <a> left the chevron outside the highlight. :has() lifts the state
+    // to the row — the same selector .canopy-main already relies on.
+    expect(BASE_CSS).toMatch(ACTIVE_SELECTOR);
+  });
+
+  it("adds no padding or margin of its own — the row rule already carries them", () => {
+    // The previous pill-on-the-<a> treatment needed a negative margin to
+    // cancel its own padding so the label wouldn't shift; with padding on
+    // every row, the active row has nothing to correct for.
+    const rule = BASE_CSS.match(new RegExp(`${ACTIVE_SELECTOR.source}[^}]*}`))?.[0];
+    expect(rule).toBeDefined();
+    expect(rule).not.toMatch(/margin:/);
+    expect(rule).not.toMatch(/padding:/);
   });
 });
 

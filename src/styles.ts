@@ -320,19 +320,76 @@ body {
    the bottom of a short column on its own, which is why the tint and the
    divider (above, on .canopy-layout) don't live here anymore. */
 .canopy-sidebar {
-  padding: var(--sp-6) var(--sp-4);
+  padding: var(--sp-6) var(--sp-3) var(--sp-8);
   align-self: start;
   position: sticky;
   top: 0;
   max-height: 100vh;
   overflow-y: auto;
+  /* One step below the body's own size, the same step .canopy-outline takes:
+     a navigation column is chrome the reader glances at, not prose they
+     read, and at the body's full size its rows competed with the article
+     for weight instead of framing it. The tighter line-height is per row,
+     not per paragraph — .canopy-nav-row below sizes a wrapped label from
+     it, and the body's relaxed 1.7 left a two-line entry looking like two
+     separate items. */
+  font-size: 0.9em;
+  line-height: 1.5;
+  scrollbar-width: thin;
 }
 
-.canopy-sidebar ul { list-style: none; margin: 0; padding-left: var(--sp-3); }
-.canopy-nav > nav > ul { padding-left: 0; }
-.canopy-sidebar a { color: var(--text-normal); text-decoration: none; }
-.canopy-sidebar a:hover { color: var(--accent); text-decoration: underline; }
-.canopy-sidebar span { color: var(--text-muted); }
+.canopy-sidebar ul { list-style: none; margin: 0; padding: 0; }
+/* A nested list steps in by one row-padding and carries a 1px guide down
+   its left edge, so where a group ends and its parent's next sibling begins
+   is visible without reading the labels — the guide, not the indent alone,
+   is what keeps a tree three levels deep legible. The margin places the
+   guide under the parent row's own label (its padding-left below), not
+   under the row's edge, so the line reads as descending from the text. */
+.canopy-sidebar ul ul {
+  margin-left: var(--sp-3);
+  padding-left: var(--sp-1);
+  border-left: 1px solid var(--border);
+}
+/* Top-level entries get air between them: they're the sections of the
+   site, and a section boundary needs more than a nested list's own indent
+   to read as one. Only between siblings (+), not above the first. */
+.canopy-sidebar .canopy-nav-l0 + .canopy-nav-l0 { margin-top: var(--sp-1); }
+
+/* The row is the styled unit — a leaf's own link/label, or a group's whole
+   <summary> (its link inside gets no box of its own; see below). One
+   padding, one radius, one hover surface, one active tint, whichever shape
+   an entry takes, so a leaf and a group at the same depth line up and
+   highlight identically. Scoped to .canopy-sidebar: the same tree renders
+   as a page's own contents list too (shell.ts's index page), where a
+   nav-like row treatment would be out of place inside prose. */
+.canopy-sidebar li > a,
+.canopy-sidebar li > span,
+.canopy-sidebar .canopy-nav-group > summary {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-2);
+  border-radius: var(--radius-m);
+  color: var(--text-normal);
+  text-decoration: none;
+  transition: background-color 0.1s ease, color 0.1s ease;
+}
+/* A surface, not an underline: an underline is a link idiom for prose,
+   where it marks which words are the link; in a column of nothing but
+   links it only adds noise. The tint says "this row" the same way the
+   active tint below does, one step weaker. */
+.canopy-sidebar li > a:hover,
+.canopy-sidebar .canopy-nav-group > summary:hover {
+  background: var(--sidebar-hover-bg);
+  color: var(--text-normal);
+}
+/* Keyboard focus draws inside the row's own box (negative offset) so the
+   ring can't be clipped by the sidebar's overflow or overlap a neighbor. */
+.canopy-sidebar li > a:focus-visible,
+.canopy-sidebar .canopy-nav-group > summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
 /* Minimal default hierarchy: only the top level is distinguished, matching the
    minimal-configuration principle already applied to Wave 1 (no predefined
    multi-level color themes) — a consumer who wants more can target
@@ -357,53 +414,83 @@ body {
    .canopy-nav's own mobile control below already uses. */
 .canopy-nav-group > summary {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--sp-2);
   list-style: none;
   cursor: pointer;
 }
 .canopy-nav-group > summary::-webkit-details-marker { display: none; }
+/* The link/label inside a sidebar <summary> takes the rest of the row —
+   without this, a flex summary sizes each child to its own content and the
+   link's own click target ends at its text, not the full row width a
+   sibling leaf's <li><a> already gives a reader. Color/decoration are
+   inherited from the summary (the row), so hover and active set on the row
+   reach the label without a second rule for the link. Scoped to the
+   sidebar, like the row rule above: the same tree also renders as a page's
+   own contents list (shell.ts's index page), where a group's link has to
+   keep reading as a content link — .canopy-content's own accent color —
+   and where nothing beside it needs the full row. */
+.canopy-sidebar .canopy-nav-group > summary > a,
+.canopy-sidebar .canopy-nav-group > summary > span {
+  flex: 1;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+/* A folder with no page of its own is a label, not a link — muted so it
+   doesn't promise a click it can't deliver. After the row/summary rules
+   above (same specificity), so it's what wins for a <span> in either shape. */
+.canopy-sidebar li > span,
+.canopy-sidebar summary > span { color: var(--text-muted); }
+/* The chevron sits at the row's trailing edge (::after, margin-left: auto),
+   not before the label. Leading, it was the one thing a group row had that
+   a leaf row didn't, so labels at the same depth started at two different x
+   positions — a ragged left edge that no per-leaf placeholder gutter fixes
+   as cleanly as simply not being there. Trailing, every label at a depth
+   starts where its siblings do, and the chevron becomes a clear toggle
+   target in its own right. Its box is one line tall (1.5em, the row's own
+   line-height) rather than glyph-sized, with the glyph masked to 0.75rem
+   at its center: on a label that wraps, that keeps the chevron on the
+   first line (the row is align-items: flex-start) instead of floating
+   between two lines. currentColor, like .canopy-home-external's icon, so
+   it follows the row's hover/active color with no rule of its own; the
+   opacity is what keeps it quieter than the label at rest. */
+.canopy-nav-group > summary::after {
+  content: "";
+  flex: none;
+  width: 1rem;
+  height: 1.5em;
+  background-color: currentColor;
+  opacity: 0.55;
+  -webkit-mask: ${maskIcon(NAV_GROUP_CHEVRON_ICON_PATH)} center / 0.75rem no-repeat;
+  mask: ${maskIcon(NAV_GROUP_CHEVRON_ICON_PATH)} center / 0.75rem no-repeat;
+  transition: transform 0.15s ease;
+}
 /* The chevron rotates 90deg open rather than swapping to a second icon —
    one glyph, not a pair, since "expanded" is a rotation of "collapsed" and
    not a different shape the way the mobile menu/x control's two icons are. */
-.canopy-nav-group > summary::before {
-  content: "";
-  flex: none;
-  width: 0.75rem;
-  height: 0.75rem;
-  background-color: var(--text-muted);
-  -webkit-mask: ${maskIcon(NAV_GROUP_CHEVRON_ICON_PATH)} center / contain no-repeat;
-  mask: ${maskIcon(NAV_GROUP_CHEVRON_ICON_PATH)} center / contain no-repeat;
-  transition: transform 0.15s ease;
-}
-.canopy-nav-group[open] > summary::before { transform: rotate(90deg); }
-/* The link/label inside <summary> takes the rest of the row — without this,
-   a flex summary sizes each child to its own content and the link's own
-   click target ends at its text, not the full row width a sibling leaf's
-   <li><a> already gives a reader. */
-.canopy-nav-group > summary > a,
-.canopy-nav-group > summary > span {
-  flex: 1;
-  min-width: 0;
-}
+.canopy-nav-group[open] > summary::after { transform: rotate(90deg); }
+/* Pushed to the row's far edge only in the sidebar, where the row is the
+   full column width and the label (flex: 1 above) fills it. In a page's
+   contents list the link sizes to its text, so the chevron simply follows
+   the label at the summary's own gap — pushing it to the far edge of a
+   prose column would strand it hundreds of pixels from its label. */
+.canopy-sidebar .canopy-nav-group > summary::after { margin-left: auto; }
 
-/* The page a reader is already on. A tinted pill rather than a full-row bar:
-   padding+background on the <a> itself needs no coordination with the
-   nested <ul>'s own padding-left (a row-spanning treatment would), so it
-   works at every nav depth unchanged. The negative margin cancels the
-   added horizontal padding so the label's left edge still lines up with
-   every sibling item that has no background. --sidebar-active-bg reuses
-   --accent's own color (0.22 dark / 0.16 light — see tokens.ts for why this
-   runs higher than the callout backgrounds' own opacity) rather than
-   introducing a new hue. */
-.canopy-sidebar a[aria-current="page"] {
-  display: block;
+/* The page a reader is already on. The tint is on the row (the leaf's own
+   link, or the whole summary of a group whose link is current — :has() is
+   already what .canopy-main uses to size itself by the outline's presence),
+   so a current group's chevron sits inside the highlight with its label
+   rather than beside it. The row rule above already carries the padding
+   and radius, so this adds only what "current" means: the accent, the
+   weight, and the tint. --sidebar-active-bg reuses --accent's own color
+   (0.22 dark / 0.16 light — see tokens.ts for why this runs higher than the
+   callout backgrounds' own opacity) rather than introducing a new hue. */
+.canopy-sidebar li > a[aria-current="page"],
+.canopy-sidebar .canopy-nav-group > summary:has(> a[aria-current="page"]) {
   color: var(--accent);
   font-weight: var(--font-weight-semibold);
   background: var(--sidebar-active-bg);
-  border-radius: var(--radius-m);
-  padding: 1px var(--sp-2);
-  margin: 0 calc(var(--sp-2) * -1);
 }
 
 /* A disclosure that ships open: the desktop layout is unchanged and needs no
@@ -448,8 +535,11 @@ body {
   font-weight: var(--font-weight-semibold);
   line-height: 1.25;
 }
-.canopy-content h1 { font-size: 1.875em; }
-.canopy-content h2 { font-size: 1.5em; }
+/* The two largest sizes tighten slightly: at 30px/24px the UI font's default
+   tracking, tuned for body sizes, reads loose. Not applied below h2, where
+   the sizes are close enough to the body's for its tracking to be right. */
+.canopy-content h1 { font-size: 1.875em; letter-spacing: -0.015em; }
+.canopy-content h2 { font-size: 1.5em; letter-spacing: -0.01em; }
 .canopy-content h3 { font-size: 1.25em; }
 .canopy-content h4 { font-size: 1.125em; }
 .canopy-content h5, .canopy-content h6 { font-size: 1em; }
@@ -590,8 +680,10 @@ body {
 .canopy-outline h2 { font-size: 1em; color: var(--text-muted); }
 .canopy-outline ul { list-style: none; margin: 0; padding: 0; }
 .canopy-outline li { margin: var(--sp-2) 0; }
-.canopy-outline a { color: var(--text-muted); text-decoration: none; }
-.canopy-outline a:hover { color: var(--accent); text-decoration: underline; }
+.canopy-outline a { color: var(--text-muted); text-decoration: none; transition: color 0.1s ease; }
+/* Color only, no underline — the same reasoning as the sidebar's rows: in a
+   list that is nothing but links, an underline marks nothing. */
+.canopy-outline a:hover { color: var(--accent); }
 .canopy-outline-l1 { padding-left: var(--sp-4); }
 .canopy-outline-l2 { padding-left: var(--sp-6); }
 
@@ -771,6 +863,19 @@ body {
        still try to pin itself as the page scrolls. */
     align-self: auto;
     position: static;
+    /* Back to the body's own size: the desktop step-down exists to keep a
+       side column from competing with the article beside it, and here the
+       nav is a full-screen panel with nothing beside it. */
+    font-size: 1em;
+  }
+  /* Taller rows for a thumb rather than a pointer — the same 2.75rem the
+     panel's own open/close control below already gives itself. */
+  .canopy-sidebar li > a,
+  .canopy-sidebar li > span,
+  .canopy-sidebar .canopy-nav-group > summary {
+    padding: var(--sp-2) var(--sp-3);
+    min-height: 2.75rem;
+    align-items: center;
   }
   /* Closed, the disclosure is just this control's own line — a cap would be
      inert here (there is nothing under it to clamp) but is declared anyway so

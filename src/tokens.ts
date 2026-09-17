@@ -40,6 +40,11 @@ const DARK_TOKENS = `
        deeply nested tree. The same value that reads as "enough" next to an
        icon reads as "did anything change?" carrying that alone. */
     --sidebar-active-bg: color-mix(in srgb, var(--accent) 22%, transparent);
+    /* Derived from the text color, not from --accent: a hovered row is "the
+       row under the pointer", a neutral surface that has to stay visually
+       weaker than the active page's accent tint right next to it, or hover
+       and current would read as the same state. */
+    --sidebar-hover-bg: color-mix(in srgb, var(--text-normal) 9%, transparent);
     /* Callout accents — same names as the consuming app's tokens so injection stays drop-in. */
     --callout-note: #6d8bff;    --callout-note-bg: rgba(109, 139, 255, 0.12);
     --callout-tip: #34d399;     --callout-tip-bg: rgba(52, 211, 153, 0.12);
@@ -56,6 +61,7 @@ export const CANOPY_TOKENS = `:root {
   --font-weight-semibold: 600;
 
   --content-max-width: 48rem;
+  --sp-1: 4px;
   --sp-2: 8px;
   --sp-3: 12px;
   --sp-4: 16px;
@@ -74,6 +80,8 @@ export const CANOPY_TOKENS = `:root {
   --border-strong: rgba(0, 0, 0, 0.18);
   /* See DARK_TOKENS above for why this outruns the callout backgrounds' 8%. */
   --sidebar-active-bg: color-mix(in srgb, var(--accent) 16%, transparent);
+  /* See DARK_TOKENS above for why this derives from the text color, not --accent. */
+  --sidebar-hover-bg: color-mix(in srgb, var(--text-normal) 7%, transparent);
   /* Callout accents — same names as the consuming app's tokens so injection stays drop-in. */
   --callout-note: #2f6fed;    --callout-note-bg: rgba(47, 111, 237, 0.08);
   --callout-tip: #0a8a57;     --callout-tip-bg: rgba(10, 138, 87, 0.08);

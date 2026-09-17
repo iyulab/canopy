@@ -8,6 +8,28 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [Unreleased]
+
+### Changed
+
+- **The sidebar's rows are now a designed unit, not bare text.** Every entry — a leaf's link or
+  a group's whole summary — shares one padding, radius, and line-height; a hovered row gets a
+  neutral surface (`--sidebar-hover-bg`, new, derived from `--text-normal`) instead of a color
+  change plus underline; keyboard focus draws a ring inside the row; the current page's tint
+  covers a group's chevron together with its label, not just the link beside it. The nav's type
+  steps one size below the body (as the on-page outline already did) on the two-column layout
+  and returns to the body's size in the full-screen mobile panel, whose rows also grow to
+  thumb height.
+- **A group's chevron now sits at the trailing edge of its row.** Leading, it was the one thing a
+  group row had that a leaf row didn't, so labels at the same depth started at two different
+  x positions. Every label at a depth now shares a left edge, and the chevron stays beside a
+  wrapped label's first line rather than floating between its lines. A consumer that styled
+  `.canopy-nav-group > summary::before` should target `::after` instead.
+- **Nested sidebar lists carry a 1px guide line** under their parent's label, and top-level
+  entries get a little air between them, so the tree's structure is legible without reading it.
+- **`--sp-1` (4px)** joins the spacing scale, and the two largest content headings tighten
+  their tracking slightly.
+
 ## [0.12.0] — 2026-08-22
 
 ### Added

@@ -10,6 +10,39 @@ export function toSitePath(sourcePath: string): string {
   return normalized.replace(/\.md$/i, ".html");
 }
 
+/** The site's base URL without a trailing slash — what every absolute URL below joins onto. */
+function siteBase(siteUrl: string): string {
+  return siteUrl.replace(/\/+$/, "");
+}
+
+/**
+ * The one absolute URL a page is canonically reached by, given where the site
+ * is published.
+ *
+ * A directory's index page *is* the directory: `guide/index.html` and `guide/`
+ * are one page, and naming both would ask a crawler to treat it as two — so
+ * the index filename folds away. This is the rule behind `rel="canonical"`,
+ * `og:url`, and every `hreflang` alternate the shell writes, and it is
+ * exported so a caller writing a sitemap can name each page by exactly the
+ * same string rather than restating the rule and drifting from it.
+ * `encodeURI` leaves the separators alone and fixes what a URL cannot carry
+ * raw — the whole-URL counterpart of the per-segment encoding `relativeHref`
+ * does below.
+ */
+export function pageUrl(siteUrl: string, sitePath: string): string {
+  const canonical = sitePath.replace(/^\/+/, "").replace(/(^|\/)index\.html$/i, "$1");
+  return `${siteBase(siteUrl)}/${encodeURI(canonical)}`;
+}
+
+/**
+ * The absolute URL of a published file that is not a page — an image a link
+ * preview shows, say. No index folding: `assets/index.html` would be a page,
+ * but a file is reached by its own full name.
+ */
+export function fileUrl(siteUrl: string, sitePath: string): string {
+  return `${siteBase(siteUrl)}/${encodeURI(sitePath.replace(/^\/+/, ""))}`;
+}
+
 /**
  * Compute a relative href from one site path to another.
  *

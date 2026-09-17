@@ -56,7 +56,23 @@ npx canopy build <vault-dir> [out-dir] [options]
 - `<vault-dir>` — the folder of markdown notes to publish.
 - `[out-dir]` — where to write the site bundle (defaults to `./site`).
 - `--site-title <title>` — override the site title (defaults to the vault folder name).
-- `--site-description <text>` — fill `<meta name="description">`, used by link previews.
+- `--site-description <text>` — fill `<meta name="description">` and `og:description`, used by
+  link previews and search results. A page whose frontmatter has its own `description:` uses
+  that instead, so pages don't all present one identical summary.
+- `--site-url <url>` — the absolute URL the site is published at. Every link canopy writes into
+  a page stays relative regardless; this feeds only the `<head>` tags that are meaningless
+  unless absolute — `<link rel="canonical">`, `og:url`, `og:image`, and `hreflang` alternates —
+  none of which is written without it. An index page's canonical URL is its directory
+  (`guide/index.html` → `.../guide/`), the same rule a sitemap should follow; `pageUrl()` is
+  exported from the library so a caller writing one can use exactly that string.
+- `--site-image <path>` — vault-relative image link previews show (`og:image`), for any page
+  whose frontmatter has no `image:` of its own (a site path, or an absolute URL used as given).
+  Needs `--site-url`. The build fails if the path is missing or excluded.
+- `--alternate <lang>=<url>` — another language edition of this same site, by its `hreflang`
+  tag (`x-default` allowed) and that edition's own site URL. Repeatable. Each page then lists
+  its counterpart at the same site path under every edition, its own included. Canopy sees one
+  tree at a time and cannot check the other edition really has that page — the editions keep
+  this true by mirroring each other's structure. Needs `--site-url`.
 - `--lang <tag>` — BCP 47 language tag for `<html lang>` (defaults to `en`). Worth setting for
   any non-English vault: assistive technology reads pronunciation rules from it. It changes only
   what `<html lang>` declares — the reader chrome's own text (search, theme toggle, nav

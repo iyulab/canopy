@@ -19,6 +19,16 @@ export type BuildArgs =
       siteIcon?: string;
       /** Site description for `<meta name="description">`. */
       siteDescription?: string;
+      /**
+       * Absolute URL the site is published at. Feeds only the `<head>` tags
+       * that have to be absolute (canonical, og:url, og:image, hreflang);
+       * every link in a page stays relative regardless.
+       */
+      siteUrl?: string;
+      /** Vault-relative path of the image link previews show (`og:image`). */
+      siteImage?: string;
+      /** Other language editions of the site, `hreflang` → that edition's site URL. */
+      alternates?: Record<string, string>;
       /** Path to a JSON navigation spec giving the order and labels. */
       navPath?: string;
       /** Vault-relative path of a logo shown beside the site title. */
@@ -59,6 +69,9 @@ export const USAGE = [
   "",
   "  --site-title <title>       Site name (defaults to the vault folder name)",
   "  --site-description <text>  Description for <meta name=description>",
+  "  --site-url <url>           Absolute URL the site is published at — enables canonical/og:url/og:image/hreflang",
+  "  --site-image <path>        Vault-relative image for link previews (og:image); needs --site-url",
+  "  --alternate <lang>=<url>   Another language edition of this site, by its own site URL (repeatable); needs --site-url",
   "  --lang <tag>               BCP 47 language tag (defaults to en)",
   "  --site-icon <path>         Vault-relative favicon, linked from every page",
   "  --nav <path>               JSON navigation spec: order and labels",
@@ -83,6 +96,8 @@ export const USAGE = [
 const VALUE_FLAGS = {
   "--site-title": "siteTitle",
   "--site-description": "siteDescription",
+  "--site-url": "siteUrl",
+  "--site-image": "siteImage",
   "--lang": "lang",
   "--site-icon": "siteIcon",
   "--nav": "navPath",
@@ -102,7 +117,15 @@ const VALUE_FLAGS = {
 const LIST_FLAGS = {
   "--exclude": "exclude",
   "--rehype-plugin": "rehypePluginPaths",
+  "--alternate": "alternate",
 } as const;
+
+/**
+ * The shape an absolute site URL has to have. Only the scheme is checked:
+ * this is a guard against a relative path handed to a flag whose whole point
+ * is to be absolute, not a URL validator.
+ */
+const ABSOLUTE_HTTP = /^https?:\/\//i;
 
 function isValueFlag(arg: string): arg is keyof typeof VALUE_FLAGS {
   return arg in VALUE_FLAGS;
@@ -123,7 +146,8 @@ export function parseBuildArgs(argv: string[]): BuildArgs {
     {};
   const exclude: string[] = [];
   const rehypePluginPaths: string[] = [];
-  const lists = { exclude, rehypePluginPaths } as const satisfies Record<
+  const alternate: string[] = [];
+  const lists = { exclude, rehypePluginPaths, alternate } as const satisfies Record<
     (typeof LIST_FLAGS)[keyof typeof LIST_FLAGS],
     string[]
   >;
@@ -166,6 +190,39 @@ export function parseBuildArgs(argv: string[]): BuildArgs {
     return { ok: false, error: "--home-label needs --home-url" };
   }
 
+  // The tags these feed are absolute URLs by definition, and --site-url is
+  // the only place the absolute part can come from. Refusing here beats
+  // accepting the flag and writing nothing, which would look like canopy
+  // dropping an argument.
+  if (single.siteUrl !== undefined && !ABSOLUTE_HTTP.test(single.siteUrl)) {
+    return { ok: false, error: `--site-url: "${single.siteUrl}" must be an absolute http(s) URL` };
+  }
+  if (single.siteImage !== undefined && single.siteUrl === undefined) {
+    return { ok: false, error: "--site-image needs --site-url: a preview image has to be an absolute URL" };
+  }
+  if (alternate.length > 0 && single.siteUrl === undefined) {
+    return {
+      ok: false,
+      error: "--alternate needs --site-url: a page has to name its own edition alongside the others",
+    };
+  }
+  let alternates: Record<string, string> | undefined;
+  if (alternate.length > 0) {
+    alternates = {};
+    for (const entry of alternate) {
+      const at = entry.indexOf("=");
+      const hreflang = at === -1 ? "" : entry.slice(0, at).trim();
+      const url = at === -1 ? "" : entry.slice(at + 1).trim();
+      if (hreflang === "" || url === "") {
+        return { ok: false, error: `--alternate: expected <lang>=<url>, got "${entry}"` };
+      }
+      if (!ABSOLUTE_HTTP.test(url)) {
+        return { ok: false, error: `--alternate ${hreflang}: "${url}" must be an absolute http(s) URL` };
+      }
+      alternates[hreflang] = url;
+    }
+  }
+
   let strings: Record<string, string> | undefined;
   if (single.stringsJson !== undefined) {
     let parsed: unknown;
@@ -186,6 +243,9 @@ export function parseBuildArgs(argv: string[]): BuildArgs {
     out: positional[1] ?? "site",
     siteTitle: single.siteTitle,
     siteDescription: single.siteDescription,
+    siteUrl: single.siteUrl,
+    siteImage: single.siteImage,
+    alternates,
     lang: single.lang,
     siteIcon: single.siteIcon,
     navPath: single.navPath,

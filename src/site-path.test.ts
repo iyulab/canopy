@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { toSitePath, relativeHref } from "./site-path.js";
+import { fileUrl, pageUrl, relativeHref, toSitePath } from "./site-path.js";
 
 describe("toSitePath", () => {
   it("maps a markdown file to .html", () => {
@@ -49,5 +49,41 @@ describe("relativeHref", () => {
       "guide/deep%20dive.html",
     );
     expect(relativeHref("guide/deep dive.html", "index.html")).toBe("../index.html");
+  });
+});
+
+describe("pageUrl", () => {
+  it("joins the site URL and the page path", () => {
+    expect(pageUrl("https://example.test/help", "guide/install.html")).toBe(
+      "https://example.test/help/guide/install.html",
+    );
+  });
+
+  it("folds an index page into its directory — one page, one URL", () => {
+    expect(pageUrl("https://example.test", "index.html")).toBe("https://example.test/");
+    expect(pageUrl("https://example.test", "guide/index.html")).toBe("https://example.test/guide/");
+  });
+
+  it("tolerates a trailing slash on the site URL, and a leading one on the path", () => {
+    expect(pageUrl("https://example.test/help/", "/guide/install.html")).toBe(
+      "https://example.test/help/guide/install.html",
+    );
+  });
+
+  it("percent-encodes what a URL cannot carry raw", () => {
+    expect(pageUrl("https://example.test", "error messages.html")).toBe(
+      "https://example.test/error%20messages.html",
+    );
+  });
+});
+
+describe("fileUrl", () => {
+  it("names a file by its full path, with no index folding", () => {
+    expect(fileUrl("https://example.test/help/", "assets/index.html")).toBe(
+      "https://example.test/help/assets/index.html",
+    );
+    expect(fileUrl("https://example.test", "assets/cover image.png")).toBe(
+      "https://example.test/assets/cover%20image.png",
+    );
   });
 });

@@ -10,6 +10,22 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
 ## [Unreleased]
 
+### Added
+
+- **Search and link-preview metadata in every page's `<head>`.** A page's frontmatter
+  `description:` now fills `<meta name="description">` (the site-wide `--site-description` stays
+  the fallback), so a site no longer presents one identical summary on every page. The Open
+  Graph basics — `og:title`, `og:description`, `og:type` (`website` for the front page,
+  `article` elsewhere), `og:site_name` — and a `twitter:card` are written on every page; they
+  need nothing absolute. The tags that do — `<link rel="canonical">`, `og:url`, `og:image`, and
+  `<link rel="alternate" hreflang>` — appear only once `--site-url` names where the site is
+  published, so a build without it is byte-for-byte as portable as before, and body links stay
+  relative either way. `--site-image` (or a page's own frontmatter `image:`) supplies the
+  preview image; `--alternate <lang>=<url>` (repeatable) declares the site's other language
+  editions, each page listing its counterpart at the same path under every edition, its own
+  first. `pageUrl()`/`fileUrl()` are exported so a caller writing a sitemap names each page by
+  exactly the canonical string the shell writes.
+
 ### Changed
 
 - **The sidebar's rows are now a designed unit, not bare text.** Every entry — a leaf's link or

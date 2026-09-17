@@ -1,7 +1,7 @@
 import type { RenderedPage, Backlink } from "./contract.js";
 import { isExternalUrl } from "./markdown-link.js";
 import { ancestorPath, flattenNav, subtreeContains, type NavNode } from "./navigation.js";
-import { relativeHref } from "./site-path.js";
+import { fileUrl, pageUrl, relativeHref } from "./site-path.js";
 import { isOutlineUseful, type OutlineItem } from "./outline.js";
 import { declaredTitle, pageName } from "./title.js";
 
@@ -30,8 +30,38 @@ export interface ShellOptions {
    * is exactly where the browser's implicit `/favicon.ico` guess fails.
    */
   iconPath?: string;
-  /** Site description for `<meta name="description">`, used by link previews. */
+  /**
+   * Site description for `<meta name="description">` and `og:description`,
+   * used by link previews and search results. The fallback: a page whose
+   * frontmatter carries its own `description` uses that instead, so two
+   * pages of one site don't present the same summary to a search engine.
+   */
   description?: string;
+  /**
+   * The absolute URL the site is published at. Every link canopy writes into
+   * a page stays relative regardless — this feeds only the `<head>` tags that
+   * are meaningless unless absolute: `rel="canonical"`, `og:url`, `og:image`,
+   * and the `hreflang` alternates. Unset, none of those is written and the
+   * output is exactly as portable as before (a site opened straight from a
+   * local folder never needs them).
+   */
+  siteUrl?: string;
+  /**
+   * Site path of an image link previews show (`og:image`) when a page has no
+   * `image` of its own in its frontmatter. Needs `siteUrl` to become the
+   * absolute URL the tag requires; without one the tag is simply not written.
+   */
+  imagePath?: string;
+  /**
+   * Other language editions of this same site, as `hreflang` → that edition's
+   * own absolute site URL (`x-default` is a valid key). Each page names its
+   * counterpart at the same site path under each URL — canopy sees one tree
+   * at a time and cannot check that the other edition really has that page,
+   * so this is a declaration the editions keep true by mirroring each
+   * other's structure. Needs `siteUrl`: a page has to name its own edition
+   * in the same list, and that is the one URL this map doesn't carry.
+   */
+  alternates?: Record<string, string>;
   /**
    * Site path of a logo, shown beside the site title. Relative like every other
    * link, so it resolves when the site is served from a sub-path.
@@ -289,6 +319,82 @@ function renderPageNav(navigation: NavNode[], from: string, label: string): stri
 }
 
 /**
+ * The `<head>` tags a search engine and a link preview read: the Open Graph
+ * basics, a canonical URL, a preview image, and the page's other-language
+ * editions.
+ *
+ * Split by what each tag needs. `og:title`/`og:description`/`og:site_name`/
+ * `twitter:card` carry text a page already has, so they are always written.
+ * `rel="canonical"`, `og:url`, `og:image` (for a site-relative image) and the
+ * `hreflang` links are absolute URLs by definition, which canopy can only
+ * form from `options.siteUrl` — absent that, they are left out entirely
+ * rather than written relative, since a relative canonical is worse than
+ * none. Body links stay relative either way: a site with these tags still
+ * opens from a local folder, and only the tags themselves name where it is
+ * published.
+ */
+function renderSocialMeta(
+  page: RenderedPage,
+  title: string,
+  description: string | undefined,
+  options: ShellOptions,
+): string {
+  const tags: string[] = [`<meta property="og:title" content="${escapeHtml(title)}">`];
+  if (description !== undefined) {
+    tags.push(`<meta property="og:description" content="${escapeHtml(description)}">`);
+  }
+  // The site's front page is the site; every other page is a document in it.
+  const isFront = page.sitePath.toLowerCase() === "index.html";
+  tags.push(`<meta property="og:type" content="${isFront ? "website" : "article"}">`);
+  if (options.siteTitle !== undefined) {
+    tags.push(`<meta property="og:site_name" content="${escapeHtml(options.siteTitle)}">`);
+  }
+
+  // A page's own frontmatter `image` wins over the site's default. An absolute
+  // URL is used as given (the image may live on a CDN the site doesn't own);
+  // a site path needs siteUrl to become one, like every other tag below.
+  const ownImage = page.frontmatter.image;
+  const imagePath =
+    typeof ownImage === "string" && ownImage.trim() !== "" ? ownImage : options.imagePath;
+  let imageUrl: string | undefined;
+  if (imagePath !== undefined) {
+    if (isExternalUrl(imagePath)) imageUrl = imagePath;
+    else if (options.siteUrl !== undefined) imageUrl = fileUrl(options.siteUrl, imagePath);
+  }
+  if (imageUrl !== undefined) {
+    tags.push(`<meta property="og:image" content="${escapeHtml(imageUrl)}">`);
+  }
+  // The card type follows whether there is actually an image to make it large.
+  tags.push(
+    `<meta name="twitter:card" content="${imageUrl === undefined ? "summary" : "summary_large_image"}">`,
+  );
+
+  if (options.siteUrl !== undefined) {
+    const canonical = pageUrl(options.siteUrl, page.sitePath);
+    tags.push(`<link rel="canonical" href="${escapeHtml(canonical)}">`);
+    tags.push(`<meta property="og:url" content="${escapeHtml(canonical)}">`);
+
+    if (options.alternates !== undefined) {
+      // A page has to list its own edition among the alternates (the
+      // protocol's rule: a set of alternates is only valid when every member
+      // names every other, itself included), so the site's own language leads
+      // the list unless the map already places it somewhere explicitly.
+      const lang = options.lang ?? "en";
+      const editions: [string, string][] = Object.hasOwn(options.alternates, lang)
+        ? []
+        : [[lang, options.siteUrl]];
+      editions.push(...Object.entries(options.alternates));
+      for (const [hreflang, siteUrl] of editions) {
+        tags.push(
+          `<link rel="alternate" hreflang="${escapeHtml(hreflang)}" href="${escapeHtml(pageUrl(siteUrl, page.sitePath))}">`,
+        );
+      }
+    }
+  }
+  return tags.join("");
+}
+
+/**
  * Wrap a rendered page's HTML body into a complete, self-contained HTML
  * document: head with metadata and stylesheets, a navigation sidebar, the
  * content, and a backlinks section. All internal links are relative to this
@@ -314,9 +420,20 @@ export function renderPage(
     )
     .join("");
 
-  const description = options.description
-    ? `<meta name="description" content="${escapeHtml(options.description)}">`
+  // The page's own summary first, the site's as the fallback: one description
+  // repeated on every page reads to a search engine as duplicate metadata,
+  // and to a reader sharing a link as a preview that says nothing about the
+  // page they chose. Only a non-empty string counts — frontmatter is untyped,
+  // and a `description:` left blank shouldn't erase the site's own.
+  const ownDescription = page.frontmatter.description;
+  const description =
+    typeof ownDescription === "string" && ownDescription.trim() !== ""
+      ? ownDescription
+      : options.description;
+  const descriptionTag = description
+    ? `<meta name="description" content="${escapeHtml(description)}">`
     : "";
+  const social = renderSocialMeta(page, title, description, options);
 
   const script = options.scriptPath
     ? `<script defer src="${escapeHtml(relativeHref(page.sitePath, options.scriptPath))}"></script>`
@@ -405,7 +522,7 @@ export function renderPage(
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="canopy">
 <title>${escapeHtml(docTitle)}</title>
-${description}${icon}${links}${script}
+${descriptionTag}${social}${icon}${links}${script}
 </head>
 <body>
 ${topbar}

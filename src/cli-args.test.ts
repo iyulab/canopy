@@ -174,3 +174,65 @@ describe("parseBuildArgs", () => {
     });
   });
 });
+
+describe("parseBuildArgs: where the site is published", () => {
+  it("parses --site-url, --site-image, and repeated --alternate entries", () => {
+    const args = parseBuildArgs([
+      "build", "v",
+      "--site-url", "https://example.test/help/",
+      "--site-image", "assets/cover.png",
+      "--alternate", "ko=https://example.test/ko/help/",
+      "--alternate", "x-default=https://example.test/help/",
+    ]);
+    expect(args).toMatchObject({
+      ok: true,
+      siteUrl: "https://example.test/help/",
+      siteImage: "assets/cover.png",
+      alternates: { ko: "https://example.test/ko/help/", "x-default": "https://example.test/help/" },
+    });
+  });
+
+  it("leaves alternates undefined when the flag is never given", () => {
+    expect(parseBuildArgs(["build", "v"])).toMatchObject({ ok: true, alternates: undefined });
+  });
+
+  it("refuses a site URL that is not absolute — the flag exists to be absolute", () => {
+    expect(parseBuildArgs(["build", "v", "--site-url", "/help"])).toEqual({
+      ok: false,
+      error: '--site-url: "/help" must be an absolute http(s) URL',
+    });
+  });
+
+  it("refuses a preview image without a site URL, rather than silently writing no tag", () => {
+    expect(parseBuildArgs(["build", "v", "--site-image", "assets/cover.png"])).toEqual({
+      ok: false,
+      error: "--site-image needs --site-url: a preview image has to be an absolute URL",
+    });
+  });
+
+  it("refuses alternates without a site URL, since a page must name its own edition too", () => {
+    const args = parseBuildArgs(["build", "v", "--alternate", "ko=https://example.test/ko"]);
+    expect(args).toMatchObject({ ok: false });
+    expect((args as { error: string }).error).toContain("--alternate needs --site-url");
+  });
+
+  it("refuses an alternate that is not <lang>=<url>", () => {
+    const base = ["build", "v", "--site-url", "https://example.test"];
+    expect(parseBuildArgs([...base, "--alternate", "ko"])).toEqual({
+      ok: false,
+      error: '--alternate: expected <lang>=<url>, got "ko"',
+    });
+    expect(parseBuildArgs([...base, "--alternate", "ko=/ko"])).toEqual({
+      ok: false,
+      error: '--alternate ko: "/ko" must be an absolute http(s) URL',
+    });
+  });
+
+  it("splits an alternate at the first '=' only, so a URL with a query survives", () => {
+    const args = parseBuildArgs([
+      "build", "v", "--site-url", "https://example.test",
+      "--alternate", "ko=https://example.test/ko?edition=1",
+    ]);
+    expect(args).toMatchObject({ ok: true, alternates: { ko: "https://example.test/ko?edition=1" } });
+  });
+});

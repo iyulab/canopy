@@ -126,12 +126,13 @@ async function main(): Promise<void> {
   // actually exist. Checking here turns a silently-broken tag — which only shows
   // up as a missing image after deploy — into a build failure naming the path.
   const published =
-    args.siteIcon !== undefined || args.siteLogo !== undefined
+    args.siteIcon !== undefined || args.siteLogo !== undefined || args.siteImage !== undefined
       ? await listFiles(vault, args.exclude)
       : [];
   for (const [flag, value] of [
     ["--site-icon", args.siteIcon],
     ["--site-logo", args.siteLogo],
+    ["--site-image", args.siteImage],
   ] as const) {
     if (value === undefined) continue;
     const rel = value.replace(/\\/g, "/").replace(/^\/+/, "");
@@ -206,6 +207,9 @@ async function main(): Promise<void> {
     ...(args.lang ? { lang: args.lang } : {}),
     ...(args.siteIcon ? { iconPath: args.siteIcon.replace(/\\/g, "/") } : {}),
     ...(args.siteDescription ? { description: args.siteDescription } : {}),
+    ...(args.siteUrl ? { siteUrl: args.siteUrl } : {}),
+    ...(args.siteImage ? { imagePath: args.siteImage.replace(/\\/g, "/") } : {}),
+    ...(args.alternates ? { alternates: args.alternates } : {}),
     ...(args.siteLogo ? { logoPath: args.siteLogo.replace(/\\/g, "/") } : {}),
     ...(args.homeUrl ? { homeUrl: args.homeUrl } : {}),
     ...(args.homeLabel ? { homeLabel: args.homeLabel } : {}),

@@ -15,7 +15,7 @@ export type {
   OutputFile,
   Backlink,
 } from "./contract.js";
-export { toSitePath, relativeHref } from "./site-path.js";
+export { toSitePath, relativeHref, pageUrl, fileUrl } from "./site-path.js";
 export { parseFrontmatter } from "./frontmatter.js";
 export { renderMarkdown, renderDocument } from "./render.js";
 export { buildNavigation } from "./navigation.js";

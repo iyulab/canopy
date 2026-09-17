@@ -669,3 +669,140 @@ describe("document metadata", () => {
     expect(html).not.toContain('lang=""><x"');
   });
 });
+
+describe("head metadata", () => {
+  const head = (html: string): string => html.slice(0, html.indexOf("</head>"));
+
+  it("prefers a page's own frontmatter description over the site's", () => {
+    const html = renderPage(page({ frontmatter: { description: "About this page" } }), nav, {
+      description: "About the site",
+    });
+    expect(head(html)).toContain('<meta name="description" content="About this page">');
+    expect(head(html)).toContain('<meta property="og:description" content="About this page">');
+    expect(head(html)).not.toContain("About the site");
+  });
+
+  it("falls back to the site description when the page has none, or a blank one", () => {
+    for (const frontmatter of [{}, { description: "  " }, { description: 42 }]) {
+      const html = renderPage(page({ frontmatter }), nav, { description: "About the site" });
+      expect(head(html)).toContain('<meta name="description" content="About the site">');
+    }
+  });
+
+  it("writes no description tag at all when neither the page nor the site has one", () => {
+    const html = renderPage(page(), nav);
+    expect(head(html)).not.toContain('name="description"');
+    expect(head(html)).not.toContain("og:description");
+  });
+
+  it("always writes the Open Graph basics, which need nothing absolute", () => {
+    const html = renderPage(page(), nav, { siteTitle: "Notes" });
+    expect(head(html)).toContain('<meta property="og:title" content="idea">');
+    expect(head(html)).toContain('<meta property="og:type" content="article">');
+    expect(head(html)).toContain('<meta property="og:site_name" content="Notes">');
+    expect(head(html)).toContain('<meta name="twitter:card" content="summary">');
+  });
+
+  it("types the site's front page as a website, every other page as an article", () => {
+    const front = renderPage(page({ sitePath: "index.html" }), nav);
+    expect(head(front)).toContain('<meta property="og:type" content="website">');
+    expect(head(renderContentsPage(nav))).toContain('<meta property="og:type" content="website">');
+  });
+
+  it("writes no absolute URL into the head without a site URL, so the output stays portable", () => {
+    const html = renderPage(page(), nav, {
+      siteTitle: "Notes",
+      description: "d",
+      imagePath: "assets/cover.png",
+      alternates: { ko: "https://example.test/ko" },
+    });
+    expect(head(html)).not.toMatch(/https?:\/\//);
+    expect(head(html)).not.toContain('rel="canonical"');
+    expect(head(html)).not.toContain("og:url");
+    expect(head(html)).not.toContain("og:image");
+    expect(head(html)).not.toContain("hreflang");
+  });
+
+  it("names the page's canonical URL from the site URL, folding an index page into its directory", () => {
+    const html = renderPage(page(), nav, { siteUrl: "https://example.test/help/" });
+    expect(head(html)).toContain('<link rel="canonical" href="https://example.test/help/notes/idea.html">');
+    expect(head(html)).toContain('<meta property="og:url" content="https://example.test/help/notes/idea.html">');
+    const index = renderPage(page({ sitePath: "notes/index.html" }), nav, {
+      siteUrl: "https://example.test/help",
+    });
+    expect(head(index)).toContain('<link rel="canonical" href="https://example.test/help/notes/">');
+  });
+
+  it("keeps every body link relative even when the head carries absolute URLs", () => {
+    const html = renderPage(page(), nav, { siteUrl: "https://example.test/help" });
+    const body = html.slice(html.indexOf("<body>"));
+    expect(body).not.toContain("https://example.test");
+    expect(body).toContain('href="../index.html"');
+  });
+
+  describe("preview image", () => {
+    it("resolves the site's default image to an absolute URL and makes the card large", () => {
+      const html = renderPage(page(), nav, {
+        siteUrl: "https://example.test",
+        imagePath: "assets/cover image.png",
+      });
+      expect(head(html)).toContain(
+        '<meta property="og:image" content="https://example.test/assets/cover%20image.png">',
+      );
+      expect(head(html)).toContain('<meta name="twitter:card" content="summary_large_image">');
+    });
+
+    it("lets a page's own frontmatter image win over the site's default", () => {
+      const html = renderPage(page({ frontmatter: { image: "assets/idea.png" } }), nav, {
+        siteUrl: "https://example.test",
+        imagePath: "assets/cover.png",
+      });
+      expect(head(html)).toContain('content="https://example.test/assets/idea.png"');
+      expect(head(html)).not.toContain("cover.png");
+    });
+
+    it("uses an absolute image URL as given, with or without a site URL", () => {
+      const html = renderPage(page({ frontmatter: { image: "https://cdn.test/idea.png" } }), nav);
+      expect(head(html)).toContain('<meta property="og:image" content="https://cdn.test/idea.png">');
+    });
+  });
+
+  describe("language editions", () => {
+    it("lists each edition's counterpart of this page, the site's own language first", () => {
+      const html = renderPage(page(), nav, {
+        lang: "en",
+        siteUrl: "https://example.test/help",
+        alternates: { ko: "https://example.test/ko/help/", "x-default": "https://example.test/help" },
+      });
+      const links = head(html).match(/<link rel="alternate"[^>]*>/g) ?? [];
+      expect(links).toEqual([
+        '<link rel="alternate" hreflang="en" href="https://example.test/help/notes/idea.html">',
+        '<link rel="alternate" hreflang="ko" href="https://example.test/ko/help/notes/idea.html">',
+        '<link rel="alternate" hreflang="x-default" href="https://example.test/help/notes/idea.html">',
+      ]);
+    });
+
+    it("does not add a second self entry when the map already places the site's own language", () => {
+      const html = renderPage(page(), nav, {
+        lang: "ko",
+        siteUrl: "https://example.test/ko",
+        alternates: { en: "https://example.test/en", ko: "https://example.test/ko" },
+      });
+      const links = head(html).match(/hreflang="ko"/g) ?? [];
+      expect(links).toHaveLength(1);
+    });
+
+    it("folds index pages in every edition's URL, the same way the canonical does", () => {
+      const html = renderPage(page({ sitePath: "guide/index.html" }), nav, {
+        siteUrl: "https://example.test",
+        alternates: { ko: "https://example.test/ko" },
+      });
+      expect(head(html)).toContain('hreflang="ko" href="https://example.test/ko/guide/"');
+    });
+  });
+
+  it("escapes what it writes into attributes", () => {
+    const html = renderPage(page({ frontmatter: { description: 'a "quoted" <tag>' } }), nav);
+    expect(head(html)).toContain('content="a &quot;quoted&quot; &lt;tag&gt;"');
+  });
+});

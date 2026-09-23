@@ -8,6 +8,18 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [Unreleased]
+
+### Changed
+
+- **KaTeX 0.18, one copy.** Math was rendered by rehype-katex's own KaTeX while the site shipped
+  the stylesheet of canopy's `katex` dependency — two versions that only happened to line up.
+  canopy now depends on KaTeX `^0.18.7` and pins a single copy with an npm `overrides` entry, so
+  in canopy's own build the markup and the stylesheet come from one version; a test fails if
+  rehype-katex ever resolves a different copy. KaTeX 0.18 prefixes some of its internal CSS
+  classes (`.base` is now `.katex-base`, `.hline` is `.katex-hline`), so a caller styling KaTeX's
+  inner markup should check its selectors.
+
 ## [0.13.0] — 2026-09-17
 
 ### Added

@@ -1,3 +1,4 @@
+import { createRequire } from "node:module";
 import { describe, expect, it } from "vitest";
 import { build } from "./index.js";
 import { bundleUsesKatex, KATEX_STYLESHEET } from "./katex.js";
@@ -72,5 +73,17 @@ describe("bundleUsesKatex", () => {
 
   it("exposes the KaTeX stylesheet site path", () => {
     expect(KATEX_STYLESHEET).toBe("assets/katex.css");
+  });
+});
+
+describe("the KaTeX that renders is the KaTeX whose stylesheet ships", () => {
+  // The HTML comes from rehype-katex's KaTeX and the stylesheet is copied from this package's.
+  // Two copies drift apart silently — and since 0.18 prefixes its internal classes, a newer
+  // stylesheet over older markup leaves published math unstyled. package.json `overrides` keeps
+  // a single copy; this test is what notices when that stops being true.
+  it("resolves to one copy", () => {
+    const require = createRequire(import.meta.url);
+    const fromRehype = createRequire(require.resolve("rehype-katex")).resolve("katex/package.json");
+    expect(fromRehype).toBe(require.resolve("katex/package.json"));
   });
 });

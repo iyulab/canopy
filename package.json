@@ -52,7 +52,7 @@
   "dependencies": {
     "@shikijs/rehype": "^4.2.0",
     "github-slugger": "^2.0.0",
-    "katex": "^0.17.0",
+    "katex": "^0.18.7",
     "mdast-util-find-and-replace": "^3.0.2",
     "rehype-katex": "^7.0.1",
     "rehype-raw": "^7.0.0",
@@ -68,5 +68,8 @@
     "unist-util-visit": "^5.1.0",
     "vfile": "^6.0.3",
     "yaml": "^2.9.0"
+  },
+  "overrides": {
+    "katex": "$katex"
   }
 }

@@ -20,6 +20,13 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
   classes (`.base` is now `.katex-base`, `.hline` is `.katex-hline`), so a caller styling KaTeX's
   inner markup should check its selectors.
 
+### Fixed
+
+- **A site built from an installed canopy ships the stylesheet and fonts of the KaTeX that
+  renders its math.** npm applies `overrides` from the root project only, so where canopy is a
+  dependency rehype-katex can resolve its own nested KaTeX. The CLI now copies KaTeX's assets
+  from the copy rehype-katex imports, not from canopy's own `katex` dependency.
+
 ## [0.13.0] — 2026-09-17
 
 ### Added

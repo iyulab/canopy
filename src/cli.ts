@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { createRequire } from "node:module";
 import { mkdir, copyFile, readdir, readFile } from "node:fs/promises";
 import type { PluggableList } from "unified";
 import { build } from "./index.js";
@@ -10,8 +9,7 @@ import { parseNavSpec, type NavSpec } from "./nav-spec.js";
 import { readVault, writeFiles, copyAssets, listFiles } from "./fs-bundle.js";
 import { parseBuildArgs } from "./cli-args.js";
 import { bundleUsesKatex, KATEX_STYLESHEET } from "./katex.js";
-
-const require = createRequire(import.meta.url);
+import { katexDirOfRenderer } from "./katex-assets.js";
 
 /**
  * A relative or absolute filesystem path, as opposed to a bare package
@@ -70,7 +68,7 @@ async function loadRehypePlugins(specifiers: readonly string[]): Promise<Pluggab
  * The CSS references `fonts/...` relative to itself, so it sits beside them.
  */
 async function copyKatexAssets(outDir: string): Promise<void> {
-  const katexDir = path.dirname(require.resolve("katex/package.json"));
+  const katexDir = katexDirOfRenderer();
   const assetsDir = path.join(outDir, "assets");
   const fontsOut = path.join(assetsDir, "fonts");
   await mkdir(fontsOut, { recursive: true });

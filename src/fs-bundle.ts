@@ -1,7 +1,7 @@
 import { readdir, readFile, mkdir, writeFile, copyFile } from "node:fs/promises";
 import path from "node:path";
 import type { SourceDocument, OutputFile } from "./contract.js";
-import { isSkippedDir, createExcluder } from "./exclude.js";
+import { isSkippedDir, isSkippedFile, createExcluder } from "./exclude.js";
 
 /**
  * Never-published directories (dot-prefixed, `node_modules`) live in
@@ -28,7 +28,7 @@ async function walk(
       if (!isSkippedDir(entry.name) && !excluded(childRel)) {
         await walk(root, childRel, found, excluded);
       }
-    } else if (entry.isFile() && !excluded(childRel)) {
+    } else if (entry.isFile() && !isSkippedFile(entry.name) && !excluded(childRel)) {
       found.push(childRel);
     }
   }

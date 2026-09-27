@@ -2,9 +2,11 @@
  * Decide which vault paths are kept out of a published site.
  *
  * Two rules stack, in this order:
- *  1. Tooling state — dot-prefixed directories and `node_modules` — is never
- *     published. This is not configurable: those paths hold an editor's or a
- *     build tool's own bookkeeping, not the author's content.
+ *  1. Tooling state — dot-prefixed directories and files, and `node_modules` —
+ *     is never published. This is not configurable: those paths hold an
+ *     editor's, a version-control system's or a build tool's own bookkeeping
+ *     (`.git/`, `.gitignore`, `.env`, `.DS_Store`), not the author's content,
+ *     and some of it is secret.
  *  2. Caller-supplied patterns exclude content the author keeps in the vault but
  *     does not want on the web — drafts, archives, generated scratch.
  *
@@ -19,7 +21,16 @@
 
 /** Directories whose contents are never published, whatever the caller asks for. */
 export function isSkippedDir(name: string): boolean {
-  return name.startsWith(".") || name === "node_modules";
+  return isHidden(name) || name === "node_modules";
+}
+
+/** Files that are never published, whatever the caller asks for. */
+export function isSkippedFile(name: string): boolean {
+  return isHidden(name);
+}
+
+function isHidden(name: string): boolean {
+  return name.startsWith(".");
 }
 
 /**

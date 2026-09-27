@@ -12,6 +12,11 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
 ### Changed
 
+- **Dot-prefixed files are no longer published.** Only dot-prefixed *directories* were skipped, so a
+  vault that is also a code checkout copied `.env`, `.gitignore` or `.DS_Store` into the site as
+  assets. Hidden files are now skipped at every depth, like hidden directories — they are tooling
+  state, and some of it is secret. A host directive that used to ride along from the vault (such as
+  `.nojekyll`) now has to be added by the deploy step.
 - **KaTeX 0.18, one copy.** Math was rendered by rehype-katex's own KaTeX while the site shipped
   the stylesheet of canopy's `katex` dependency — two versions that only happened to line up.
   canopy now depends on KaTeX `^0.18.7` and pins a single copy with an npm `overrides` entry, so

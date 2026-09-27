@@ -66,16 +66,21 @@ describe("fs-bundle", () => {
     });
   });
 
-  // A dot-prefix excludes directories only. A dotfile at the top level is content the
-  // caller placed in the vault, so it is copied like any other asset.
-  it("keeps dot-prefixed files, excluding only directories", async () => {
+  // A dot-prefixed file is tooling state too — and some of it is secret. A vault
+  // that is also a code checkout keeps `.env` and `.gitignore` next to its notes.
+  it("excludes dot-prefixed files at every depth", async () => {
     await withTempDir(async (tmp) => {
       const vault = path.join(tmp, "vault");
-      await mkdir(vault, { recursive: true });
+      await mkdir(path.join(vault, "guide"), { recursive: true });
       await writeFile(path.join(vault, "index.md"), "# Home");
-      await writeFile(path.join(vault, ".nojekyll"), "");
+      await writeFile(path.join(vault, ".env"), "SECRET=1");
+      await writeFile(path.join(vault, ".gitignore"), "node_modules");
+      await writeFile(path.join(vault, "guide", ".DS_Store"), "");
+      await writeFile(path.join(vault, "guide", ".draft.md"), "# Hidden");
+      await writeFile(path.join(vault, "guide", "shot.png"), "PNG");
 
-      expect(await listFiles(vault)).toEqual([".nojekyll", "index.md"]);
+      expect(await listFiles(vault)).toEqual(["guide/shot.png", "index.md"]);
+      expect((await readVault(vault)).map((d) => d.path)).toEqual(["index.md"]);
     });
   });
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isSkippedDir, matchesPattern, createExcluder } from "./exclude.js";
+import { isSkippedDir, isSkippedFile, matchesPattern, createExcluder } from "./exclude.js";
 
 describe("isSkippedDir", () => {
   it("skips dot-prefixed directories and node_modules", () => {
@@ -11,6 +11,20 @@ describe("isSkippedDir", () => {
   it("keeps ordinary directories", () => {
     for (const name of ["notes", "guide", "update-note", "_drafts"]) {
       expect(isSkippedDir(name), name).toBe(false);
+    }
+  });
+});
+
+describe("isSkippedFile", () => {
+  it("skips dot-prefixed files", () => {
+    for (const name of [".env", ".gitignore", ".DS_Store", ".nojekyll", ".draft.md"]) {
+      expect(isSkippedFile(name), name).toBe(true);
+    }
+  });
+
+  it("keeps ordinary files", () => {
+    for (const name of ["index.md", "shot.png", "_notes.md", "node_modules"]) {
+      expect(isSkippedFile(name), name).toBe(false);
     }
   });
 });

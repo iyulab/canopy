@@ -170,8 +170,9 @@ or appended: whether an omission is deliberate is yours to decide, not canopy's.
 malformed fails the build, naming the position.
 
 Markdown files become `.html`; every other file (images, etc.) is copied alongside, mirroring the
-folder layout. Dot-prefixed directories (`.git`, editor and note-app config directories, build
-caches) are skipped, along with `node_modules`. KaTeX styles and fonts are bundled into `assets/`
+folder layout. Dot-prefixed directories and files (`.git`, `.gitignore`, `.env`, editor and
+note-app config, build caches) are skipped, along with `node_modules` — a folder that is also a
+code checkout does not put its secrets on the web. KaTeX styles and fonts are bundled into `assets/`
 so math renders without a network dependency.
 
 Every page also gets prev/next cards (`.canopy-page-nav`) linking to its neighbors in that same

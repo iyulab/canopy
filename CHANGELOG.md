@@ -8,6 +8,24 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [Unreleased]
+
+### Fixed
+
+- **The root index page comes first in a derived sidebar and in the prev/next reading order.** It
+  was sorted among the root's leaf pages, after every folder, so a site's front page sat at the
+  bottom of the sidebar and the reading order ended on it: the front page had a "previous" link
+  and no "next", and the first real page had no "previous". It is now the first entry, the same
+  position a folder's own index page takes relative to that folder. A `--nav` spec still decides
+  its own order.
+- **`canopy --help` and `canopy --version` succeed.** Both printed the usage text as an error and
+  exited 1. `--help`/`-h` (anywhere on the line) now prints the usage to stdout and `--version`
+  prints canopy's version, each exiting 0.
+- **An unknown option is an error, not an output directory.** `canopy build vault --site-titel X`
+  built the site into a directory named `--site-titel` and left the intended option unset; a
+  third positional argument was silently ignored. Both now fail with a message naming the
+  argument.
+
 ## [0.14.0] — 2026-09-27
 
 ### Changed

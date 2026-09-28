@@ -7,7 +7,7 @@ import { build } from "./index.js";
 import { emitSite } from "./emit.js";
 import { parseNavSpec, type NavSpec } from "./nav-spec.js";
 import { readVault, writeFiles, copyAssets, listFiles } from "./fs-bundle.js";
-import { parseBuildArgs } from "./cli-args.js";
+import { parseBuildArgs, requestedInfo, USAGE } from "./cli-args.js";
 import { bundleUsesKatex, KATEX_STYLESHEET } from "./katex.js";
 import { katexDirOfRenderer } from "./katex-assets.js";
 
@@ -85,6 +85,19 @@ async function copyKatexAssets(outDir: string): Promise<void> {
 }
 
 async function main(): Promise<void> {
+  const info = requestedInfo(process.argv.slice(2));
+  if (info === "help") {
+    console.log(USAGE);
+    return;
+  }
+  if (info === "version") {
+    const manifest = JSON.parse(
+      await readFile(new URL("../package.json", import.meta.url), "utf8"),
+    ) as { version: string };
+    console.log(`canopy ${manifest.version}`);
+    return;
+  }
+
   const args = parseBuildArgs(process.argv.slice(2));
   if (!args.ok) {
     console.error(args.error);

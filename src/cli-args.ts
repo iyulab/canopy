@@ -84,6 +84,9 @@ export const USAGE = [
   "  --script <path>            Carry this script into assets/ and link it, deferred, from every page",
   "  --rehype-plugin <path>     Load a rehype plugin module, run after sanitize and before Shiki (repeatable)",
   "  --exclude <pattern>        Leave a vault path unpublished (repeatable)",
+  "",
+  "  -h, --help                 Show this text",
+  "  --version                  Show canopy's version",
 ].join("\n");
 
 /**
@@ -135,6 +138,22 @@ function isListFlag(arg: string): arg is keyof typeof LIST_FLAGS {
   return arg in LIST_FLAGS;
 }
 
+/**
+ * Whether the invocation asks about canopy rather than for a build.
+ *
+ * Checked before `parseBuildArgs`, and on every argument rather than only the
+ * first: `canopy --help` and `canopy build --help` are the same question, and
+ * both are a request that succeeded — answering one with the usage text plus a
+ * failing exit code tells a script, and a reader skimming the output, that
+ * something went wrong when nothing did. `--help` wins over `--version` when
+ * both are given, since the usage text is the larger answer.
+ */
+export function requestedInfo(argv: readonly string[]): "help" | "version" | undefined {
+  if (argv.some((arg) => arg === "--help" || arg === "-h")) return "help";
+  if (argv.includes("--version")) return "version";
+  return undefined;
+}
+
 export function parseBuildArgs(argv: string[]): BuildArgs {
   const [command, ...rest] = argv;
   if (command !== "build") {
@@ -168,6 +187,13 @@ export function parseBuildArgs(argv: string[]): BuildArgs {
         single[VALUE_FLAGS[arg]] = value;
       }
       i++;
+    } else if (arg.startsWith("-")) {
+      // A flag canopy does not know is almost always a misspelled one. Taking
+      // it as a path would build the site into a directory named after the
+      // typo, with the intended option silently unset.
+      return { ok: false, error: `Unknown option "${arg}"\n\n${USAGE}` };
+    } else if (positional.length === 2) {
+      return { ok: false, error: `Unexpected argument "${arg}": build takes <vault-dir> [out-dir]` };
     } else {
       positional.push(arg);
     }

@@ -1,7 +1,42 @@
 import { describe, expect, it } from "vitest";
-import { parseBuildArgs } from "./cli-args.js";
+import { parseBuildArgs, requestedInfo } from "./cli-args.js";
+
+describe("requestedInfo", () => {
+  it("answers --help and -h, alone or after the command", () => {
+    expect(requestedInfo(["--help"])).toBe("help");
+    expect(requestedInfo(["-h"])).toBe("help");
+    expect(requestedInfo(["build", "vault", "--help"])).toBe("help");
+  });
+
+  it("answers --version", () => {
+    expect(requestedInfo(["--version"])).toBe("version");
+  });
+
+  it("prefers help when both are asked for", () => {
+    expect(requestedInfo(["--version", "--help"])).toBe("help");
+  });
+
+  it("is nothing for an ordinary build", () => {
+    expect(requestedInfo(["build", "vault", "--site-title", "X"])).toBeUndefined();
+    expect(requestedInfo([])).toBeUndefined();
+  });
+});
 
 describe("parseBuildArgs", () => {
+  it("rejects an option it does not know instead of taking it as the out dir", () => {
+    expect(parseBuildArgs(["build", "v", "--site-titel", "X"])).toMatchObject({
+      ok: false,
+      error: expect.stringContaining('Unknown option "--site-titel"'),
+    });
+  });
+
+  it("rejects a third positional argument", () => {
+    expect(parseBuildArgs(["build", "v", "dist", "extra"])).toMatchObject({
+      ok: false,
+      error: expect.stringContaining('Unexpected argument "extra"'),
+    });
+  });
+
   it("parses the build command with a vault and the default out dir", () => {
     expect(parseBuildArgs(["build", "myvault"])).toEqual({
       ok: true,

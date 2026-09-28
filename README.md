@@ -240,6 +240,13 @@ const files = emitSite(bundle, { siteTitle: "My Notes" });
 `build()` is a pure transform with no filesystem access; `emitSite()` renders the site shell. The CLI
 is the thin IO layer on top — read a folder, `build`, `emitSite`, write the files.
 
+The rule canopy uses to decide where a markdown link points is exported as the same pure functions
+the renderer calls, so a checker that validates links without rendering gives the renderer's answer
+rather than its own: `isExternalUrl` (left exactly as written), `parseLinkUrl` (path vs.
+query/fragment), `decodeLinkPath` (percent-decoding, per segment), `resolveRelative` (`..`
+against the linking page, `undefined` above the vault root), and `resolveMarkdownLink`, which
+combines them into the published target.
+
 ---
 
 ## Input / output contract

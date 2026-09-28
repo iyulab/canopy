@@ -20,6 +20,11 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
   reporting them. Ordering one section of a site no longer means restating the rest of it — or
   canopy's derivation rules — by hand. Existing specs mean what they meant.
 - **`buildNavigation(entries, { order })`** — the same file-name ordering for library callers.
+- **The link-resolution rule is exported**: `isExternalUrl`, `parseLinkUrl`, `decodeLinkPath`,
+  `resolveRelative`, `resolveMarkdownLink` — the pure functions the renderer itself uses to decide
+  where a markdown link points. A tool that checks links without rendering can now give the
+  renderer's answer instead of restating the rule and drifting from it (as happened when canopy
+  began decoding `%20` one release before a checker did).
 
 ## [0.15.0] — 2026-09-28
 

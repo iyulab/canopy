@@ -22,6 +22,14 @@ export { buildNavigation } from "./navigation.js";
 export type { NavEntry, NavNode } from "./navigation.js";
 export { buildLinkIndex } from "./links.js";
 export {
+  isExternalUrl,
+  parseLinkUrl,
+  decodeLinkPath,
+  resolveRelative,
+  resolveMarkdownLink,
+  type ParsedLinkUrl,
+} from "./markdown-link.js";
+export {
   parseNavSpec,
   applyNavSpec,
   NavSpecError,

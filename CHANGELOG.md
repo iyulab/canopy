@@ -8,7 +8,7 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
-## [Unreleased]
+## [0.15.0] — 2026-09-28
 
 ### Added
 
@@ -18,6 +18,12 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
   `node_modules`, the `--exclude` dialect) and drift from them when they change. `--json` splits
   the answer into `pages` and `assets` the way the build does and adds `unusedExcludes`: the
   place-naming patterns that matched nothing, usually a path written from the wrong folder.
+
+### Changed
+
+- **`canopy list`, `--help` and `--version` start in a fraction of a second.** The CLI loaded
+  the whole rendering pipeline (unified, Shiki, KaTeX) before looking at its arguments; it is
+  now loaded only when a build runs.
 
 ### Fixed
 

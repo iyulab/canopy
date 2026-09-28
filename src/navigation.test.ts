@@ -183,3 +183,18 @@ describe("ancestorPath", () => {
     expect(ancestorPath(nav, "index.html")).toEqual([]);
   });
 });
+
+describe("buildNavigation with an order", () => {
+  it("sorts by file name in the direction asked, folders still first", () => {
+    const nav = buildNavigation(
+      [
+        { sitePath: "2026-04.html", title: "April" },
+        { sitePath: "2026-12.html", title: "December" },
+        { sitePath: "a-dir/x.html" },
+        { sitePath: "b-dir/index.html", title: "Zebra" },
+      ],
+      { order: "desc" },
+    );
+    expect(nav.map((n) => n.label)).toEqual(["Zebra", "a-dir", "December", "April"]);
+  });
+});

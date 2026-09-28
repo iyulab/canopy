@@ -8,6 +8,19 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [Unreleased]
+
+### Added
+
+- **A `--nav` spec can leave part of the tree to canopy.** A group's `derive: "<dir>"` fills it
+  with the pages beneath that directory the spec does not place elsewhere, derived the way the
+  default navigation is (folders first, a folder's index page as its link), after any `items` it
+  lists itself; `order: "asc" | "desc"` sorts that derived part by file name. A spec's
+  `unplaced: "append"` places every page it did not mention after its own items instead of
+  reporting them. Ordering one section of a site no longer means restating the rest of it — or
+  canopy's derivation rules — by hand. Existing specs mean what they meant.
+- **`buildNavigation(entries, { order })`** — the same file-name ordering for library callers.
+
 ## [0.15.0] — 2026-09-28
 
 ### Added

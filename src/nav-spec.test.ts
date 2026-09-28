@@ -212,3 +212,73 @@ describe("applyNavSpec", () => {
     expect(nodes[0]?.sitePath).toBeUndefined();
   });
 });
+
+describe("applyNavSpec with derived groups", () => {
+  const entries: NavEntry[] = [
+    { sitePath: "index.html", title: "Home" },
+    { sitePath: "guide/index.html", title: "Guide" },
+    { sitePath: "guide/install.html", title: "Install" },
+    { sitePath: "guide/advanced/index.html", title: "Advanced" },
+    { sitePath: "guide/advanced/tuning.html", title: "Tuning" },
+    { sitePath: "guide/zeta.html", title: "A last page" },
+    { sitePath: "notes/2026-04.html", title: "April" },
+    { sitePath: "notes/2026-08.html", title: "August" },
+    { sitePath: "notes/2026-12.html", title: "December" },
+    { sitePath: "about.html", title: "About" },
+  ];
+  const apply = (spec: unknown) => applyNavSpec(parseNavSpec(JSON.stringify(spec)), entries);
+  const shape = (nodes: { label: string; sitePath?: string; children: unknown[] }[]): unknown =>
+    nodes.map((n) => [n.label, n.sitePath, shape(n.children as never)]);
+
+  it("fills a group from its directory the way the derived tree would", () => {
+    const { nodes, unplaced } = apply({ items: [{ derive: "guide" }] });
+    expect(shape(nodes)).toEqual([
+      [
+        "Guide",
+        "guide/index.html",
+        [
+          ["Advanced", "guide/advanced/index.html", [["Tuning", "guide/advanced/tuning.html", []]]],
+          ["A last page", "guide/zeta.html", []],
+          ["Install", "guide/install.html", []],
+        ],
+      ],
+    ]);
+    expect(unplaced).toEqual(["index.html", "notes/2026-04.html", "notes/2026-08.html", "notes/2026-12.html", "about.html"]);
+  });
+
+  it("orders the derived part by file name when asked, in that direction", () => {
+    const { nodes } = apply({ items: [{ label: "Notes", derive: "notes", order: "desc" }] });
+    expect(nodes[0]?.children.map((n) => n.label)).toEqual(["December", "August", "April"]);
+  });
+
+  it("puts explicit items first and derives only what they leave", () => {
+    const { nodes } = apply({ items: [{ derive: "guide", items: [{ path: "guide/install" }] }] });
+    expect(nodes[0]?.children.map((n) => n.label)).toEqual(["Install", "Advanced", "A last page"]);
+  });
+
+  it("claims every explicitly named page before any group derives", () => {
+    // The derived group comes first, but the page named later still lands where it is named.
+    const { nodes } = apply({ items: [{ derive: "guide" }, { path: "guide/install" }] });
+    expect(nodes[0]?.children.map((n) => n.label)).toEqual(["Advanced", "A last page"]);
+    expect(nodes[1]?.label).toBe("Install");
+  });
+
+  it("names a derived group with no index page by its directory", () => {
+    const { nodes } = apply({ items: [{ derive: "notes" }] });
+    expect(nodes[0]).toMatchObject({ label: "notes" });
+    expect(nodes[0]?.sitePath).toBeUndefined();
+  });
+
+  it("appends what the spec left, derived, when unplaced is append", () => {
+    const { nodes, unplaced } = apply({ items: [{ derive: "guide" }], unplaced: "append" });
+    expect(unplaced).toEqual([]);
+    expect(nodes.map((n) => n.label)).toEqual(["Guide", "Home", "notes", "About"]);
+  });
+
+  it("rejects an order with nothing to derive, and a bad unplaced policy", () => {
+    expect(() => parseNavSpec(JSON.stringify({ items: [{ label: "X", items: [], order: "desc" }] }))).toThrow(
+      NavSpecError,
+    );
+    expect(() => parseNavSpec(JSON.stringify({ items: [], unplaced: "drop" }))).toThrow(NavSpecError);
+  });
+});

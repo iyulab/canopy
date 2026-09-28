@@ -182,9 +182,30 @@ link to that page. Paths may be written with or without an extension. `label` is
 falls back to the page's own name (see above) — so a spec only has to name what it wants to
 override.
 
-Pages the spec omits are left out of the navigation and reported, rather than dropped silently
-or appended: whether an omission is deliberate is yours to decide, not canopy's. A spec that is
-malformed fails the build, naming the position.
+A spec does not have to list everything. `derive` fills a group from a directory the way the
+default navigation would — folders first, a folder's `index` page as its link — with every page
+beneath it the spec does not place elsewhere, after any `items` the group lists itself:
+
+```json
+{
+  "items": [
+    { "derive": "guide", "items": [{ "path": "guide/install.md" }] },
+    { "label": "Release notes", "derive": "release-notes", "order": "desc" }
+  ],
+  "unplaced": "append"
+}
+```
+
+A derived group with no `path` takes the directory's `index` page as its link and its name, and
+falls back to the directory name. Pages named explicitly anywhere in the spec are placed there
+first; derived groups then take what is left, in the order they appear. `order` (`"asc"` or
+`"desc"`) sorts the derived part by **file name** in that direction, where the default sorts by
+the name a reader sees — `desc` over dated files is a newest-first log.
+
+Pages the spec places nowhere are left out of the navigation and reported, rather than dropped
+silently or appended: whether an omission is deliberate is yours to decide, not canopy's.
+`"unplaced": "append"` decides it the other way — they are placed after the spec's own items,
+derived as above. A spec that is malformed fails the build, naming the position.
 
 Markdown files become `.html`; every other file (images, etc.) is copied alongside, mirroring the
 folder layout. Dot-prefixed directories and files (`.git`, `.gitignore`, `.env`, editor and

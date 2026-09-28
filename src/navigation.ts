@@ -25,6 +25,8 @@ export interface NavNode {
 }
 
 interface FolderBuilder {
+  /** The directory's own name — the sort key when ordering by file name. */
+  name: string;
   label: string;
   sitePath: string | undefined;
   folders: Map<string, FolderBuilder>;
@@ -32,7 +34,28 @@ interface FolderBuilder {
 }
 
 function emptyFolder(label: string): FolderBuilder {
-  return { label, sitePath: undefined, folders: new Map(), pages: [] };
+  return { name: label, label, sitePath: undefined, folders: new Map(), pages: [] };
+}
+
+/**
+ * How a derived tree is ordered.
+ *
+ * Unordered, entries sort by the name a reader sees — a page's title, a
+ * folder's index title — ascending. Asking for a direction sorts by *file*
+ * name instead: an author who orders a folder does it through the names they
+ * see in the folder (a dated release log, numbered chapters), and `desc` on
+ * those is the case the option exists for. Folders still come first.
+ */
+export interface NavigationOptions {
+  order?: "asc" | "desc";
+}
+
+function stemOfPath(sitePath: string): string {
+  return (sitePath.split("/").pop() ?? sitePath).replace(/\.html$/i, "");
+}
+
+function byFileName(direction: 1 | -1): (a: string, b: string) => number {
+  return (a, b) => direction * a.localeCompare(b, undefined, { sensitivity: "base" });
 }
 
 import { isIndexStem, pageName } from "./title.js";
@@ -45,22 +68,33 @@ function byLabel(a: NavNode, b: NavNode): number {
   return a.label.localeCompare(b.label, undefined, { sensitivity: "base" });
 }
 
-function toNodes(folder: FolderBuilder): NavNode[] {
-  const folderNodes = [...folder.folders.values()]
-    .map((child): NavNode => {
-      const node: NavNode = { label: child.label, children: toNodes(child) };
-      if (child.sitePath !== undefined) {
-        node.sitePath = child.sitePath;
-      }
-      return node;
-    })
-    .sort(byLabel);
-  const pageNodes = [...folder.pages].sort(byLabel);
+function toNodes(folder: FolderBuilder, options: NavigationOptions): NavNode[] {
+  const { order } = options;
+  const direction = order === "desc" ? -1 : 1;
+  const children = [...folder.folders.values()];
+  // Unordered folders are sorted below, as nodes, by the label each ends up with.
+  if (order !== undefined) children.sort((a, b) => byFileName(direction)(a.name, b.name));
+  const folderNodes = children.map((child): NavNode => {
+    const node: NavNode = { label: child.label, children: toNodes(child, options) };
+    if (child.sitePath !== undefined) {
+      node.sitePath = child.sitePath;
+    }
+    return node;
+  });
+  if (order === undefined) folderNodes.sort(byLabel);
+  const pageNodes = [...folder.pages].sort(
+    order === undefined
+      ? byLabel
+      : (a, b) => byFileName(direction)(stemOfPath(a.sitePath ?? ""), stemOfPath(b.sitePath ?? "")),
+  );
   // Folders first, then leaf pages — each alphabetical, for stable output.
   return [...folderNodes, ...pageNodes];
 }
 
-export function buildNavigation(entries: NavEntry[]): NavNode[] {
+export function buildNavigation(
+  entries: readonly NavEntry[],
+  options: NavigationOptions = {},
+): NavNode[] {
   const root = emptyFolder("");
   for (const entry of entries) {
     const segments = entry.sitePath.split("/").filter(Boolean);
@@ -105,7 +139,7 @@ export function buildNavigation(entries: NavEntry[]): NavNode[] {
       });
     }
   }
-  const nodes = toNodes(root);
+  const nodes = toNodes(root, options);
   if (root.sitePath !== undefined) {
     nodes.unshift({ label: root.label, sitePath: root.sitePath, children: [] });
   }

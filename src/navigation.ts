@@ -81,7 +81,15 @@ export function buildNavigation(entries: NavEntry[]): NavNode[] {
     }
 
     const stem = fileSegment.replace(/\.html$/i, "");
-    if (isIndexStem(stem) && folder !== root) {
+    if (isIndexStem(stem) && folder === root) {
+      // The root index is the site's front page. Sorted among the root's
+      // leaf pages it would land after every folder — last in the sidebar and
+      // last in the reading order that prev/next follows — so it is held
+      // apart and placed first instead, the position a folder's own index
+      // takes relative to that folder's children.
+      root.sitePath = entry.sitePath;
+      root.label = pageName(entry.sitePath, entry.title);
+    } else if (isIndexStem(stem)) {
       // A folder's index page links the folder node itself rather than
       // appearing as a separate "index" child — and names it, since the folder
       // node and that page are the one entry a reader clicks. `pageName` gives
@@ -97,7 +105,11 @@ export function buildNavigation(entries: NavEntry[]): NavNode[] {
       });
     }
   }
-  return toNodes(root);
+  const nodes = toNodes(root);
+  if (root.sitePath !== undefined) {
+    nodes.unshift({ label: root.label, sitePath: root.sitePath, children: [] });
+  }
+  return nodes;
 }
 
 /**

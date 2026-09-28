@@ -59,9 +59,40 @@ describe("buildNavigation", () => {
     ]);
     expect(nav.map((n) => n.label)).toEqual(["alpha-dir", "beta", "alpha", "zebra"]);
   });
+
+  it("puts the root index page first, ahead of folders — it is the site's front", () => {
+    const nav = buildNavigation([
+      { sitePath: "claims/k1.html" },
+      { sitePath: "components/c1.html" },
+      { sitePath: "about.html" },
+      { sitePath: "index.html", title: "Welcome" },
+    ]);
+    expect(nav.map((n) => n.label)).toEqual(["Welcome", "claims", "components", "about"]);
+    expect(nav[0]).toEqual({ label: "Welcome", sitePath: "index.html", children: [] });
+  });
+
+  it("recognizes a root index page whatever its case", () => {
+    const nav = buildNavigation([{ sitePath: "a/x.html" }, { sitePath: "Index.html" }]);
+    expect(nav[0]?.sitePath).toBe("Index.html");
+  });
 });
 
 describe("flattenNav", () => {
+  it("starts the reading order at the root index page of a derived tree", () => {
+    const flat = flattenNav(
+      buildNavigation([
+        { sitePath: "claims/k1.html" },
+        { sitePath: "components/c1.html" },
+        { sitePath: "index.html" },
+      ]),
+    );
+    expect(flat.map((e) => e.sitePath)).toEqual([
+      "index.html",
+      "claims/k1.html",
+      "components/c1.html",
+    ]);
+  });
+
   it("orders a folder's own index page before its children, matching the sidebar", () => {
     const nav = buildNavigation([
       { sitePath: "guide/index.html" },

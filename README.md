@@ -137,9 +137,10 @@ called after what it opens — the site's front, or its folder.
 
 ### Navigation
 
-By default the sidebar follows the folder structure: folders before pages, each alphabetical by
-the name above, folder labels taken from directory names. That suits a vault with no order of its
-own.
+By default the sidebar follows the folder structure: the root `index` page first — it is the
+site's front page, so it also opens the prev/next reading order — then folders before pages, each
+alphabetical by the name above, folder labels taken from directory names. That suits a vault with
+no order of its own.
 
 `--nav` supplies one where there is. Array order is display order — nothing is re-sorted — and
 a label overrides the directory name a URL happens to use:

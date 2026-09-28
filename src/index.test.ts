@@ -26,8 +26,8 @@ describe("build", () => {
       ],
     });
     expect(bundle.navigation).toEqual([
-      { label: "notes", children: [{ label: "Idea", sitePath: "notes/idea.html", children: [] }] },
       { label: "Home", sitePath: "index.html", children: [] },
+      { label: "notes", children: [{ label: "Idea", sitePath: "notes/idea.html", children: [] }] },
     ]);
   });
 

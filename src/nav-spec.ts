@@ -4,8 +4,9 @@ import { pageName } from "./title.js";
 /**
  * An externally supplied navigation order.
  *
- * Canopy derives navigation from paths, which fixes it to one shape: folders
- * before pages, each alphabetical, folder labels taken from directory names.
+ * Canopy derives navigation from paths, which fixes it to one shape: the root
+ * index page first, then folders before pages, each alphabetical, folder labels
+ * taken from directory names.
  * That is a reasonable default and the wrong answer for any document set with a
  * canonical order of its own — a release log reads newest-first, a guide reads
  * in teaching order — and directory names are URL segments, not display text.

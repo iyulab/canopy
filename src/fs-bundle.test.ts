@@ -2,7 +2,7 @@ import { mkdtemp, mkdir, writeFile, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { readVault, writeFiles, copyAssets, listFiles } from "./fs-bundle.js";
+import { readVault, writeFiles, copyAssets, listFiles, listVault } from "./fs-bundle.js";
 import { build } from "./index.js";
 import { emitSite } from "./emit.js";
 
@@ -106,6 +106,35 @@ describe("fs-bundle", () => {
       ]);
       // No excluded asset reaches the output directory.
       expect(await copyAssets(vault, out, exclude)).toBe(0);
+    });
+  });
+
+  it("lists what a build would publish, split into pages and assets, without building", async () => {
+    await withTempDir(async (tmp) => {
+      const vault = path.join(tmp, "vault");
+      await mkdir(path.join(vault, "drafts"), { recursive: true });
+      await mkdir(path.join(vault, "guide"), { recursive: true });
+      await mkdir(path.join(vault, ".git"), { recursive: true });
+      await writeFile(path.join(vault, "index.md"), "# Home");
+      await writeFile(path.join(vault, "guide", "a.MD"), "# A");
+      await writeFile(path.join(vault, "guide", "shot.png"), "PNG");
+      await writeFile(path.join(vault, "drafts", "wip.md"), "# WIP");
+      await writeFile(path.join(vault, ".env"), "SECRET=1");
+      await writeFile(path.join(vault, ".git", "HEAD"), "ref");
+
+      const listing = await listVault(vault, ["drafts", "drafts/deep", "_archive", "*.tmp"]);
+      expect(listing).toEqual({
+        pages: ["guide/a.MD", "index.md"],
+        assets: ["guide/shot.png"],
+        // "_archive" named a place that isn't there; "drafts/deep" sat inside
+        // a pruned tree and "*.tmp" is a standing rule — neither is a mistake.
+        unusedExcludes: ["_archive"],
+      });
+      // The same answer the build's own walk gives.
+      expect(await listFiles(vault, ["drafts"])).toEqual([
+        ...listing.assets,
+        ...listing.pages,
+      ].sort());
     });
   });
 });

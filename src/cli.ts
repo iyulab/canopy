@@ -6,8 +6,8 @@ import type { PluggableList } from "unified";
 import { build } from "./index.js";
 import { emitSite } from "./emit.js";
 import { parseNavSpec, type NavSpec } from "./nav-spec.js";
-import { readVault, writeFiles, copyAssets, listFiles } from "./fs-bundle.js";
-import { parseBuildArgs, requestedInfo, USAGE } from "./cli-args.js";
+import { readVault, writeFiles, copyAssets, listFiles, listVault } from "./fs-bundle.js";
+import { parseBuildArgs, parseListArgs, requestedInfo, USAGE } from "./cli-args.js";
 import { bundleUsesKatex, KATEX_STYLESHEET } from "./katex.js";
 import { katexDirOfRenderer } from "./katex-assets.js";
 
@@ -84,6 +84,32 @@ async function copyKatexAssets(outDir: string): Promise<void> {
   }
 }
 
+/**
+ * `canopy list`: what `build` would publish, without building it.
+ *
+ * stdout carries the answer and nothing else — a caller parses it — so a
+ * vault that cannot be read is reported on stderr with a failing exit code.
+ */
+async function list(): Promise<void> {
+  const args = parseListArgs(process.argv.slice(2));
+  if (!args.ok) {
+    console.error(args.error);
+    process.exitCode = 1;
+    return;
+  }
+  const listing = await listVault(path.resolve(args.vault), args.exclude);
+  if (args.json) {
+    console.log(JSON.stringify(listing));
+    return;
+  }
+  for (const file of [...listing.pages, ...listing.assets].sort()) {
+    console.log(file);
+  }
+  for (const pattern of listing.unusedExcludes) {
+    console.error(`canopy: --exclude ${pattern} matched nothing`);
+  }
+}
+
 async function main(): Promise<void> {
   const info = requestedInfo(process.argv.slice(2));
   if (info === "help") {
@@ -95,6 +121,11 @@ async function main(): Promise<void> {
       await readFile(new URL("../package.json", import.meta.url), "utf8"),
     ) as { version: string };
     console.log(`canopy ${manifest.version}`);
+    return;
+  }
+
+  if (process.argv[2] === "list") {
+    await list();
     return;
   }
 

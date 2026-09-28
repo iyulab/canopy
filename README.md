@@ -118,6 +118,22 @@ npx canopy build <vault-dir> [out-dir] [options]
   before Shiki does; its output survives untouched because it runs after canopy's own HTML
   sanitizing, the same trust level canopy's own KaTeX and syntax-highlighting output already has.
 
+### Listing what a build publishes
+
+```sh
+canopy list <vault-dir> [--exclude <pattern>]... [--json]
+```
+
+Prints the vault-relative path of every file `build` would publish with the same `--exclude`
+patterns, one per line, without building anything — the build's own walk, so a checker or a CI
+gate that runs first sees exactly the files that will ship rather than a restatement of the rules.
+A place-naming pattern that matched nothing (`_archive` where the folder is really
+`docs/_archive`) is reported on stderr; an extension pattern such as `*.tmp` is not, since it is a
+standing rule rather than a claim that something is there.
+
+`--json` prints one object instead: `{"pages": [...], "assets": [...], "unusedExcludes": [...]}`,
+where `pages` are the markdown files `build` renders and `assets` everything it copies as-is.
+
 ### Page names
 
 A page is called by the name it gives itself, in this order:

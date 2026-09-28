@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isSkippedDir, isSkippedFile, matchesPattern, createExcluder } from "./exclude.js";
+import { isSkippedDir, isSkippedFile, matchesPattern, trackExclusions } from "./exclude.js";
 
 describe("isSkippedDir", () => {
   it("skips dot-prefixed directories and node_modules", () => {
@@ -66,21 +66,38 @@ describe("matchesPattern", () => {
   });
 });
 
-describe("createExcluder", () => {
+describe("trackExclusions", () => {
   it("excludes nothing when given no patterns", () => {
-    const excluded = createExcluder();
-    expect(excluded("drafts/a.md")).toBe(false);
+    expect(trackExclusions().excludes("drafts/a.md")).toBe(false);
   });
 
   it("excludes a path matching any pattern", () => {
-    const excluded = createExcluder(["_orphaned/**", "*.tmp"]);
-    expect(excluded("_orphaned/old.md")).toBe(true);
-    expect(excluded("a/b.tmp")).toBe(true);
-    expect(excluded("guide/a.md")).toBe(false);
+    const tracker = trackExclusions(["_orphaned/**", "*.tmp"]);
+    expect(tracker.excludes("_orphaned/old.md")).toBe(true);
+    expect(tracker.excludes("a/b.tmp")).toBe(true);
+    expect(tracker.excludes("guide/a.md")).toBe(false);
   });
 
   it("ignores blank patterns instead of excluding everything", () => {
-    const excluded = createExcluder(["", "   "]);
-    expect(excluded("guide/a.md")).toBe(false);
+    expect(trackExclusions(["", "   "]).excludes("guide/a.md")).toBe(false);
+  });
+
+  it("reports a place-naming pattern that matched nothing", () => {
+    const tracker = trackExclusions(["drafts", "_archive"]);
+    tracker.excludes("drafts");
+    expect(tracker.unused()).toEqual(["_archive"]);
+  });
+
+  it("does not report an extension pattern that matched nothing", () => {
+    const tracker = trackExclusions(["*.tmp"]);
+    tracker.excludes("guide/a.md");
+    expect(tracker.unused()).toEqual([]);
+  });
+
+  it("counts a pattern inside a pruned directory as used, not as a mistake", () => {
+    const tracker = trackExclusions(["drafts", "drafts/old"]);
+    tracker.excludes("drafts");
+    tracker.pruned("drafts");
+    expect(tracker.unused()).toEqual([]);
   });
 });

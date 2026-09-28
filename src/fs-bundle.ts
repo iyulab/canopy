@@ -1,7 +1,7 @@
 import { readdir, readFile, mkdir, writeFile, copyFile } from "node:fs/promises";
 import path from "node:path";
 import type { SourceDocument, OutputFile } from "./contract.js";
-import { isSkippedDir, isSkippedFile, createExcluder } from "./exclude.js";
+import { isSkippedDir, isSkippedFile, trackExclusions, type ExclusionTracker } from "./exclude.js";
 
 /**
  * Never-published directories (dot-prefixed, `node_modules`) live in
@@ -11,27 +11,62 @@ import { isSkippedDir, isSkippedFile, createExcluder } from "./exclude.js";
  * "tooling state, not content", so any tool's hidden directory is excluded
  * without canopy having to know that tool exists.
  */
-type Excluder = (relPath: string) => boolean;
-
 async function walk(
   root: string,
   rel: string,
   found: string[],
-  excluded: Excluder,
+  exclusions: ExclusionTracker,
 ): Promise<void> {
   const entries = await readdir(path.join(root, rel), { withFileTypes: true });
   for (const entry of entries) {
     const childRel = rel ? `${rel}/${entry.name}` : entry.name;
     if (entry.isDirectory()) {
+      if (isSkippedDir(entry.name)) continue;
       // Pruning at the directory keeps an excluded tree from being walked at
       // all, so a large archive folder costs nothing to skip.
-      if (!isSkippedDir(entry.name) && !excluded(childRel)) {
-        await walk(root, childRel, found, excluded);
-      }
-    } else if (entry.isFile() && !isSkippedFile(entry.name) && !excluded(childRel)) {
+      if (exclusions.excludes(childRel)) exclusions.pruned(childRel);
+      else await walk(root, childRel, found, exclusions);
+    } else if (entry.isFile() && !isSkippedFile(entry.name) && !exclusions.excludes(childRel)) {
       found.push(childRel);
     }
   }
+}
+
+/** Is this vault file a page to render, rather than an asset to copy? */
+export function isMarkdown(relPath: string): boolean {
+  return /\.md$/i.test(relPath);
+}
+
+/** What a vault publishes, split the way the build treats it. */
+export interface VaultListing {
+  /** Markdown files, rendered into pages — vault-relative POSIX paths, sorted. */
+  pages: string[];
+  /** Every other published file, copied as-is — vault-relative POSIX paths, sorted. */
+  assets: string[];
+  /** Place-naming `exclude` patterns that matched nothing (see `ExclusionTracker.unused`). */
+  unusedExcludes: string[];
+}
+
+/**
+ * What a build of this vault would publish, without building it.
+ *
+ * The same walk `listFiles` does, so the answer is the build's own rather
+ * than a restatement of its rules — which is what lets a caller check a site
+ * before publishing it and be right about what ships.
+ */
+export async function listVault(
+  root: string,
+  exclude: readonly string[] = [],
+): Promise<VaultListing> {
+  const found: string[] = [];
+  const exclusions = trackExclusions(exclude);
+  await walk(root, "", found, exclusions);
+  found.sort();
+  return {
+    pages: found.filter(isMarkdown),
+    assets: found.filter((f) => !isMarkdown(f)),
+    unusedExcludes: exclusions.unused(),
+  };
 }
 
 /**
@@ -46,7 +81,7 @@ export async function listFiles(
   exclude: readonly string[] = [],
 ): Promise<string[]> {
   const found: string[] = [];
-  await walk(root, "", found, createExcluder(exclude));
+  await walk(root, "", found, trackExclusions(exclude));
   return found.sort();
 }
 
@@ -55,7 +90,7 @@ export async function readVault(
   root: string,
   exclude: readonly string[] = [],
 ): Promise<SourceDocument[]> {
-  const markdown = (await listFiles(root, exclude)).filter((f) => /\.md$/i.test(f));
+  const markdown = (await listFiles(root, exclude)).filter(isMarkdown);
   return Promise.all(
     markdown.map(async (rel) => ({
       path: rel,
@@ -86,7 +121,7 @@ export async function copyAssets(
   outDir: string,
   exclude: readonly string[] = [],
 ): Promise<number> {
-  const assets = (await listFiles(root, exclude)).filter((f) => !/\.md$/i.test(f));
+  const assets = (await listFiles(root, exclude)).filter((f) => !isMarkdown(f));
   for (const rel of assets) {
     const target = path.join(outDir, rel);
     await mkdir(path.dirname(target), { recursive: true });

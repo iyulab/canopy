@@ -66,7 +66,13 @@ export type BuildArgs =
 
 export const USAGE = [
   "Usage: canopy build <vault-dir> [out-dir] [options]",
+  "       canopy list <vault-dir> [--exclude <pattern>]... [--json]",
   "",
+  "build publishes the vault as a site; list prints what build would publish, one",
+  "vault-relative path per line, without building. list --json prints",
+  '{"pages": [...], "assets": [...], "unusedExcludes": [...]} instead.',
+  "",
+  "build options:",
   "  --site-title <title>       Site name (defaults to the vault folder name)",
   "  --site-description <text>  Description for <meta name=description>",
   "  --site-url <url>           Absolute URL the site is published at — enables canonical/og:url/og:image/hreflang",
@@ -130,12 +136,103 @@ const LIST_FLAGS = {
  */
 const ABSOLUTE_HTTP = /^https?:\/\//i;
 
-function isValueFlag(arg: string): arg is keyof typeof VALUE_FLAGS {
-  return arg in VALUE_FLAGS;
+/** The flags one command accepts, and where each one's value lands. */
+interface FlagTable<V extends string, L extends string, B extends string> {
+  value: Readonly<Record<string, V>>;
+  list: Readonly<Record<string, L>>;
+  boolean: Readonly<Record<string, B>>;
 }
 
-function isListFlag(arg: string): arg is keyof typeof LIST_FLAGS {
-  return arg in LIST_FLAGS;
+const BUILD_FLAGS = { value: VALUE_FLAGS, list: LIST_FLAGS, boolean: {} } as const;
+const LIST_COMMAND_FLAGS = {
+  value: {},
+  list: { "--exclude": "exclude" },
+  boolean: { "--json": "json" },
+} as const;
+
+type Scanned<V extends string, L extends string, B extends string> =
+  | {
+      ok: true;
+      positional: string[];
+      single: Partial<Record<V, string>>;
+      lists: Record<L, string[]>;
+      flags: Set<B>;
+    }
+  | { ok: false; error: string };
+
+/**
+ * Split one command's arguments into positionals and the flags it accepts.
+ *
+ * One loop for every command, driven by a table, so a command cannot grow its
+ * own slightly different idea of what an unknown option or a missing value is.
+ */
+function scanArgs<V extends string, L extends string, B extends string>(
+  command: string,
+  argv: readonly string[],
+  table: FlagTable<V, L, B>,
+  maxPositional: number,
+): Scanned<V, L, B> {
+  const positional: string[] = [];
+  const single: Partial<Record<V, string>> = {};
+  const lists = Object.fromEntries(
+    Object.values<L>(table.list).map((key) => [key, [] as string[]]),
+  ) as Record<L, string[]>;
+  const flags = new Set<B>();
+
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === undefined) {
+      continue; // unreachable within the loop bound; narrows away noUncheckedIndexedAccess
+    }
+    const listKey = table.list[arg];
+    const valueKey = table.value[arg];
+    const booleanKey = table.boolean[arg];
+    if (listKey !== undefined || valueKey !== undefined) {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return { ok: false, error: `${arg} requires a value` };
+      }
+      if (listKey !== undefined) lists[listKey].push(value);
+      else if (valueKey !== undefined) single[valueKey] = value;
+      i++;
+    } else if (booleanKey !== undefined) {
+      flags.add(booleanKey);
+    } else if (arg.startsWith("-")) {
+      // A flag canopy does not know is almost always a misspelled one. Taking
+      // it as a path would build the site into a directory named after the
+      // typo, with the intended option silently unset.
+      return { ok: false, error: `Unknown option "${arg}" for ${command}\n\n${USAGE}` };
+    } else if (positional.length === maxPositional) {
+      return { ok: false, error: `Unexpected argument "${arg}"\n\n${USAGE}` };
+    } else {
+      positional.push(arg);
+    }
+  }
+  return { ok: true, positional, single, lists, flags };
+}
+
+/** A parsed `canopy list` invocation, or the reason it could not be parsed. */
+export type ListArgs =
+  | { ok: true; vault: string; exclude: string[]; json: boolean }
+  | { ok: false; error: string };
+
+export function parseListArgs(argv: string[]): ListArgs {
+  const [command, ...rest] = argv;
+  if (command !== "list") {
+    return { ok: false, error: USAGE };
+  }
+  const scanned = scanArgs("list", rest, LIST_COMMAND_FLAGS, 1);
+  if (!scanned.ok) return scanned;
+  const vault = scanned.positional[0];
+  if (vault === undefined) {
+    return { ok: false, error: USAGE };
+  }
+  return {
+    ok: true,
+    vault,
+    exclude: scanned.lists.exclude,
+    json: scanned.flags.has("json"),
+  };
 }
 
 /**
@@ -160,44 +257,10 @@ export function parseBuildArgs(argv: string[]): BuildArgs {
     return { ok: false, error: USAGE };
   }
 
-  const positional: string[] = [];
-  const single: Partial<Record<(typeof VALUE_FLAGS)[keyof typeof VALUE_FLAGS], string>> =
-    {};
-  const exclude: string[] = [];
-  const rehypePluginPaths: string[] = [];
-  const alternate: string[] = [];
-  const lists = { exclude, rehypePluginPaths, alternate } as const satisfies Record<
-    (typeof LIST_FLAGS)[keyof typeof LIST_FLAGS],
-    string[]
-  >;
-
-  for (let i = 0; i < rest.length; i++) {
-    const arg = rest[i];
-    if (arg === undefined) {
-      continue; // unreachable within the loop bound; narrows away noUncheckedIndexedAccess
-    }
-    if (isValueFlag(arg) || isListFlag(arg)) {
-      const value = rest[i + 1];
-      if (value === undefined) {
-        return { ok: false, error: `${arg} requires a value` };
-      }
-      if (isListFlag(arg)) {
-        lists[LIST_FLAGS[arg]].push(value);
-      } else {
-        single[VALUE_FLAGS[arg]] = value;
-      }
-      i++;
-    } else if (arg.startsWith("-")) {
-      // A flag canopy does not know is almost always a misspelled one. Taking
-      // it as a path would build the site into a directory named after the
-      // typo, with the intended option silently unset.
-      return { ok: false, error: `Unknown option "${arg}"\n\n${USAGE}` };
-    } else if (positional.length === 2) {
-      return { ok: false, error: `Unexpected argument "${arg}": build takes <vault-dir> [out-dir]` };
-    } else {
-      positional.push(arg);
-    }
-  }
+  const scanned = scanArgs("build", rest, BUILD_FLAGS, 2);
+  if (!scanned.ok) return scanned;
+  const { positional, single, lists } = scanned;
+  const { exclude, rehypePluginPaths, alternate } = lists;
 
   const vault = positional[0];
   if (vault === undefined) {

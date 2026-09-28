@@ -10,6 +10,15 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
 ## [Unreleased]
 
+### Added
+
+- **`canopy list <vault-dir> [--exclude <pattern>]... [--json]`** — what `build` would publish,
+  without building. The same walk the build uses, so a caller checking a site before publishing
+  it no longer has to restate canopy's exclusion rules (hidden files and directories,
+  `node_modules`, the `--exclude` dialect) and drift from them when they change. `--json` splits
+  the answer into `pages` and `assets` the way the build does and adds `unusedExcludes`: the
+  place-naming patterns that matched nothing, usually a path written from the wrong folder.
+
 ### Fixed
 
 - **The root index page comes first in a derived sidebar and in the prev/next reading order.** It

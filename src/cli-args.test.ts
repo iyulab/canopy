@@ -1,5 +1,36 @@
 import { describe, expect, it } from "vitest";
-import { parseBuildArgs, requestedInfo } from "./cli-args.js";
+import { parseBuildArgs, parseListArgs, requestedInfo } from "./cli-args.js";
+
+describe("parseListArgs", () => {
+  it("parses a vault with repeated excludes and --json", () => {
+    expect(parseListArgs(["list", "v", "--exclude", "drafts", "--json", "--exclude", "*.tmp"])).toEqual({
+      ok: true,
+      vault: "v",
+      exclude: ["drafts", "*.tmp"],
+      json: true,
+    });
+  });
+
+  it("defaults to plain output and no excludes", () => {
+    expect(parseListArgs(["list", "v"])).toEqual({ ok: true, vault: "v", exclude: [], json: false });
+  });
+
+  it("rejects a build option, a second positional, and a missing vault", () => {
+    expect(parseListArgs(["list", "v", "--site-title", "X"])).toMatchObject({
+      ok: false,
+      error: expect.stringContaining('Unknown option "--site-title" for list'),
+    });
+    expect(parseListArgs(["list", "v", "out"])).toMatchObject({
+      ok: false,
+      error: expect.stringContaining('Unexpected argument "out"'),
+    });
+    expect(parseListArgs(["list"]).ok).toBe(false);
+  });
+
+  it("rejects --json on build", () => {
+    expect(parseBuildArgs(["build", "v", "--json"]).ok).toBe(false);
+  });
+});
 
 describe("requestedInfo", () => {
   it("answers --help and -h, alone or after the command", () => {

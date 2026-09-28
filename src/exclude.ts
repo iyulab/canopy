@@ -63,17 +63,68 @@ export function matchesPattern(path: string, pattern: string): boolean {
 }
 
 /**
- * Build a predicate for "is this vault path excluded from publishing?".
+ * An exclusion predicate that also remembers which patterns did any work.
  *
- * Applied to markdown and assets alike: a draft folder's images have no reason
- * to be on the web once its notes are not.
+ * A pattern that excludes nothing is usually a path written from the wrong
+ * place — `_archive` for what is really `docs/_archive` — and it fails the way
+ * a mistyped key does: the pattern looks right and the folder ships anyway.
+ * The walk already tests every pattern against every path it visits, so it can
+ * say which ones ever matched without a second walk with pruning turned off.
  */
-export function createExcluder(
-  patterns: readonly string[] = [],
-): (path: string) => boolean {
+export interface ExclusionTracker {
+  /** Is this path excluded? Records every pattern that claims it. */
+  excludes(path: string): boolean;
+  /**
+   * Note that a directory was pruned. Its contents are never visited, so a
+   * pattern naming something inside it cannot be said to have matched nothing
+   * — a broader rule already excluded the tree it spoke about, which is
+   * redundancy rather than a mistake.
+   */
+  pruned(dirPath: string): void;
+  /**
+   * Place-naming patterns that left the vault exactly as they found it.
+   *
+   * An extension pattern is left out: `*.tmp` in a vault with no scratch files
+   * is a standing rule about what may never ship, not a claim that something
+   * is there to remove.
+   */
+  unused(): string[];
+}
+
+export function trackExclusions(patterns: readonly string[] = []): ExclusionTracker {
   const active = patterns.filter((p) => p.trim() !== "");
-  if (active.length === 0) {
-    return () => false;
-  }
-  return (path) => active.some((pattern) => matchesPattern(path, pattern));
+  const used = new Set<string>();
+  return {
+    excludes(path) {
+      let excluded = false;
+      for (const pattern of active) {
+        if (!matchesPattern(path, pattern)) continue;
+        used.add(pattern);
+        excluded = true;
+      }
+      return excluded;
+    },
+    pruned(dirPath) {
+      const prefix = `${dirPath.toLowerCase()}/`;
+      for (const pattern of active) {
+        if (normalizePattern(pattern).startsWith(prefix)) used.add(pattern);
+      }
+    },
+    unused() {
+      return active.filter((pattern) => !used.has(pattern) && !isExtensionPattern(pattern));
+    },
+  };
+}
+
+function normalizePattern(pattern: string): string {
+  return pattern
+    .replace(/\\/g, "/")
+    .replace(/^\.\//, "")
+    .replace(/\/\*\*$/, "")
+    .replace(/\/+$/, "")
+    .toLowerCase();
+}
+
+function isExtensionPattern(pattern: string): boolean {
+  return pattern.replace(/\\/g, "/").replace(/^\.\//, "").startsWith("*.");
 }

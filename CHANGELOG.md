@@ -8,7 +8,7 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
-## [Unreleased]
+## [0.17.0] — 2026-10-03
 
 ### Added
 
@@ -18,6 +18,12 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
   a schema.org `Article` block (`application/ld+json`) with headline, description, dates,
   language, an optional `author:`, and the image and URL when `--site-url` makes them absolute.
   Undated pages render exactly as before.
+- **`--feed <dir>`** (`feeds` in `emitSite`) — an Atom feed of the dated pages beneath a folder, at
+  `<dir>/feed.xml`, newest first, linked from that folder's pages for autodiscovery. Entries carry
+  the page's name, `date:`/`updated:`, its own `description:` and `author:`; the feed is dated by
+  its most recently changed entry. Needs `--site-url`; a folder with no dated page gets no feed
+  (and a warning) rather than one with an invented update time. `renderFeed()` and `feedPath()`
+  are exported.
 - **`frontmatterDate()` and `formatPageDate()`** — the rule for which frontmatter values are dates,
   and how a date is spelled for a language, exported so other tools reading the same frontmatter
   agree with the renderer.

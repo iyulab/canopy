@@ -59,12 +59,48 @@ async function emittedHtml(): Promise<string[]> {
     searchIndexPath: "search-index.json",
   };
   const contentsOnly = await build({ documents: [{ path: "a/b.md", content: "# B\n" }] });
-  return [...emitSite(full, options), ...emitSite(contentsOnly, options)]
+  const streamLayout = {
+    dirs: {
+      blog: {
+        profile: "stream" as const,
+        title: "Blog",
+        regions: { header: "h.html", beforeArticle: "b.html", afterArticle: "a.html" },
+      },
+    },
+  };
+  const stream = await build({
+    documents: [
+      {
+        path: "blog/post.md",
+        content: "---\ndate: 2026-10-03\ndescription: Lead.\n---\n# Post\n\n## One\n\na\n\n## Two\n\nb\n",
+      },
+    ],
+    layout: streamLayout,
+  });
+  const streamOptions = {
+    ...options,
+    siteUrl: "https://example.test/en",
+    lang: "en",
+    alternates: { ko: "https://example.test/ko" },
+    layout: streamLayout,
+    fragments: {
+      "h.html":
+        '<header><canopy-slot name="site-title"></canopy-slot><canopy-slot name="back"></canopy-slot>' +
+        '<canopy-slot name="language"></canopy-slot></header>',
+      "b.html": "<p>before</p>",
+      "a.html": "<p>after</p>",
+    },
+  };
+  return [...emitSite(full, options), ...emitSite(contentsOnly, options), ...emitSite(stream, streamOptions)]
     .filter((file) => file.path.endsWith(".html"))
     .map((file) => file.contents);
 }
 
 describe("THEME_HOOKS", () => {
+  it("is frozen, so no caller can add to or remove from the contract at runtime", () => {
+    expect(Object.isFrozen(THEME_HOOKS)).toBe(true);
+  });
+
   it("lists no hook twice", () => {
     expect(new Set(THEME_HOOKS).size).toBe(THEME_HOOKS.length);
   });
@@ -89,6 +125,6 @@ describe("docs/THEMING.md", () => {
   it("presents no class as a hook that is not one", async () => {
     const doc = await readFile(DOC, "utf8");
     const shown = [...doc.matchAll(/`\.((?:canopy|callout)[a-z0-9-]*)`/g)].map((m) => m[1] as string);
-    expect(shown.filter((name) => !THEME_HOOKS.includes(name))).toEqual([]);
+    expect(shown.filter((name) => !(THEME_HOOKS as readonly string[]).includes(name))).toEqual([]);
   });
 });

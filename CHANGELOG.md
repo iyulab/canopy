@@ -8,6 +8,42 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [0.20.0] — 2026-10-04
+
+### Added
+
+- **Profiles.** `--layout <path>` gives each folder a profile. `stream` is for dated pages:
+  ordered newest first by `date:` everywhere the site lists them, one column without the
+  sidebar tree, the page's `description:` as a lead under its title, a byline with the date and
+  reading time, and the contents open before the body. A stream folder's index page lists its
+  pages with date, reading time and summary; canopy writes that page when the folder has none.
+  `manual`, the default, is the shell as before.
+- **Regions and slots.** A layout fills `head`, `header`, `beforeArticle`, `afterArticle` and
+  `footer` with HTML fragments from the vault. `header` and `footer` replace canopy's own with
+  the site's markup; `<canopy-slot name="…">` places canopy's controls inside it (site title,
+  home, back, breadcrumb, language, search, theme toggle) or a page's own frontmatter text
+  (`page:<key>`). Links in a fragment are written from the site root and rewritten per page.
+  Fragments are not published. An unknown slot, a control slot with content, or a page value
+  that is not text fails the build, naming the file or page.
+- **`canopy list --layout`** leaves fragments out and adds `generated`: the index pages a build
+  will write.
+- **Language links.** The `language` slot links the same page in each other edition named in
+  `--alternate`, labelled in that language ("한국어").
+- New hooks: `.canopy-site-title`, `.canopy-back`, `.canopy-language`, `.canopy-lead`,
+  `.canopy-byline`, `.canopy-reading-time`, `.canopy-toc`, `.canopy-before-article`,
+  `.canopy-after-article`; `data-canopy-profile` on `<html>`. Exports for callers checking a
+  site before building it: `parseLayout`, `resolvePageLayout`, `layoutFragments`,
+  `fragmentProblems`, `fragmentLinks`, `pageSlotKeys`, `pageSlotText`, `readingMinutes`,
+  `callerStylesheetPath`.
+
+### Changed
+
+- The site title link carries `class="canopy-site-title"`, and the site title, home and back
+  links are styled by their own classes rather than by sitting in `.canopy-topbar` — so a
+  control placed in a site's own header looks the same as in canopy's top bar. On a page with
+  no layout, nothing renders differently.
+- `THEME_HOOKS` is frozen and typed as its literal names (`ThemeHook`).
+
 ## [0.19.0] — 2026-10-03
 
 ### Changed

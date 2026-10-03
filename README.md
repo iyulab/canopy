@@ -113,6 +113,8 @@ npx canopy build <vault-dir> [out-dir] [options]
   (`*.tmp`), or one exact path (`notes/scratch.md`). Applies to markdown and assets alike.
 - `--nav <path>` — a JSON file giving the navigation order and labels (see below). Without it,
   navigation is derived from the folder structure.
+- `--layout <path>` — a JSON layout: each folder's profile (`manual`, `stream`) and the HTML
+  fragments that fill its regions. See [Profiles and regions](#profiles-and-regions).
 - `--search-index <path>` — write a JSON search index (page path, title, headings, body text)
   to this output-relative path. Also gives the shell a hidden `.canopy-search` form in the top
   bar for a caller's script to find and reveal — the index and its mount point are one feature.
@@ -383,6 +385,33 @@ are accepted and ignored — content is always visible. Nested blockquotes stay
 plain quotes. Recognition semantics are pinned in
 `src/callout-parity.golden.json`; downstream editors keep a byte-identical
 copy to stay aligned.
+
+### Profiles and regions
+
+A layout is a site default plus per-folder rules; the longest folder containing a page decides
+for it.
+
+```json
+{
+  "default": { "regions": { "head": "partials/head.html", "header": "partials/header.html" } },
+  "dirs": {
+    "blog": { "profile": "stream", "title": "Blog", "regions": { "afterArticle": "partials/cta.html" } }
+  }
+}
+```
+
+- `profile` — `manual` (the default: a tree, an outline, backlinks) or `stream` (dated pages,
+  newest first, one column, the folder's index listing them — written by canopy when the
+  folder has none).
+- `title` — the title of that written index page.
+- `regions` — `head`, `header`, `beforeArticle`, `afterArticle`, `footer`, each a vault path of
+  an HTML fragment, or `""` to turn off one a shorter folder set. Fragments are read, not
+  published. `header` and `footer` replace canopy's own with the fragment's markup; canopy's
+  controls go where its `<canopy-slot>` elements say.
+
+`canopy list --layout <path> --json` answers with the build's view: fragments left out, and
+`generated` naming the index pages the build will write. Slots, hooks and what each profile
+draws: [docs/THEMING.md](docs/THEMING.md).
 
 ### Theming
 

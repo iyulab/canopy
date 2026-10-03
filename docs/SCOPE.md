@@ -25,7 +25,10 @@ transform:
   caller, and each page's own heading outline
 - **Publishing scope** — which vault paths become part of the site
 - **The site shell** — the HTML document wrapped around each page: head metadata,
-  stylesheets, sidebar, content, outline, backlinks
+  stylesheets, sidebar, content, outline, backlinks — in a small closed set of navigation
+  profiles (a tree to look things up in, a stream of dated pages), with named regions a caller
+  fills from its own HTML: its own header and footer in place of canopy's, and canopy's
+  controls placed inside them through named slots
 - **Theming vocabulary** — a set of semantic CSS custom properties the shell reads, and a set of
   class names it keeps stable (`THEME_HOOKS`, docs/THEMING.md). Canopy's own CSS sits in one
   cascade layer, so a caller's stylesheet layers over canopy's defaults — restating a token or

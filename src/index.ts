@@ -40,7 +40,7 @@ export {
   type NavSpecItem,
   type AppliedNav,
 } from "./nav-spec.js";
-export { renderPage, pageTitle, renderContentsPage, type ShellOptions } from "./shell.js";
+export { renderPage, pageTitle, renderContentsPage, languageName, type ShellOptions } from "./shell.js";
 export { extractOutline, extractFirstHeading, isOutlineUseful, type OutlineItem } from "./outline.js";
 export { declaredTitle, pageName, isIndexStem } from "./title.js";
 export {
@@ -77,7 +77,9 @@ export { renderFeed, feedPath } from "./feed.js";
 export { buildSearchIndex, type SearchIndexEntry } from "./search-index.js";
 export { CANOPY_TOKENS } from "./tokens.js";
 export { BASE_CSS } from "./styles.js";
-export { THEME_HOOKS } from "./theme-hooks.js";
+export { THEME_HOOKS, type ThemeHook } from "./theme-hooks.js";
+export { callerStylesheetPath } from "./stylesheets.js";
+export { readingMinutes } from "./reading-time.js";
 
 
 /**

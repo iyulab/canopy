@@ -1,6 +1,10 @@
 /**
  * The class names a caller's stylesheet or script may rely on: canopy's public
  * styling contract, documented in docs/THEMING.md.
+ * Some hooks appear only where the page has that part — .canopy-topbar only when canopy
+ * draws its own top bar (a site's header fragment replaces it), .canopy-sidebar only on a
+ * manual page — so the contract is what each name means where it appears, not that every page
+ * carries every one.
  *
  * Renaming or removing one is a breaking change, announced in the CHANGELOG.
  * Anything else canopy emits — the depth classes `canopy-nav-l<n>` and
@@ -9,14 +13,17 @@
  * standard attributes rather than classes: `aria-current="page"`, `[open]`,
  * `[hidden]`, and `data-theme` on `<html>`.
  */
-export const THEME_HOOKS: readonly string[] = [
-  // Top bar
+export const THEME_HOOKS = Object.freeze([
+  // Top bar, and the controls a site's own header can place through slots
   "canopy-topbar",
   "canopy-topbar-controls",
+  "canopy-site-title",
   "canopy-logo",
   "canopy-home",
   "canopy-home-external",
+  "canopy-back",
   "canopy-breadcrumb",
+  "canopy-language",
   "canopy-search",
   "canopy-theme-toggle",
   // Layout and navigation
@@ -28,7 +35,13 @@ export const THEME_HOOKS: readonly string[] = [
   // Article
   "canopy-content",
   "canopy-contents",
+  "canopy-before-article",
+  "canopy-after-article",
+  "canopy-lead",
+  "canopy-byline",
   "canopy-date",
+  "canopy-reading-time",
+  "canopy-toc",
   "canopy-listing",
   "canopy-listing-title",
   "callout",
@@ -44,4 +57,7 @@ export const THEME_HOOKS: readonly string[] = [
   "canopy-page-nav",
   "canopy-prev",
   "canopy-next",
-];
+] as const);
+
+/** One of canopy's public class names. */
+export type ThemeHook = (typeof THEME_HOOKS)[number];

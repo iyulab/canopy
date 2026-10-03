@@ -91,14 +91,15 @@ changelog. Select on them freely.
 
 | Region | Hooks |
 |---|---|
-| Top bar | `.canopy-topbar` `.canopy-topbar-controls` `.canopy-logo` `.canopy-home` `.canopy-home-external` `.canopy-breadcrumb` `.canopy-search` `.canopy-theme-toggle` |
+| Top bar and controls | `.canopy-topbar` `.canopy-topbar-controls` `.canopy-site-title` `.canopy-logo` `.canopy-home` `.canopy-home-external` `.canopy-back` `.canopy-breadcrumb` `.canopy-language` `.canopy-search` `.canopy-theme-toggle` |
 | Layout and navigation | `.canopy-layout` `.canopy-sidebar` `.canopy-nav` `.canopy-nav-group` `.canopy-main` |
-| Article | `.canopy-content` `.canopy-contents` `.canopy-date` `.canopy-listing` `.canopy-listing-title` |
+| Article | `.canopy-content` `.canopy-contents` `.canopy-before-article` `.canopy-after-article` `.canopy-lead` `.canopy-byline` `.canopy-date` `.canopy-reading-time` `.canopy-toc` `.canopy-listing` `.canopy-listing-title` |
 | Callouts | `.callout` `.callout-note` `.callout-tip` `.callout-warning` `.callout-danger` `.callout-quote` `.callout-title` |
 | Around the article | `.canopy-outline` `.canopy-backlinks` `.canopy-page-nav` `.canopy-prev` `.canopy-next` |
 
 State is read from standard attributes, not classes: `aria-current="page"` on the current page's
 link, `[open]` on a disclosure, `[hidden]` on a control no script has revealed.
+`<html data-canopy-profile="manual">` or `"stream"` says which profile drew the page.
 
 ```css
 /* A wider article and no sidebar — plain selectors, no specificity to match.
@@ -108,6 +109,74 @@ link, `[open]` on a disclosure, `[hidden]` on a control no script has revealed.
 .canopy-sidebar { display: none; }
 .canopy-layout { grid-template-columns: 1fr; background: none; }
 ```
+
+## Profiles
+
+A layout (`--layout`) gives each folder a profile. `manual` is the shell above: a sidebar tree,
+the outline beside the text, backlinks, and prev/next in tree order. `stream` is for dated
+pages read one at a time, newest first:
+
+- no sidebar tree, and no outline column — the page is one centered column;
+- after the title, the page's `description:` as a lead (`.canopy-lead`), then a byline
+  (`.canopy-byline`) with the date (`.canopy-date`) and the reading time
+  (`.canopy-reading-time`), then the contents, open, in a disclosure (`.canopy-toc`, holding
+  the same `.canopy-outline` list);
+- the folder's index page lists the folder's pages newest first (`.canopy-listing`), with date,
+  reading time and summary — canopy writes that index page when the folder has none;
+- canopy's own top bar shows a link back to that index (`.canopy-back`) where a manual page
+  shows its breadcrumb.
+
+Some hooks appear only where the page has that part: `.canopy-sidebar` on manual pages,
+`.canopy-toc` on stream pages, `.canopy-topbar` only where canopy draws its own top bar.
+
+## Regions and slots
+
+A layout can also fill five regions with fragments — HTML files from the site itself:
+
+| Region | Where |
+|---|---|
+| `header` | **Replaces** canopy's top bar with the fragment's markup, as written |
+| `footer` | At the end of the page, as written |
+| `head` | Added just before `</head>` — a stylesheet, fonts, structured data |
+| `beforeArticle` | At the start of the article, in `.canopy-before-article` |
+| `afterArticle` | At the end of the article, in `.canopy-after-article` |
+
+Links in a fragment are written from the site root (`blog/`, `assets/logo.svg`) and rewritten
+for each page. A scheme, `//host`, `#id` or `/path` is left as written.
+
+A fragment places canopy's controls with slots, replaced when the site is built — nothing of
+the slot reaches the browser:
+
+```html
+<header class="site-header">
+  <a href="https://example.com/">Example</a>
+  <canopy-slot name="back"></canopy-slot>
+  <canopy-slot name="search"></canopy-slot>
+  <canopy-slot name="theme-toggle"></canopy-slot>
+</header>
+```
+
+| Slot | Becomes |
+|---|---|
+| `site-title` | The logo and site title link (`.canopy-site-title`) |
+| `home` | The home link (`.canopy-home`) |
+| `back` | On a stream page, the link back to its index (`.canopy-back`) |
+| `breadcrumb` | The trail through the tree (`.canopy-breadcrumb`) |
+| `language` | This page in the site's other language editions (`.canopy-language`) |
+| `search` | The search form (`.canopy-search`) |
+| `theme-toggle` | The theme toggle (`.canopy-theme-toggle`) |
+| `page:<key>` | The page's own frontmatter text for `<key>`, escaped; the slot's content when the page has none |
+
+A control slot that has nothing to show on a page (no alternates for `language`, a manual page
+for `back`) becomes nothing. An unknown slot name fails the build, and so does a control slot
+with content: write `<canopy-slot name="search"></canopy-slot>` — HTML does not close a
+custom tag written `<canopy-slot name="search"/>`, so it would take in what follows. Slots do
+not nest and do not belong in `head`. A `page:` key whose value is not text (a list, a number,
+a date) fails the build naming the page.
+
+Slot names are part of this contract: adding one is a minor release, removing or changing one
+is a breaking change. Each control keeps its look outside canopy's top bar — its styles hang on
+its own class, not on where it sits.
 
 ## Not part of the contract
 

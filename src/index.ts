@@ -6,6 +6,8 @@ import { buildLinkIndex } from "./links.js";
 import { applyNavSpec } from "./nav-spec.js";
 import { extractOutline } from "./outline.js";
 import { declaredTitle } from "./title.js";
+import { syntheticIndexPaths } from "./layout.js";
+import { orderStreams, syntheticStreamPages } from "./stream.js";
 
 export type {
   SourceDocument,
@@ -88,8 +90,14 @@ export { THEME_HOOKS } from "./theme-hooks.js";
  * Stateless: the same input always yields the same output.
  */
 export async function build(tree: SourceTree): Promise<SiteBundle> {
+  const sitePaths = tree.documents.map((doc) => toSitePath(doc.path));
+  // A stream folder with no index page of its own gets one written for it, and
+  // it is a page like any other: links and wikilinks can reach it, so it goes
+  // into the index every link is resolved against.
+  const synthetic = syntheticIndexPaths(tree.layout, sitePaths);
+
   // Pass 1: index (paths only — no content needed).
-  const index = buildLinkIndex(tree.documents.map((doc) => toSitePath(doc.path)));
+  const index = buildLinkIndex([...sitePaths, ...synthetic]);
 
   // Pass 2: render in parallel; the wiki context resolves links per page.
   // `tree.rehypePlugins` is passed by reference to every call, which is what
@@ -125,24 +133,34 @@ export async function build(tree: SourceTree): Promise<SiteBundle> {
     }
   }
 
-  const pages: RenderedPage[] = rendered.map((page) => ({
-    sourcePath: page.sourcePath,
-    sitePath: page.sitePath,
-    frontmatter: page.frontmatter,
-    html: page.html,
-    backlinks: (backlinksByTarget.get(page.sitePath) ?? []).sort((a, b) =>
-      a.sitePath.localeCompare(b.sitePath),
-    ),
-    outline: extractOutline(page.html),
-  }));
+  const byPath = (a: Backlink, b: Backlink) => a.sitePath.localeCompare(b.sitePath);
+  const pages: RenderedPage[] = [
+    ...rendered.map((page) => ({
+      sourcePath: page.sourcePath,
+      sitePath: page.sitePath,
+      frontmatter: page.frontmatter,
+      html: page.html,
+      backlinks: (backlinksByTarget.get(page.sitePath) ?? []).sort(byPath),
+      outline: extractOutline(page.html),
+    })),
+    ...syntheticStreamPages(tree.layout, synthetic).map((page) => ({
+      ...page,
+      backlinks: (backlinksByTarget.get(page.sitePath) ?? []).sort(byPath),
+    })),
+  ];
 
-  const entries: NavEntry[] = rendered.map((page) => ({
-    sitePath: page.sitePath,
-    title: page.title,
-  }));
+  // Pass 2 already named every rendered page; a written page's name is its
+  // frontmatter title.
+  const entries: NavEntry[] = [
+    ...rendered.map((page) => ({ sitePath: page.sitePath, title: page.title })),
+    ...pages.slice(rendered.length).map((page) => ({
+      sitePath: page.sitePath,
+      title: declaredTitle(page.frontmatter, page.html),
+    })),
+  ];
   if (tree.nav !== undefined) {
     const applied = applyNavSpec(tree.nav, entries);
-    return { pages, navigation: applied.nodes, navReport: applied };
+    return { pages, navigation: orderStreams(applied.nodes, pages, tree.layout), navReport: applied };
   }
-  return { pages, navigation: buildNavigation(entries) };
+  return { pages, navigation: orderStreams(buildNavigation(entries), pages, tree.layout) };
 }

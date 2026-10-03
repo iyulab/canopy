@@ -13,6 +13,7 @@ import type { PluggableList } from "unified";
 import type { NavNode } from "./navigation.js";
 import type { NavSpec, AppliedNav } from "./nav-spec.js";
 import type { OutlineItem } from "./outline.js";
+import type { Layout } from "./layout.js";
 
 /** A single markdown source document in the tree. */
 export interface SourceDocument {
@@ -49,6 +50,14 @@ export interface SourceTree {
    * the same shape canopy already uses for katex and Shiki internally.
    */
   rehypePlugins?: PluggableList;
+
+  /**
+   * Each folder's profile and region fragments (see layout.ts). The build uses
+   * it for two things only: an index page for a stream folder that has none,
+   * and a stream folder's pages ordered newest first in the navigation. Unset,
+   * every page is `manual` and the build is exactly what it was without it.
+   */
+  layout?: Layout;
 }
 
 /** A page that links to another page, recorded as a backlink. */

@@ -101,8 +101,9 @@ npx canopy build <vault-dir> [out-dir] [options]
   default worth guessing. A scheme (`https://...`) or protocol-relative URL is used exactly as
   given; anything else is treated as a path from the site's own root and resolved against each
   page's depth, the same as every other internal link canopy writes.
-- `--tokens-css <path>` — CSS file appended after canopy's built-in tokens in `tokens.css`. A
-  caller may override specific values (leaving the rest intact) or supply the entire vocabulary.
+- `--stylesheet <path>` — carry this CSS into `assets/stylesheet-<n>.css` and link it after
+  canopy's own. Repeatable; linked in the order given. Canopy's CSS sits in the `canopy` cascade
+  layer, so these win over it at any specificity — see [docs/THEMING.md](docs/THEMING.md).
 - `--exclude <pattern>` — leave part of the vault unpublished. Repeatable. Accepts a directory
   (`drafts` or `drafts/**`, matching it and everything beneath), an extension at any depth
   (`*.tmp`), or one exact path (`notes/scratch.md`). Applies to markdown and assets alike.
@@ -381,13 +382,15 @@ copy to stay aligned.
 
 ### Theming
 
-The output reads a small set of CSS custom properties (see `tokens.css` in the output, or
-`CANOPY_TOKENS`). A consuming app injects its own via `emitSite(bundle, { tokens })`, and they
-are **appended after** canopy's defaults rather than replacing them — so a caller may restate
-the whole vocabulary to match an app exactly, or override a single value and keep the rest.
+Canopy's CSS sits in one cascade layer, `canopy`, so a caller's stylesheet — `--stylesheet` on
+the command line, `emitSite(bundle, { styles })` in code — wins over it at any specificity. The
+shell reads a small set of CSS custom properties (see `CANOPY_TOKENS`), and a set of class names
+is a stable contract (`THEME_HOOKS`). The full contract — layers, tokens, hooks, and what is not
+part of it — is [docs/THEMING.md](docs/THEMING.md).
 
-Because the defaults end with a `prefers-color-scheme: dark` block, and a media query adds no
-specificity, a bare `:root` override applies to **both** schemes:
+A caller may restate the whole token vocabulary to match an app exactly, or override a single
+value and keep the rest. A bare `:root` outside canopy's layer applies to **both** colour
+schemes, so a dark value needs its own block:
 
 ```css
 :root { --accent: #0a7c5a; --accent-hover: #096a4d; }

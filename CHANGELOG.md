@@ -8,6 +8,26 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [0.19.0] — 2026-10-03
+
+### Changed
+
+- **Canopy's CSS is in a cascade layer.** `tokens.css`, `styles.css` and the KaTeX stylesheet a
+  build copies are wrapped in `@layer canopy`, so any stylesheet outside that layer wins over them
+  regardless of specificity. A caller's global rule (`a { … }`) now takes precedence over canopy's
+  own on an emitted site. The exported `CANOPY_TOKENS` and `BASE_CSS` are unchanged.
+- **Breaking: `--tokens-css` is replaced by `--stylesheet`, and `emitSite`'s `tokens` by
+  `styles`.** `--stylesheet <path>` is repeatable; each file is written to
+  `assets/stylesheet-<n>.css` and linked after canopy's own, in order. Migration: pass the same
+  file to `--stylesheet` (or its contents in `styles: [css]`) — a token file works unchanged. A
+  vault file already at `assets/stylesheet-<n>.css` now fails the build.
+
+### Added
+
+- **`THEME_HOOKS`** and **[docs/THEMING.md](docs/THEMING.md)** — the class names a stylesheet or
+  script may rely on, as a documented and tested contract; everything else the shell emits is
+  stated to be internal.
+
 ## [0.18.0] — 2026-10-03
 
 ### Added

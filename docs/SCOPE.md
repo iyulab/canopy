@@ -26,8 +26,10 @@ transform:
 - **Publishing scope** — which vault paths become part of the site
 - **The site shell** — the HTML document wrapped around each page: head metadata,
   stylesheets, sidebar, content, outline, backlinks
-- **Theming vocabulary** — a set of semantic CSS custom properties the shell reads. A caller
-  layers its own values over canopy's defaults, or restates the whole vocabulary
+- **Theming vocabulary** — a set of semantic CSS custom properties the shell reads, and a set of
+  class names it keeps stable (`THEME_HOOKS`, docs/THEMING.md). Canopy's own CSS sits in one
+  cascade layer, so a caller's stylesheet layers over canopy's defaults — restating a token or
+  restyling a region — without a specificity contest
 
 If a published site is worse *as a site* without it, it probably belongs here.
 
@@ -59,7 +61,7 @@ Each of these is a deliberate non-goal, not a gap awaiting a contribution:
   colours resolved at build time) is expressed that way; the rest belongs to the
   caller, which owns the output. A caller that needs behaviour supplies its own
   script (`--script`), which canopy carries the same way it carries a caller's
-  token stylesheet (`--tokens-css`) — the file is the caller's, and a build given
+  stylesheet (`--stylesheet`) — the file is the caller's, and a build given
   none emits none.
 
   Structured data a page describes itself with — a `<script type="application/ld+json">`

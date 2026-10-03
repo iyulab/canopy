@@ -19,6 +19,14 @@ export interface EmitOptions extends ShellOptions {
    */
   styles?: string[];
   /**
+   * Site paths of stylesheets the site itself publishes, linked last — after
+   * canopy's own and after `styles`. Only linked: the file is published by
+   * whatever copies the site's assets, at its own path, so a relative url()
+   * inside it resolves as its author wrote it (which a carried `styles`
+   * entry, moved to `assets/`, cannot promise).
+   */
+  siteStylesheets?: string[];
+  /**
    * Output-relative path to write the search index JSON to. Opt-in: a
    * consumer with no search UI (or one that builds its own index some other
    * way) pays nothing for a file it will never read.
@@ -60,6 +68,7 @@ export function emitSite(
   const stylesheets = [
     ...(options.stylesheets ?? ["tokens.css", "styles.css"]),
     ...callerStyles.map((sheet) => sheet.path),
+    ...(options.siteStylesheets ?? []),
   ];
 
   const feeds: { dir: string; path: string; title: string; contents: string }[] = [];

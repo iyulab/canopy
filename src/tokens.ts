@@ -3,12 +3,13 @@
  *
  * Canopy stays app-agnostic by defining a *vocabulary* of semantic custom
  * properties (colors, type, spacing) rather than importing any app's
- * stylesheet. These defaults let a site look good standalone; a consumer can
- * append its own token stylesheet at publish time — see `emitSite`'s `tokens`
- * option — to override some values or supply the entire vocabulary. Because the
- * vocabulary is semantic rather than canopy-specific, a consumer that already
- * names its design tokens this way appends them as a drop-in, keeping one
- * source of truth for the palette without coupling canopy to that consumer.
+ * stylesheet. These defaults let a site look good standalone; a consumer links
+ * its own stylesheet after them — `emitSite`'s `styles`/`siteStylesheets`,
+ * outside the `canopy` cascade layer these sit in — to override some values or
+ * supply the entire vocabulary. Because the vocabulary is semantic rather than
+ * canopy-specific, a consumer that already names its design tokens this way
+ * links them as a drop-in, keeping one source of truth for the palette without
+ * coupling canopy to that consumer.
  *
  * Dark mode follows `prefers-color-scheme` by default, so static sites adapt
  * with no JS — and a caller-supplied script can still force either palette

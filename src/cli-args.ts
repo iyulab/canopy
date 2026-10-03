@@ -68,6 +68,12 @@ export type BuildArgs =
        * `--script` does. Empty when the flag was not given.
        */
       stylesheetPaths: string[];
+      /**
+       * Vault-relative stylesheets the site publishes, linked from every page
+       * at their own paths, after everything else — so a relative url()
+       * inside one resolves as its author wrote it. Empty when not given.
+       */
+      siteStylesheets: string[];
     }
   | { ok: false; error: string };
 
@@ -90,6 +96,7 @@ export const USAGE = [
   "  --site-icon <path>         Vault-relative favicon, linked from every page",
   "  --nav <path>               JSON navigation spec: order and labels",
   "  --stylesheet <path>        Carry this CSS into assets/ and link it after canopy's own (repeatable)",
+  "  --site-stylesheet <path>   Link a vault-relative stylesheet the site publishes, after all others (repeatable)",
   "  --site-logo <path>         Vault-relative logo, shown beside the site title",
   "  --home-url <url>           Link back to the site this one sits beside",
   "  --home-label <text>        Link text for --home-url (required with it)",
@@ -136,6 +143,7 @@ const LIST_FLAGS = {
   "--alternate": "alternate",
   "--feed": "feeds",
   "--stylesheet": "stylesheetPaths",
+  "--site-stylesheet": "siteStylesheets",
 } as const;
 
 /**
@@ -269,7 +277,7 @@ export function parseBuildArgs(argv: string[]): BuildArgs {
   const scanned = scanArgs("build", rest, BUILD_FLAGS, 2);
   if (!scanned.ok) return scanned;
   const { positional, single, lists } = scanned;
-  const { exclude, rehypePluginPaths, alternate, feeds, stylesheetPaths } = lists;
+  const { exclude, rehypePluginPaths, alternate, feeds, stylesheetPaths, siteStylesheets } = lists;
 
   const vault = positional[0];
   if (vault === undefined) {
@@ -358,6 +366,7 @@ export function parseBuildArgs(argv: string[]): BuildArgs {
     scriptPath: single.scriptPath,
     rehypePluginPaths,
     stylesheetPaths,
+    siteStylesheets,
     exclude,
     feeds,
   };

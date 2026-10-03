@@ -11,15 +11,26 @@ math — is wrapped in one [cascade layer](https://developer.mozilla.org/en-US/d
 `canopy`. A rule outside any layer beats every layered rule regardless of specificity, so a
 stylesheet you supply wins over canopy's without a specificity contest:
 
+A stylesheet reaches the page one of two ways:
+
 ```sh
-canopy build notes site --stylesheet brand.css --stylesheet layout.css
+# A stylesheet the vault publishes, linked where it stands:
+canopy build notes site --site-stylesheet theme/brand.css
+# A stylesheet from outside the vault, carried into assets/:
+canopy build notes site --stylesheet ../shared/search.css
 ```
 
 ```ts
-emitSite(bundle, { styles: [brandCss, layoutCss] });
+emitSite(bundle, { siteStylesheets: ["theme/brand.css"], styles: [searchCss] });
 ```
 
-Each is written to `assets/stylesheet-<n>.css` and linked after canopy's own, in the order given.
+**`--site-stylesheet`** names a file the vault already publishes (it must not be excluded) and
+links it at its own path, so a relative `url()` inside it — a font, a background image —
+resolves exactly as its author wrote it. **`--stylesheet`** reads a file from anywhere and writes
+it to `assets/stylesheet-<n>.css`; a relative `url()` in it then resolves from `assets/`, so carry
+only self-contained CSS this way. Both repeat; carried stylesheets are linked after canopy's own,
+and the vault's own after those, each in the order given.
+
 A stylesheet that declares a layer of its own sits between canopy's and unlayered CSS: layers
 order by first appearance, and canopy's always appears first.
 

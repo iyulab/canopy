@@ -34,7 +34,8 @@
   "files": [
     "dist",
     "CHANGELOG.md",
-    "docs/SCOPE.md"
+    "docs/SCOPE.md",
+    "docs/THEMING.md"
   ],
   "scripts": {
     "check": "tsc --noEmit",

@@ -201,8 +201,8 @@ describe("mobile navigation footprint", () => {
   it("caps the closed-disclosure's own line the same as before, unaffected by the open redesign", () => {
     // canopy ships the nav disclosure `open` unconditionally (no JS to remember a
     // closed state across page loads), so this cap is what a mobile reader sees
-    // above the fold on every single page. Measured live (iyulab.github.io/canopy-page,
-    // 375x667): the prior 40vh cap put the header+nav block at 66% of the viewport.
+    // above the fold on every single page. Measured on a published site (375x667):
+    // the prior 40vh cap put the header+nav block at 66% of the viewport.
     expect(BASE_CSS).toContain(".canopy-nav > nav { max-height: 25vh; overflow-y: auto; }");
     expect(BASE_CSS).not.toContain("max-height: 40vh");
   });

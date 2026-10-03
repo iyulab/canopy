@@ -83,6 +83,7 @@ describe("parseBuildArgs", () => {
       exclude: [],
       rehypePluginPaths: [],
       stylesheetPaths: [],
+      siteStylesheets: [],
       feeds: [],
     });
   });
@@ -115,6 +116,12 @@ describe("parseBuildArgs", () => {
       siteTitle: "My Notes",
       stylesheetPaths: ["/brand.css", "/layout.css"],
     });
+  });
+
+  it("parses repeated --site-stylesheet, in order", () => {
+    expect(
+      parseBuildArgs(["build", "v", "--site-stylesheet", "brand.css", "--site-stylesheet", "theme/layout.css"]),
+    ).toMatchObject({ ok: true, siteStylesheets: ["brand.css", "theme/layout.css"] });
   });
 
   it("no longer knows --tokens-css, which --stylesheet replaces", () => {

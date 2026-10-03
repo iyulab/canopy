@@ -65,6 +65,18 @@ describe("emitSite", () => {
     expect(paths.some((p) => p.startsWith("assets/stylesheet-"))).toBe(false);
   });
 
+  it("links the site's own stylesheets last, after carried ones, at their own paths", async () => {
+    const bundle = await build({ documents: [{ path: "guide/page.md", content: "# Page" }] });
+    const files = emitSite(bundle, { styles: ["a {}"], siteStylesheets: ["theme/brand.css"] });
+    // Published by the caller's asset copy, not written here: only linked.
+    expect(files.some((f) => f.path === "theme/brand.css")).toBe(false);
+    const page = files.find((f) => f.path === "guide/page.html")?.contents ?? "";
+    expect(page).toContain('href="../theme/brand.css"');
+    expect(page.indexOf('href="../assets/stylesheet-1.css"')).toBeLessThan(
+      page.indexOf('href="../theme/brand.css"'),
+    );
+  });
+
   it("links caller stylesheets after any extra canopy stylesheet the caller listed", async () => {
     const bundle = await build({ documents: [{ path: "index.md", content: "# Home" }] });
     const index =

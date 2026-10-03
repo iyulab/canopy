@@ -203,11 +203,11 @@ body {
 }
 /* Hidden by default (see shell.ts) until a caller-supplied script reveals it.
    position: relative so ::before below can place the icon inside the input
-   regardless of what a caller's own tokens.css does — a caller carrying
-   canopy-page's search UI happens to set this too (its own
-   .canopy-search-results dropdown needs it), but this shell has no way to
-   know that, so it supplies its own rather than depending on a caller's CSS
-   for its own icon to position correctly. */
+   regardless of what a caller's own stylesheet does — a caller's search
+   script may well set this too (a results dropdown anchored to the form
+   needs it), but this shell has no way to know that, so it supplies its own
+   rather than depending on a caller's CSS for its own icon to position
+   correctly. */
 .canopy-search { position: relative; }
 /* Same masked-icon technique as .canopy-theme-toggle and the mobile nav
    control above — an inert glyph, not a button, so pointer-events: none

@@ -101,9 +101,13 @@ npx canopy build <vault-dir> [out-dir] [options]
   default worth guessing. A scheme (`https://...`) or protocol-relative URL is used exactly as
   given; anything else is treated as a path from the site's own root and resolved against each
   page's depth, the same as every other internal link canopy writes.
-- `--stylesheet <path>` — carry this CSS into `assets/stylesheet-<n>.css` and link it after
-  canopy's own. Repeatable; linked in the order given. Canopy's CSS sits in the `canopy` cascade
+- `--site-stylesheet <path>` — link a vault-relative stylesheet the site publishes, at its own
+  path, after every other stylesheet. Repeatable. A relative `url()` inside it resolves as written.
+  The build fails if the path is missing or excluded. Canopy's CSS sits in the `canopy` cascade
   layer, so these win over it at any specificity — see [docs/THEMING.md](docs/THEMING.md).
+- `--stylesheet <path>` — carry a CSS file from outside the vault into
+  `assets/stylesheet-<n>.css` and link it after canopy's own. Repeatable; linked in the order
+  given. A relative `url()` in it resolves from `assets/`.
 - `--exclude <pattern>` — leave part of the vault unpublished. Repeatable. Accepts a directory
   (`drafts` or `drafts/**`, matching it and everything beneath), an extension at any depth
   (`*.tmp`), or one exact path (`notes/scratch.md`). Applies to markdown and assets alike.
@@ -382,8 +386,9 @@ copy to stay aligned.
 
 ### Theming
 
-Canopy's CSS sits in one cascade layer, `canopy`, so a caller's stylesheet — `--stylesheet` on
-the command line, `emitSite(bundle, { styles })` in code — wins over it at any specificity. The
+Canopy's CSS sits in one cascade layer, `canopy`, so a caller's stylesheet —
+`--site-stylesheet`/`--stylesheet` on the command line, `emitSite(bundle, { siteStylesheets,
+styles })` in code — wins over it at any specificity. The
 shell reads a small set of CSS custom properties (see `CANOPY_TOKENS`), and a set of class names
 is a stable contract (`THEME_HOOKS`). The full contract — layers, tokens, hooks, and what is not
 part of it — is [docs/THEMING.md](docs/THEMING.md).

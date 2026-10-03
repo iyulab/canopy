@@ -132,7 +132,7 @@ export async function runBuild(argv: string[]): Promise<void> {
     }
   }
 
-  // Both are copied by the asset pass, so they have to survive `--exclude` and
+  // All of these are copied by the asset pass, so they have to survive `--exclude` and
   // actually exist. Checking here turns a silently-broken tag — which only shows
   // up as a missing image after deploy — into a build failure naming the path.
   //
@@ -151,10 +151,14 @@ export async function runBuild(argv: string[]): Promise<void> {
       return;
     }
   }
+  const siteStylesheets = args.siteStylesheets.map((value) =>
+    value.replace(/\\/g, "/").replace(/^\/+/, ""),
+  );
   for (const [flag, value] of [
     ["--site-icon", args.siteIcon],
     ["--site-logo", args.siteLogo],
     ["--site-image", args.siteImage],
+    ...siteStylesheets.map((sheet) => ["--site-stylesheet", sheet] as const),
   ] as const) {
     if (value === undefined) continue;
     const rel = value.replace(/\\/g, "/").replace(/^\/+/, "");
@@ -241,6 +245,7 @@ export async function runBuild(argv: string[]): Promise<void> {
     siteTitle: args.siteTitle ?? path.basename(vault),
     stylesheets,
     ...(styles.length > 0 ? { styles } : {}),
+    ...(siteStylesheets.length > 0 ? { siteStylesheets } : {}),
     ...(script !== undefined ? { script } : {}),
     ...(args.lang ? { lang: args.lang } : {}),
     ...(args.siteIcon ? { iconPath: args.siteIcon.replace(/\\/g, "/") } : {}),

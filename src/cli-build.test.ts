@@ -85,6 +85,48 @@ describe("canopy build --stylesheet", { timeout: RENDERS }, () => {
   });
 });
 
+describe("canopy build --site-stylesheet", { timeout: RENDERS }, () => {
+  // A stylesheet that lives in the vault is published where it is, so a
+  // relative url() inside it resolves exactly as its author wrote it.
+  it("links a published vault stylesheet at its own path, after carried ones", async () => {
+    const { root, out } = await vault({
+      "guide/page.md": "# Page\n",
+      "theme/brand.css": "@font-face { font-family: B; src: url(fonts/b.woff2); }",
+      "theme/fonts/b.woff2": "font",
+    });
+    await writeFile(path.join(root, "carried.css"), "a {}", "utf8");
+    vi.spyOn(console, "log").mockImplementation(() => {});
+
+    await runBuild([
+      "build",
+      path.join(root, "vault"),
+      out,
+      "--stylesheet",
+      path.join(root, "carried.css"),
+      "--site-stylesheet",
+      "theme/brand.css",
+    ]);
+
+    expect(process.exitCode).toBeUndefined();
+    expect(await readFile(path.join(out, "theme", "brand.css"), "utf8")).toContain("url(fonts/b.woff2)");
+    expect(await readdir(path.join(out, "theme", "fonts"))).toContain("b.woff2");
+    const page = await readFile(path.join(out, "guide", "page.html"), "utf8");
+    expect(page.indexOf('href="../assets/stylesheet-1.css"')).toBeLessThan(
+      page.indexOf('href="../theme/brand.css"'),
+    );
+  });
+
+  it("fails naming the path when the stylesheet is not a published vault file", async () => {
+    const { root, out } = await vault({ "index.md": "# Home\n" });
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await runBuild(["build", path.join(root, "vault"), out, "--site-stylesheet", "theme/missing.css"]);
+
+    expect(process.exitCode).toBe(1);
+    expect(error.mock.calls.flat().join("\n")).toContain('--site-stylesheet: "theme/missing.css"');
+  });
+});
+
 describe("canopy build — KaTeX", { timeout: RENDERS }, () => {
   it("puts the KaTeX stylesheet in the canopy layer, like canopy's own CSS", async () => {
     // A standalone $$..$$ line is display math (remark-math-subset.test.ts).

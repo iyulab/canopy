@@ -16,14 +16,18 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
   build copies are wrapped in `@layer canopy`, so any stylesheet outside that layer wins over them
   regardless of specificity. A caller's global rule (`a { … }`) now takes precedence over canopy's
   own on an emitted site. The exported `CANOPY_TOKENS` and `BASE_CSS` are unchanged.
-- **Breaking: `--tokens-css` is replaced by `--stylesheet`, and `emitSite`'s `tokens` by
-  `styles`.** `--stylesheet <path>` is repeatable; each file is written to
-  `assets/stylesheet-<n>.css` and linked after canopy's own, in order. Migration: pass the same
-  file to `--stylesheet` (or its contents in `styles: [css]`) — a token file works unchanged. A
-  vault file already at `assets/stylesheet-<n>.css` now fails the build.
+- **Breaking: `--tokens-css` is replaced by `--stylesheet`/`--site-stylesheet`, and `emitSite`'s
+  `tokens` by `styles`/`siteStylesheets`.** `--stylesheet <path>` (repeatable) carries a file into
+  `assets/stylesheet-<n>.css`, linked after canopy's own; a relative `url()` in it resolves from
+  `assets/`. A vault file already at that path fails the build. Migration: pass a token file to
+  `--stylesheet` (or its contents in `styles: [css]`); one whose `url()`s point at files beside it
+  in the vault belongs under `--site-stylesheet` instead.
 
 ### Added
 
+- **`--site-stylesheet <path>`** (`siteStylesheets` in `emitSite`) — link a stylesheet the vault
+  publishes, at its own path, after every other stylesheet; repeatable. A relative `url()` inside
+  it resolves as its author wrote it. A missing or excluded path fails the build.
 - **`THEME_HOOKS`** and **[docs/THEMING.md](docs/THEMING.md)** — the class names a stylesheet or
   script may rely on, as a documented and tested contract; everything else the shell emits is
   stated to be internal.

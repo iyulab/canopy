@@ -50,9 +50,12 @@ export interface VaultListing {
 /**
  * What a build of this vault would publish, without building it.
  *
- * The same walk `listFiles` does, so the answer is the build's own rather
- * than a restatement of its rules — which is what lets a caller check a site
+ * The build itself publishes from this listing, so the answer is the build's
+ * own rather than a restatement of its rules — which is what lets a caller check a site
  * before publishing it and be right about what ships.
+ *
+ * `exclude` patterns apply to markdown and assets alike — a draft folder's
+ * images have no reason to be on the web once its notes are not.
  */
 export async function listVault(
   root: string,
@@ -69,30 +72,13 @@ export async function listVault(
   };
 }
 
-/**
- * List every publishable file under `root` as POSIX paths relative to it, sorted.
- *
- * `exclude` patterns apply to markdown and assets alike — a draft folder's
- * images have no reason to be on the web once its notes are not — because every
- * caller of this function shares the same view of the vault.
- */
-export async function listFiles(
+/** Read the listed markdown pages (vault-relative paths, as `listVault` gives them) into source documents. */
+export async function readDocuments(
   root: string,
-  exclude: readonly string[] = [],
-): Promise<string[]> {
-  const found: string[] = [];
-  await walk(root, "", found, trackExclusions(exclude));
-  return found.sort();
-}
-
-/** Read all markdown documents under a vault directory into source documents. */
-export async function readVault(
-  root: string,
-  exclude: readonly string[] = [],
+  pages: readonly string[],
 ): Promise<SourceDocument[]> {
-  const markdown = (await listFiles(root, exclude)).filter(isMarkdown);
   return Promise.all(
-    markdown.map(async (rel) => ({
+    pages.map(async (rel) => ({
       path: rel,
       content: await readFile(path.join(root, rel), "utf8"),
     })),
@@ -112,20 +98,19 @@ export async function writeFiles(
 }
 
 /**
- * Copy every non-markdown file (images, etc.) from the vault into the output,
- * mirroring paths so relative links in the markdown keep resolving. Returns
- * the number of files copied.
+ * Copy the listed files (vault-relative, as `listVault` gives its assets) into
+ * the output, mirroring paths so relative links in the markdown keep resolving.
+ * Returns the number of files copied.
  */
-export async function copyAssets(
+export async function copyFiles(
   root: string,
   outDir: string,
-  exclude: readonly string[] = [],
+  files: readonly string[],
 ): Promise<number> {
-  const assets = (await listFiles(root, exclude)).filter((f) => !isMarkdown(f));
-  for (const rel of assets) {
+  for (const rel of files) {
     const target = path.join(outDir, rel);
     await mkdir(path.dirname(target), { recursive: true });
     await copyFile(path.join(root, rel), target);
   }
-  return assets.length;
+  return files.length;
 }

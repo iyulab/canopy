@@ -281,6 +281,30 @@ Each page also carries an `outline` — its `h2`/`h3` headings with the ids the 
 which the shell renders as an on-this-page contents list. Pages with fewer than two headings get
 none, since a one-line contents list says nothing the page does not already show.
 
+### Dated pages
+
+A page that names its publication date in frontmatter is treated as an article:
+
+```yaml
+---
+date: 2026-09-28          # when it was published — a day, or an ISO 8601 date-time
+updated: 2026-10-01       # optional: when it last changed in substance
+author: Jane Doe          # optional: a person's name
+---
+```
+
+- The date appears under the page's `h1` as a `<time datetime>` (`.canopy-date`), spelled for the
+  site language (`--lang`) — the day the author wrote, never re-read in another timezone.
+- `<head>` gains `article:published_time` and, from `updated:`, `article:modified_time`.
+- A schema.org `Article` block (`<script type="application/ld+json">` — data, not a script) gives
+  search engines the headline, description, dates, language and author; its `image` and `url`
+  appear when they can be absolute (`--site-url`).
+
+A value that names no real day (`2026-02-30`, `28/09/2026`) is not a date, and the page stays
+undated. Canopy reads dates only from frontmatter — it keeps no history, so it never infers one.
+`frontmatterDate()` is exported, so a tool reading the same frontmatter (a sitemap, a feed, a
+checker) recognizes exactly the dates canopy does. Undated pages are unchanged.
+
 ### Markdown support
 
 - CommonMark + GitHub Flavored Markdown (tables, strikethrough, task lists, autolinks)

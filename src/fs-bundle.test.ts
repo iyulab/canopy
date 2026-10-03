@@ -2,9 +2,20 @@ import { mkdtemp, mkdir, writeFile, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { readVault, writeFiles, copyAssets, listFiles, listVault } from "./fs-bundle.js";
+import { readDocuments, writeFiles, copyFiles, listVault } from "./fs-bundle.js";
 import { build } from "./index.js";
 import { emitSite } from "./emit.js";
+
+/** Every file a listing publishes, pages and assets together, sorted. */
+async function published(root: string, exclude: readonly string[] = []): Promise<string[]> {
+  const listing = await listVault(root, exclude);
+  return [...listing.pages, ...listing.assets].sort();
+}
+
+/** The pages a build of `root` reads. */
+async function readPages(root: string, exclude: readonly string[] = []) {
+  return readDocuments(root, (await listVault(root, exclude)).pages);
+}
 
 async function withTempDir<T>(fn: (dir: string) => Promise<T>): Promise<T> {
   const dir = await mkdtemp(path.join(os.tmpdir(), "canopy-"));
@@ -26,20 +37,20 @@ describe("fs-bundle", () => {
       await writeFile(path.join(vault, "logo.png"), "PNGDATA");
       await writeFile(path.join(vault, ".obsidian", "app.json"), "{}");
 
-      const docs = await readVault(vault);
+      const docs = await readPages(vault);
       // .obsidian content is skipped; only markdown is read.
       expect(docs.map((d) => d.path)).toEqual(["index.md", "notes/idea.md"]);
 
       const out = path.join(tmp, "site");
       const bundle = await build({ documents: docs });
       await writeFiles(out, emitSite(bundle));
-      const assetCount = await copyAssets(vault, out);
+      const assetCount = await copyFiles(vault, out, (await listVault(vault)).assets);
       expect(assetCount).toBe(1); // logo.png, not the .obsidian json
 
       const indexHtml = await readFile(path.join(out, "index.html"), "utf8");
       expect(indexHtml).toContain("<!doctype html>");
       expect(await readFile(path.join(out, "logo.png"), "utf8")).toBe("PNGDATA");
-      const outFiles = await listFiles(out);
+      const outFiles = await published(out);
       expect(outFiles).toContain("notes/idea.html");
       expect(outFiles).toContain("tokens.css");
     });
@@ -61,8 +72,8 @@ describe("fs-bundle", () => {
       await writeFile(path.join(vault, ".nested", "deeper", "buried.md"), "# Buried");
 
       // Neither markdown nor assets escape an excluded directory, at any depth.
-      expect(await listFiles(vault)).toEqual(["index.md"]);
-      expect((await readVault(vault)).map((d) => d.path)).toEqual(["index.md"]);
+      expect(await published(vault)).toEqual(["index.md"]);
+      expect((await readPages(vault)).map((d) => d.path)).toEqual(["index.md"]);
     });
   });
 
@@ -79,8 +90,8 @@ describe("fs-bundle", () => {
       await writeFile(path.join(vault, "guide", ".draft.md"), "# Hidden");
       await writeFile(path.join(vault, "guide", "shot.png"), "PNG");
 
-      expect(await listFiles(vault)).toEqual(["guide/shot.png", "index.md"]);
-      expect((await readVault(vault)).map((d) => d.path)).toEqual(["index.md"]);
+      expect(await published(vault)).toEqual(["guide/shot.png", "index.md"]);
+      expect((await readPages(vault)).map((d) => d.path)).toEqual(["index.md"]);
     });
   });
 
@@ -99,13 +110,13 @@ describe("fs-bundle", () => {
       await writeFile(path.join(vault, "scratch.tmp"), "TMP");
 
       const exclude = ["drafts/**", "*.tmp"];
-      expect(await listFiles(vault, exclude)).toEqual(["guide/a.md", "index.md"]);
-      expect((await readVault(vault, exclude)).map((d) => d.path)).toEqual([
+      expect(await published(vault, exclude)).toEqual(["guide/a.md", "index.md"]);
+      expect((await readPages(vault, exclude)).map((d) => d.path)).toEqual([
         "guide/a.md",
         "index.md",
       ]);
       // No excluded asset reaches the output directory.
-      expect(await copyAssets(vault, out, exclude)).toBe(0);
+      expect(await copyFiles(vault, out, (await listVault(vault, exclude)).assets)).toBe(0);
     });
   });
 
@@ -130,11 +141,6 @@ describe("fs-bundle", () => {
         // a pruned tree and "*.tmp" is a standing rule — neither is a mistake.
         unusedExcludes: ["_archive"],
       });
-      // The same answer the build's own walk gives.
-      expect(await listFiles(vault, ["drafts"])).toEqual([
-        ...listing.assets,
-        ...listing.pages,
-      ].sort());
     });
   });
 });

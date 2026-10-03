@@ -822,3 +822,95 @@ describe("head metadata: a regional site language beside a plain-language editio
     expect(head).toContain('hreflang="ko" href="https://example.test/ko/notes/idea.html"');
   });
 });
+
+describe("dated pages", () => {
+  const head = (html: string): string => html.slice(0, html.indexOf("</head>"));
+  const article = (html: string): string =>
+    html.slice(html.indexOf('<article class="canopy-content">'), html.indexOf("</article>"));
+  const ld = (html: string): Record<string, unknown> | undefined => {
+    const match = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(html);
+    return match ? (JSON.parse(match[1] ?? "") as Record<string, unknown>) : undefined;
+  };
+  const dated = (frontmatter: Record<string, unknown>, html = "<h1>Launch</h1><p>Body</p>") =>
+    page({ frontmatter, html });
+
+  it("leaves an undated page exactly as it was", () => {
+    const html = renderPage(page({ frontmatter: { updated: "2026-09-29" } }), nav, {
+      siteUrl: "https://example.org/docs",
+    });
+    expect(html).not.toContain("canopy-date");
+    expect(html).not.toContain("application/ld+json");
+    expect(html).not.toContain("article:published_time");
+  });
+
+  it("states when the page was published and last changed", () => {
+    const html = renderPage(dated({ date: "2026-09-28", updated: "2026-10-01" }), nav);
+    expect(head(html)).toContain('<meta property="article:published_time" content="2026-09-28">');
+    expect(head(html)).toContain('<meta property="article:modified_time" content="2026-10-01">');
+  });
+
+  it("shows the date right under the h1, spelled for the site language", () => {
+    const html = renderPage(dated({ date: "2026-09-28" }), nav, { lang: "ko-KR" });
+    const spelled = new Intl.DateTimeFormat("ko-KR", { dateStyle: "long", timeZone: "UTC" }).format(
+      new Date(Date.UTC(2026, 8, 28)),
+    );
+    expect(article(html)).toContain(
+      `<h1>Launch</h1><p class="canopy-date"><time datetime="2026-09-28">${spelled}</time></p><p>Body</p>`,
+    );
+  });
+
+  it("puts the date atop the content when the page has no h1", () => {
+    const html = renderPage(dated({ date: "2026-09-28", title: "Launch" }, "<p>Body</p>"), nav);
+    expect(article(html)).toContain('<article class="canopy-content"><p class="canopy-date">');
+  });
+
+  it("ignores a date that names no real day", () => {
+    const html = renderPage(dated({ date: "2026-02-30" }), nav);
+    expect(html).not.toContain("canopy-date");
+    expect(html).not.toContain("article:published_time");
+  });
+
+  it("describes a dated page as an Article for search engines", () => {
+    const html = renderPage(
+      dated({
+        date: "2026-09-28",
+        updated: "2026-10-01",
+        description: "What shipped",
+        author: "Jane Doe",
+        image: "assets/cover.png",
+      }),
+      nav,
+      { siteUrl: "https://example.org/docs", lang: "ko" },
+    );
+    expect(ld(head(html))).toEqual({
+      "@context": "https://schema.org",
+      "@type": "Article",
+      headline: "Launch",
+      description: "What shipped",
+      datePublished: "2026-09-28",
+      dateModified: "2026-10-01",
+      inLanguage: "ko",
+      author: { "@type": "Person", name: "Jane Doe" },
+      image: "https://example.org/docs/assets/cover.png",
+      url: "https://example.org/docs/notes/idea.html",
+      mainEntityOfPage: "https://example.org/docs/notes/idea.html",
+    });
+  });
+
+  it("omits what it cannot state absolutely or honestly", () => {
+    const data = ld(head(renderPage(dated({ date: "2026-09-28", author: 7, image: "a.png" }), nav)));
+    expect(data).toEqual({
+      "@context": "https://schema.org",
+      "@type": "Article",
+      headline: "Launch",
+      datePublished: "2026-09-28",
+      inLanguage: "en",
+    });
+  });
+
+  it("keeps frontmatter text from closing the data block", () => {
+    const html = renderPage(dated({ date: "2026-09-28", description: "</script><script>alert(1)</script>" }), nav);
+    expect(html).not.toContain("<script>alert(1)");
+    expect(ld(head(html))?.description).toBe("</script><script>alert(1)</script>");
+  });
+});

@@ -5,7 +5,7 @@ import type { PluggableList } from "unified";
 import { build } from "./index.js";
 import { emitSite } from "./emit.js";
 import { parseNavSpec, type NavSpec } from "./nav-spec.js";
-import { readVault, writeFiles, copyAssets, listFiles } from "./fs-bundle.js";
+import { listVault, readDocuments, writeFiles, copyFiles } from "./fs-bundle.js";
 import { parseBuildArgs } from "./cli-args.js";
 import { bundleUsesKatex, KATEX_STYLESHEET } from "./katex.js";
 import { katexDirOfRenderer } from "./katex-assets.js";
@@ -129,10 +129,11 @@ export async function runBuild(argv: string[]): Promise<void> {
   // Both are copied by the asset pass, so they have to survive `--exclude` and
   // actually exist. Checking here turns a silently-broken tag — which only shows
   // up as a missing image after deploy — into a build failure naming the path.
-  const published =
-    args.siteIcon !== undefined || args.siteLogo !== undefined || args.siteImage !== undefined
-      ? await listFiles(vault, args.exclude)
-      : [];
+  //
+  // One walk of the vault answers this, the pages rendered, and the assets
+  // copied, so the three cannot disagree about what the site publishes.
+  const listing = await listVault(vault, args.exclude);
+  const published = [...listing.pages, ...listing.assets];
   for (const [flag, value] of [
     ["--site-icon", args.siteIcon],
     ["--site-logo", args.siteLogo],
@@ -174,7 +175,7 @@ export async function runBuild(argv: string[]): Promise<void> {
     }
   }
 
-  const documents = await readVault(vault, args.exclude);
+  const documents = await readDocuments(vault, listing.pages);
   const bundle = await build({
     documents,
     ...(nav ? { nav } : {}),
@@ -201,7 +202,7 @@ export async function runBuild(argv: string[]): Promise<void> {
     stylesheets.push(KATEX_STYLESHEET);
   }
 
-  // The icon path was validated above; copyAssets mirrors it into the output at
+  // The icon path was validated above; copyFiles mirrors it into the output at
   // the same path, so the shell only needs to know where to point.
   const files = emitSite(bundle, {
     siteTitle: args.siteTitle ?? path.basename(vault),
@@ -225,7 +226,7 @@ export async function runBuild(argv: string[]): Promise<void> {
   if (usesKatex) {
     await copyKatexAssets(outDir);
   }
-  const assetCount = await copyAssets(vault, outDir, args.exclude);
+  const assetCount = await copyFiles(vault, outDir, listing.assets);
 
   console.log(
     `canopy: ${bundle.pages.length} page(s), ${assetCount} asset(s) -> ${outDir}`,

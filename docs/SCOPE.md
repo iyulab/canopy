@@ -62,6 +62,10 @@ Each of these is a deliberate non-goal, not a gap awaiting a contribution:
   token stylesheet (`--tokens-css`) — the file is the caller's, and a build given
   none emits none.
 
+  Structured data a page describes itself with — a `<script type="application/ld+json">`
+  block — is not client-side code: browsers never execute it. It is head metadata, the
+  same kind of thing as `<meta>` tags, and canopy writes it on that basis.
+
 ## Dependency direction
 
 **Upstream does not know downstream.** Canopy must not reference any consuming project by

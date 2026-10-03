@@ -547,6 +547,14 @@ body {
 .canopy-content p, .canopy-content ul, .canopy-content ol, .canopy-content table {
   margin: var(--sp-4) 0;
 }
+/* A dated page's publication date, set right under its h1 by the shell: page
+   chrome, muted like the breadcrumb, and pulled up against the heading so it
+   reads as the title's byline rather than the first paragraph. */
+.canopy-content .canopy-date {
+  margin: calc(var(--sp-4) * -0.5) 0 var(--sp-6);
+  color: var(--text-muted);
+  font-size: 0.9em;
+}
 .canopy-content ul, .canopy-content ol { padding-left: var(--sp-6); }
 .canopy-content li + li { margin-top: var(--sp-2); }
 

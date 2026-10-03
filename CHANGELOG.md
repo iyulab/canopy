@@ -8,6 +8,26 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [Unreleased]
+
+### Added
+
+- **Dated pages.** A page whose frontmatter names a `date:` shows it under its `h1`
+  (a `<time>` in `.canopy-date`, spelled for `--lang`), states it as
+  `article:published_time` — and `updated:` as `article:modified_time` — in `<head>`, and carries
+  a schema.org `Article` block (`application/ld+json`) with headline, description, dates,
+  language, an optional `author:`, and the image and URL when `--site-url` makes them absolute.
+  Undated pages render exactly as before.
+- **`frontmatterDate()` and `formatPageDate()`** — the rule for which frontmatter values are dates,
+  and how a date is spelled for a language, exported so other tools reading the same frontmatter
+  agree with the renderer.
+
+### Changed
+
+- `build` reads the pages, copies the assets, and checks `--site-icon`/`--site-logo`/
+  `--site-image` from one listing of the vault — the same `listVault` answer `list` prints — rather
+  than walking the vault once per purpose.
+
 ## [0.16.0] — 2026-09-28
 
 ### Added

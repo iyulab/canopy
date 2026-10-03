@@ -3,6 +3,7 @@ import { isExternalUrl } from "./markdown-link.js";
 import { ancestorPath, flattenNav, subtreeContains, type NavNode } from "./navigation.js";
 import { fileUrl, pageUrl, relativeHref } from "./site-path.js";
 import { isOutlineUseful, type OutlineItem } from "./outline.js";
+import { formatPageDate, frontmatterDate } from "./page-date.js";
 import { declaredTitle, pageName } from "./title.js";
 
 /** Options controlling the site shell wrapped around each page. */
@@ -372,8 +373,22 @@ function renderSocialMeta(
     `<meta name="twitter:card" content="${imageUrl === undefined ? "summary" : "summary_large_image"}">`,
   );
 
+  // Open Graph's article vocabulary: when the page says it was published and
+  // when it last changed. Both come from the page's own frontmatter and nowhere
+  // else — canopy keeps no history, and a date it inferred would be a guess
+  // presented as the author's claim.
+  const published = frontmatterDate(page.frontmatter.date);
+  const modified = frontmatterDate(page.frontmatter.updated);
+  if (published !== undefined) {
+    tags.push(`<meta property="article:published_time" content="${escapeHtml(published)}">`);
+  }
+  if (modified !== undefined) {
+    tags.push(`<meta property="article:modified_time" content="${escapeHtml(modified)}">`);
+  }
+
+  let canonical: string | undefined;
   if (options.siteUrl !== undefined) {
-    const canonical = pageUrl(options.siteUrl, page.sitePath);
+    canonical = pageUrl(options.siteUrl, page.sitePath);
     tags.push(`<link rel="canonical" href="${escapeHtml(canonical)}">`);
     tags.push(`<meta property="og:url" content="${escapeHtml(canonical)}">`);
 
@@ -394,7 +409,88 @@ function renderSocialMeta(
       }
     }
   }
+
+  if (published !== undefined) {
+    tags.push(
+      renderArticleData({
+        headline: title,
+        description,
+        published,
+        modified,
+        lang: options.lang ?? "en",
+        author: page.frontmatter.author,
+        imageUrl,
+        canonical,
+      }),
+    );
+  }
   return tags.join("");
+}
+
+/**
+ * schema.org `Article` structured data for a dated page — how a search engine
+ * tells an article (a headline, a publication date, an author) from an undated
+ * reference page. Written only when the page names its `date:`: without one
+ * there is no article to describe, and every other page keeps the metadata it
+ * already had.
+ *
+ * A `<script type="application/ld+json">` is a data block, not a script: the
+ * browser never executes it (see docs/SCOPE.md, "Author client-side code").
+ * Its JSON escapes `<`, so no frontmatter string can close the element early.
+ *
+ * `image` and `url` are absolute or absent, the same rule as `og:image` and
+ * `rel="canonical"`. `author` is the page's own `author:` string, as a person's
+ * name — the one shape canopy can state without guessing whether a bare name
+ * is a person or an organization's.
+ */
+function renderArticleData(article: {
+  headline: string;
+  description: string | undefined;
+  published: string;
+  modified: string | undefined;
+  lang: string;
+  author: unknown;
+  imageUrl: string | undefined;
+  canonical: string | undefined;
+}): string {
+  const data: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: article.headline,
+  };
+  if (article.description !== undefined) data.description = article.description;
+  data.datePublished = article.published;
+  if (article.modified !== undefined) data.dateModified = article.modified;
+  data.inLanguage = article.lang;
+  if (typeof article.author === "string" && article.author.trim() !== "") {
+    data.author = { "@type": "Person", name: article.author.trim() };
+  }
+  if (article.imageUrl !== undefined) data.image = article.imageUrl;
+  if (article.canonical !== undefined) {
+    data.url = article.canonical;
+    data.mainEntityOfPage = article.canonical;
+  }
+  const json = JSON.stringify(data).replace(/</g, "\\u003c");
+  return `<script type="application/ld+json">${json}</script>`;
+}
+
+/**
+ * The page's publication date where a reader looks for it: right under its
+ * title, the `<h1>` that opens the content (or atop the content when the title
+ * comes from frontmatter and the page has no heading of its own).
+ *
+ * Placed by the shell rather than written into the page body, so the date is
+ * page chrome — the search index and every other reader of the body text never
+ * see it as something the author wrote in the document.
+ */
+function withPageDate(html: string, frontmatter: Record<string, unknown>, lang: string): string {
+  const published = frontmatterDate(frontmatter.date);
+  if (published === undefined) return html;
+  const line = `<p class="canopy-date"><time datetime="${escapeHtml(published)}">${escapeHtml(formatPageDate(published, lang))}</time></p>`;
+  const end = html.indexOf("</h1>");
+  if (end === -1) return line + html;
+  const at = end + "</h1>".length;
+  return html.slice(0, at) + line + html.slice(at);
 }
 
 /**
@@ -532,7 +628,7 @@ ${topbar}
 <div class="canopy-layout">
 <aside class="canopy-sidebar"><details class="canopy-nav" open><summary aria-label="${escapeHtml(strings.siteNav)}"></summary><nav>${renderNavList(navigation, page.sitePath)}</nav></details></aside>
 <main class="canopy-main">
-<article class="canopy-content">${page.html}</article>
+<article class="canopy-content">${withPageDate(page.html, page.frontmatter, lang)}</article>
 ${renderOutline(page.outline, strings.onThisPage)}
 ${renderBacklinks(page.backlinks, page.sitePath, strings.backlinks)}
 ${renderPageNav(navigation, page.sitePath, strings.pageNav)}

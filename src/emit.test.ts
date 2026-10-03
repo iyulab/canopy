@@ -170,4 +170,19 @@ describe("emitSite", () => {
     expect(indexish[0]?.contents).toContain("My Real Home");
     expect(indexish[0]?.contents).not.toContain("<h1>Contents</h1>");
   });
+
+  // renderPage only knows other pages' dates when emitSite hands it the whole
+  // site — this is the wiring a listing depends on, end to end from markdown.
+  it("gives a listing each entry's date and summary from the built pages", async () => {
+    const bundle = await build({
+      documents: [
+        { path: "log/index.md", content: "---\nlisting: true\n---\n# Changes\n" },
+        { path: "log/a.md", content: "---\ndate: 2026-10-03\ndescription: Feeds\n---\n# Feeds arrive\n" },
+      ],
+    });
+    const index = emitSite(bundle).find((file) => file.path === "log/index.html")?.contents ?? "";
+    expect(index).toContain('<a class="canopy-listing-title" href="a.html">Feeds arrive</a>');
+    expect(index).toContain('<time datetime="2026-10-03">');
+    expect(index).toContain("<p>Feeds</p>");
+  });
 });

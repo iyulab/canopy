@@ -1,10 +1,12 @@
 import type { RenderedPage, Backlink } from "./contract.js";
+import { type Layout, type PageLayout, type RegionName, resolvePageLayout, streamIndexPath } from "./layout.js";
 import { isExternalUrl } from "./markdown-link.js";
 import { ancestorPath, flattenNav, subtreeContains, type NavNode } from "./navigation.js";
 import { fileUrl, pageUrl, relativeHref } from "./site-path.js";
 import { isOutlineUseful, type OutlineItem } from "./outline.js";
 import { formatPageDate, frontmatterDate } from "./page-date.js";
 import { declaredTitle, pageName } from "./title.js";
+import { type ControlSlot, pageSlotText, renderFragment } from "./regions.js";
 
 /** Options controlling the site shell wrapped around each page. */
 export interface ShellOptions {
@@ -120,6 +122,18 @@ export interface ShellOptions {
    */
   sitePages?: readonly RenderedPage[];
   /**
+   * Which profile shapes each page and which fragments fill its regions (see
+   * layout.ts). Without one every page is `manual` with no regions — the shell
+   * exactly as canopy drew it before layouts existed.
+   */
+  layout?: Layout;
+  /**
+   * The contents of every fragment `layout` names, by vault path. Read by the
+   * caller (the CLI reads them from the vault), so the shell stays free of IO
+   * like the rest of the render core.
+   */
+  fragments?: Readonly<Record<string, string>>;
+  /**
    * Overrides for the reader chrome's own text — search, the theme toggle,
    * and the navigation landmarks. `lang` changes what `<html lang>` declares,
    * but these are canopy's own UI, not vault content, so `lang` alone leaves
@@ -138,6 +152,10 @@ export interface ShellOptions {
     backlinks?: string;
     /** Accessible label for the topbar's ancestor-trail nav (see `renderBreadcrumb`). */
     breadcrumb?: string;
+    /** Accessible label for the other-language links a `language` slot shows. */
+    language?: string;
+    /** A stream page's reading time, with `{n}` where the minutes go. */
+    readingTime?: string;
   };
 }
 
@@ -150,7 +168,11 @@ const DEFAULT_STRINGS = {
   indexTitle: "Contents",
   backlinks: "Linked references",
   breadcrumb: "Breadcrumb",
+  language: "Languages",
+  readingTime: "{n} min read",
 } as const;
+
+type ShellStrings = Record<keyof typeof DEFAULT_STRINGS, string>;
 
 /** MIME type for a favicon, inferred from its extension. */
 function iconType(sitePath: string): string | undefined {
@@ -563,6 +585,152 @@ function withPageDate(html: string, frontmatter: Record<string, unknown>, lang: 
 }
 
 /**
+ * Every control canopy draws, rendered for one page — the pieces its own top
+ * bar is assembled from, and what a fragment's control slots are replaced by.
+ * One renderer for both, so a control placed in a site's own header is the
+ * same markup, with the same hooks, as the one in canopy's top bar.
+ */
+function renderControls(
+  page: RenderedPage,
+  navigation: NavNode[],
+  options: ShellOptions,
+  strings: ShellStrings,
+  pageLayout: PageLayout,
+): Record<ControlSlot, string> {
+  const logo =
+    options.logoPath === undefined
+      ? ""
+      : `<img class="canopy-logo" src="${escapeHtml(relativeHref(page.sitePath, options.logoPath))}" alt="">`;
+  // Its own class rather than a position in the top bar: a site title placed
+  // in a site's own header keeps its look there too (docs/THEMING.md).
+  const siteTitle = options.siteTitle
+    ? `<a class="canopy-site-title" href="${escapeHtml(relativeHref(page.sitePath, "index.html"))}">${logo}${escapeHtml(options.siteTitle)}</a>`
+    : logo;
+  // A scheme, protocol-relative, root-absolute, or fragment URL is left
+  // exactly as given — the same set `isExternalUrl` already carves out
+  // elsewhere, and for the same reason: a root-absolute href already means
+  // "the domain root" at any page depth, so adjusting it would break it.
+  // Anything else names a path from the site's own root — as `home.url:
+  // "../"` does for a product the site sits one level beneath — so it needs
+  // the same depth prefix every other internal link here gets from
+  // `relativeHref`, or it is only ever right at the site root.
+  const homeHref =
+    options.homeUrl === undefined
+      ? undefined
+      : isExternalUrl(options.homeUrl)
+        ? options.homeUrl
+        : relativeHref(page.sitePath, "") + options.homeUrl;
+  // A reader reaching this link right after the breadcrumb (both sit in the
+  // same spot in the topbar) has every reason to expect it stays inside the
+  // site, the way the breadcrumb always does — canopy already knows when
+  // that expectation is wrong, so it marks it rather than staying silent.
+  //
+  // Deliberately narrower than isExternalUrl above: that check answers "does
+  // this href need depth-prefixing", and root-absolute ("/") and a bare
+  // fragment both answer no to that while staying on this same site — a
+  // root-absolute home.url addresses this site's own domain root, not
+  // somewhere else. "Leaves the site" only actually holds for an explicit
+  // scheme (https:, mailto:, ...) or a protocol-relative "//host" URL.
+  const homeLeavesSite =
+    options.homeUrl !== undefined &&
+    (options.homeUrl.startsWith("//") || /^[a-z][a-z0-9+.-]*:/i.test(options.homeUrl));
+  const homeLink =
+    homeHref !== undefined && options.homeLabel !== undefined
+      ? `<a class="canopy-home${homeLeavesSite ? " canopy-home-external" : ""}" href="${escapeHtml(homeHref)}">${escapeHtml(options.homeLabel)}</a>`
+      : "";
+  const search = options.search
+    ? `<form class="canopy-search" role="search" hidden><input type="search" name="q" placeholder="${escapeHtml(strings.search)}" aria-label="${escapeHtml(strings.search)}"></form>`
+    : "";
+  // No option gates this, unlike search: a caller-supplied script can flip a
+  // reader's color scheme regardless of what else the site configures, the
+  // same way the tokens it flips between (light/dark) need no field either.
+  // It only rides along when a topbar exists for another reason, though —
+  // manufacturing one just to hold a hidden button would cost every reader of
+  // an otherwise chrome-free site a visible padded bar (see .canopy-topbar).
+  const themeToggle = `<button type="button" class="canopy-theme-toggle" hidden aria-label="${escapeHtml(strings.toggleTheme)}"></button>`;
+  return {
+    "site-title": siteTitle,
+    home: homeLink,
+    back: renderBack(page, options, pageLayout),
+    breadcrumb: renderBreadcrumb(navigation, page.sitePath, strings.breadcrumb),
+    language: renderLanguage(page, options, strings.language),
+    search,
+    "theme-toggle": themeToggle,
+  };
+}
+
+/**
+ * A stream page's way back to the list it belongs to — named as that index page
+ * is named everywhere else. Nothing on the index itself, and nothing on a
+ * manual page, whose way back is the breadcrumb.
+ */
+function renderBack(page: RenderedPage, options: ShellOptions, pageLayout: PageLayout): string {
+  if (pageLayout.streamDir === undefined) return "";
+  const target = streamIndexPath(pageLayout.streamDir).toLowerCase();
+  if (page.sitePath.toLowerCase() === target) return "";
+  const index = options.sitePages?.find((candidate) => candidate.sitePath.toLowerCase() === target);
+  if (index === undefined) return "";
+  return `<a class="canopy-back" href="${escapeHtml(relativeHref(page.sitePath, index.sitePath))}">${escapeHtml(pageTitle(index))}</a>`;
+}
+
+/**
+ * A language's name in that language — "한국어", "English", "日本語" — the
+ * label a reader of that edition recognizes whatever edition they are on. The
+ * tag itself when the runtime has no name for it.
+ */
+export function languageName(tag: string): string {
+  try {
+    return new Intl.DisplayNames([tag], { type: "language" }).of(tag) ?? tag;
+  } catch {
+    return tag;
+  }
+}
+
+/**
+ * This page in the site's other language editions — the same `alternates` and
+ * the same derivation the `hreflang` links in `<head>` use (an edition's URL
+ * plus this page's site path), so a reader and a crawler are sent to the same
+ * place. `x-default` names no language and the site's own edition is where the
+ * reader already is, so neither is offered.
+ */
+function renderLanguage(page: RenderedPage, options: ShellOptions, label: string): string {
+  if (options.siteUrl === undefined || options.alternates === undefined) return "";
+  const own = (options.lang ?? "en").toLowerCase();
+  const links = Object.entries(options.alternates)
+    .filter(([tag]) => tag !== "x-default" && tag.toLowerCase() !== own)
+    .map(
+      ([tag, url]) =>
+        `<a href="${escapeHtml(pageUrl(url, page.sitePath))}" hreflang="${escapeHtml(tag)}" lang="${escapeHtml(tag)}">${escapeHtml(languageName(tag))}</a>`,
+    )
+    .join("");
+  return links === "" ? "" : `<nav class="canopy-language" aria-label="${escapeHtml(label)}">${links}</nav>`;
+}
+
+/** One region of one page: its fragment rendered there, or `""` when the page has none. */
+function renderRegion(
+  name: RegionName,
+  page: RenderedPage,
+  options: ShellOptions,
+  pageLayout: PageLayout,
+  controls: Record<ControlSlot, string>,
+): string {
+  const file = pageLayout.regions[name];
+  if (file === undefined) return "";
+  const html = options.fragments?.[file];
+  if (html === undefined) throw new Error(`region ${name}: fragment "${file}" was not supplied`);
+  return renderFragment(html, {
+    from: page.sitePath,
+    control: (slot) => controls[slot],
+    page: (key) => pageSlotText(page.frontmatter, key),
+  }).trim();
+}
+
+/** An article region in a box of its own, so a site can space or hide it as one thing. */
+function wrapRegion(className: string, html: string): string {
+  return html === "" ? "" : `<div class="${className}">${html}</div>`;
+}
+
+/**
  * Wrap a rendered page's HTML body into a complete, self-contained HTML
  * document: head with metadata and stylesheets, a navigation sidebar, the
  * content, and a backlinks section. All internal links are relative to this
@@ -574,7 +742,7 @@ export function renderPage(
   options: ShellOptions = {},
 ): string {
   const lang = options.lang ?? "en";
-  const strings = { ...DEFAULT_STRINGS, ...options.strings };
+  const strings: ShellStrings = { ...DEFAULT_STRINGS, ...options.strings };
   const stylesheets = options.stylesheets ?? ["tokens.css", "styles.css"];
   const title = pageTitle(page);
   const docTitle = options.siteTitle
@@ -625,57 +793,11 @@ export function renderPage(
     icon = `<link rel="icon"${type ? ` type="${type}"` : ""} href="${href}">`;
   }
 
-  const logo =
-    options.logoPath === undefined
-      ? ""
-      : `<img class="canopy-logo" src="${escapeHtml(relativeHref(page.sitePath, options.logoPath))}" alt="">`;
-  const siteTitleLink = options.siteTitle
-    ? `<a href="${escapeHtml(relativeHref(page.sitePath, "index.html"))}">${logo}${escapeHtml(options.siteTitle)}</a>`
-    : logo;
-  const breadcrumb = renderBreadcrumb(navigation, page.sitePath, strings.breadcrumb);
-  // A scheme, protocol-relative, root-absolute, or fragment URL is left
-  // exactly as given — the same set `isExternalUrl` already carves out
-  // elsewhere, and for the same reason: a root-absolute href already means
-  // "the domain root" at any page depth, so adjusting it would break it.
-  // Anything else names a path from the site's own root — as `home.url:
-  // "../"` does for a product the site sits one level beneath — so it needs
-  // the same depth prefix every other internal link here gets from
-  // `relativeHref`, or it is only ever right at the site root.
-  const homeHref =
-    options.homeUrl === undefined
-      ? undefined
-      : isExternalUrl(options.homeUrl)
-        ? options.homeUrl
-        : relativeHref(page.sitePath, "") + options.homeUrl;
-  // A reader reaching this link right after the breadcrumb (both sit in the
-  // same spot in the topbar) has every reason to expect it stays inside the
-  // site, the way the breadcrumb always does — canopy already knows when
-  // that expectation is wrong, so it marks it rather than staying silent.
-  //
-  // Deliberately narrower than isExternalUrl above: that check answers "does
-  // this href need depth-prefixing", and root-absolute ("/") and a bare
-  // fragment both answer no to that while staying on this same site — a
-  // root-absolute home.url addresses this site's own domain root, not
-  // somewhere else. "Leaves the site" only actually holds for an explicit
-  // scheme (https:, mailto:, ...) or a protocol-relative "//host" URL.
-  const homeLeavesSite =
-    options.homeUrl !== undefined &&
-    (options.homeUrl.startsWith("//") || /^[a-z][a-z0-9+.-]*:/i.test(options.homeUrl));
-  const homeLink =
-    homeHref !== undefined && options.homeLabel !== undefined
-      ? `<a class="canopy-home${homeLeavesSite ? " canopy-home-external" : ""}" href="${escapeHtml(homeHref)}">${escapeHtml(options.homeLabel)}</a>`
-      : "";
-  const search = options.search
-    ? `<form class="canopy-search" role="search" hidden><input type="search" name="q" placeholder="${escapeHtml(strings.search)}" aria-label="${escapeHtml(strings.search)}"></form>`
-    : "";
-  // No option gates this, unlike search: a caller-supplied script can flip a
-  // reader's color scheme regardless of what else the site configures, the
-  // same way the tokens it flips between (light/dark) need no field either.
-  // It only rides along when a topbar exists for another reason, though —
-  // manufacturing one just to hold a hidden button would cost every reader of
-  // an otherwise chrome-free site a visible padded bar (see .canopy-topbar).
-  const themeToggle = `<button type="button" class="canopy-theme-toggle" hidden aria-label="${escapeHtml(strings.toggleTheme)}"></button>`;
-  // Like the theme toggle above, breadcrumb rides along only when the topbar
+  const pageLayout = resolvePageLayout(options.layout, page.sitePath);
+  const controls = renderControls(page, navigation, options, strings, pageLayout);
+  const region = (name: RegionName): string => renderRegion(name, page, options, pageLayout, controls);
+
+  // Like the theme toggle, breadcrumb rides along only when the topbar
   // already exists for another reason — it never manufactures one by itself,
   // the same "a genuinely chrome-free site stays chrome-free" guarantee.
   //
@@ -688,33 +810,38 @@ export function renderPage(
   // itself, flush left, reading as a stray icon rather than as this pair. One
   // wrapper wraps as one unit, so the two always land together and stay
   // right-aligned together, on whichever line they end up on.
-  const controls = `<div class="canopy-topbar-controls">${search}${themeToggle}</div>`;
   const topbar =
-    siteTitleLink === "" && homeLink === "" && search === ""
+    controls["site-title"] === "" && controls.home === "" && controls.search === ""
       ? ""
-      : `<header class="canopy-topbar">${siteTitleLink}${breadcrumb}${homeLink}${controls}</header>`;
+      : `<header class="canopy-topbar">${controls["site-title"]}${controls.breadcrumb}${controls.home}<div class="canopy-topbar-controls">${controls.search}${controls["theme-toggle"]}</div></header>`;
+  // A header fragment replaces the top bar outright — the site's own markup,
+  // with canopy's controls only where its slots put them (see regions.ts).
+  const header = pageLayout.regions.header === undefined ? topbar : region("header");
+  const before = wrapRegion("canopy-before-article", region("beforeArticle"));
+  const after = wrapRegion("canopy-after-article", region("afterArticle"));
+  const footer = region("footer");
 
   return `<!doctype html>
-<html lang="${escapeHtml(lang)}">
+<html lang="${escapeHtml(lang)}" data-canopy-profile="${pageLayout.profile}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="canopy">
 <title>${escapeHtml(docTitle)}</title>
-${descriptionTag}${social}${feedTags}${icon}${links}${script}
+${descriptionTag}${social}${feedTags}${icon}${links}${script}${region("head")}
 </head>
 <body>
-${topbar}
+${header}
 <div class="canopy-layout">
 <aside class="canopy-sidebar"><details class="canopy-nav" open><summary aria-label="${escapeHtml(strings.siteNav)}"></summary><nav>${renderNavList(navigation, page.sitePath)}</nav></details></aside>
 <main class="canopy-main">
-<article class="canopy-content">${withPageDate(page.html, page.frontmatter, lang)}${renderListing(page, navigation, options, lang)}</article>
+<article class="canopy-content">${before}${withPageDate(page.html, page.frontmatter, lang)}${renderListing(page, navigation, options, lang)}${after}</article>
 ${renderOutline(page.outline, strings.onThisPage)}
 ${renderBacklinks(page.backlinks, page.sitePath, strings.backlinks)}
 ${renderPageNav(navigation, page.sitePath, strings.pageNav)}
 </main>
 </div>
-</body>
+${footer === "" ? "" : `${footer}\n`}</body>
 </html>
 `;
 }

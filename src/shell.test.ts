@@ -628,8 +628,8 @@ describe("page outline", () => {
 
 describe("document metadata", () => {
   it("declares the language, defaulting to en", () => {
-    expect(renderPage(page(), nav)).toContain('<html lang="en">');
-    expect(renderPage(page(), nav, { lang: "ko-KR" })).toContain('<html lang="ko-KR">');
+    expect(renderPage(page(), nav)).toContain('<html lang="en" data-canopy-profile="manual">');
+    expect(renderPage(page(), nav, { lang: "ko-KR" })).toContain('<html lang="ko-KR" data-canopy-profile="manual">');
   });
 
   it("links a favicon relative to the page, with a type hint", () => {
@@ -973,5 +973,125 @@ describe("listing", () => {
   it("writes nothing for a page with nothing beneath it", () => {
     const html = renderPage(page({ sitePath: "log/b.html", frontmatter: { listing: true } }), listingNav);
     expect(listing(html)).toBe("");
+  });
+});
+
+describe("profiles, regions and slots", () => {
+  it("marks every page with its profile", () => {
+    expect(renderPage(page(), nav)).toContain('<html lang="en" data-canopy-profile="manual">');
+    expect(
+      renderPage(page({ sitePath: "blog/a.html" }), nav, { layout: { dirs: { blog: { profile: "stream" } } } }),
+    ).toContain('data-canopy-profile="stream"');
+  });
+
+  it("gives the site title link its own class, so it keeps its look outside the top bar", () => {
+    expect(renderPage(page(), nav, { siteTitle: "Site" })).toContain(
+      '<header class="canopy-topbar"><a class="canopy-site-title" href="../index.html">Site</a>',
+    );
+  });
+
+  it("replaces the top bar with a header fragment, placing controls through its slots", () => {
+    const html = renderPage(page(), nav, {
+      siteTitle: "Site",
+      search: true,
+      layout: { default: { regions: { header: "partials/header.html" } } },
+      fragments: {
+        "partials/header.html":
+          '<header class="host"><a href="index.html">Host</a><canopy-slot name="site-title"></canopy-slot>' +
+          '<canopy-slot name="search"></canopy-slot><canopy-slot name="theme-toggle"></canopy-slot></header>\n',
+      },
+    });
+    expect(html).not.toContain("canopy-topbar");
+    expect(html).toContain(
+      '<header class="host"><a href="../index.html">Host</a><a class="canopy-site-title" href="../index.html">Site</a>' +
+        '<form class="canopy-search" role="search" hidden>',
+    );
+    expect(html).toContain('<button type="button" class="canopy-theme-toggle" hidden');
+  });
+
+  it("adds head, around-the-article and footer fragments where each belongs", () => {
+    const html = renderPage(page({ frontmatter: { cta: "Download now" } }), nav, {
+      layout: {
+        default: {
+          regions: { head: "h.html", beforeArticle: "b.html", afterArticle: "a.html", footer: "f.html" },
+        },
+      },
+      fragments: {
+        "h.html": '<link rel="stylesheet" href="host.css">',
+        "b.html": "<p>Before</p>",
+        "a.html": '<p><canopy-slot name="page:cta">Get it</canopy-slot></p>',
+        "f.html": "<footer>Host footer</footer>",
+      },
+    });
+    expect(html).toContain('<link rel="stylesheet" href="../host.css">\n</head>');
+    expect(html).toContain(
+      '<article class="canopy-content"><div class="canopy-before-article"><p>Before</p></div><p>Body</p>' +
+        '<div class="canopy-after-article"><p>Download now</p></div></article>',
+    );
+    expect(html).toContain("</div>\n<footer>Host footer</footer>\n</body>");
+  });
+
+  it("turns a region off for one folder", () => {
+    const options = {
+      layout: { default: { regions: { footer: "f.html" } }, dirs: { notes: { regions: { footer: "" } } } },
+      fragments: { "f.html": "<footer>F</footer>" },
+    };
+    expect(renderPage(page(), nav, options)).not.toContain("<footer>");
+    expect(renderPage(page({ sitePath: "index.html" }), nav, options)).toContain("<footer>F</footer>");
+  });
+
+  it("refuses a region whose fragment was not supplied", () => {
+    expect(() => renderPage(page(), nav, { layout: { default: { regions: { footer: "f.html" } } } })).toThrow(
+      'region footer: fragment "f.html" was not supplied',
+    );
+  });
+
+  it("leaves a page with no layout exactly as before apart from the profile and title class", () => {
+    const html = renderPage(page(), nav, { siteTitle: "Site" });
+    expect(html).not.toContain("canopy-before-article");
+    expect(html).toContain("</div>\n</body>");
+  });
+});
+
+describe("the language control", () => {
+  const options = {
+    lang: "en",
+    siteUrl: "https://example.test/en",
+    alternates: { ko: "https://example.test/ko", "x-default": "https://example.test/en" },
+    layout: { default: { regions: { header: "h.html" } } },
+    fragments: { "h.html": '<canopy-slot name="language"></canopy-slot>' },
+  };
+
+  it("links the same page in every other edition, named in its own language", () => {
+    expect(renderPage(page(), nav, options)).toContain(
+      '<nav class="canopy-language" aria-label="Languages">' +
+        '<a href="https://example.test/ko/notes/idea.html" hreflang="ko" lang="ko">한국어</a></nav>',
+    );
+  });
+
+  it("is empty without alternates, and labelled in the site's words when given", () => {
+    expect(renderPage(page(), nav, { ...options, alternates: undefined })).not.toContain("canopy-language");
+    expect(renderPage(page(), nav, { ...options, strings: { language: "언어" } })).toContain('aria-label="언어"');
+  });
+});
+
+describe("the back control", () => {
+  const blogIndex = page({ sourcePath: "blog/index.md", sitePath: "blog/index.html", html: "<h1>Blog</h1>" });
+  const post = page({ sourcePath: "blog/post.md", sitePath: "blog/post.html" });
+  const options = {
+    layout: { dirs: { blog: { profile: "stream" as const, regions: { header: "h.html" } } } },
+    fragments: { "h.html": '<canopy-slot name="back"></canopy-slot>' },
+    sitePages: [blogIndex, post],
+  };
+
+  it("links a stream page back to its folder's index, named as that page is", () => {
+    expect(renderPage(post, nav, options)).toContain('<a class="canopy-back" href="index.html">Blog</a>');
+  });
+
+  it("is empty on the stream's own index and on a manual page", () => {
+    expect(renderPage(blogIndex, nav, options)).not.toContain("canopy-back");
+    expect(renderPage(page(), nav, { ...options, layout: { default: { regions: { header: "h.html" } } } })).not.toContain(
+      "canopy-back",
+    );
   });
 });

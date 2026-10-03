@@ -75,6 +75,7 @@ export function emitSite(
     ...options,
     stylesheets,
     feedLinks: feeds.map(({ dir, path, title }) => ({ dir, path, title })),
+    sitePages: bundle.pages,
     search: options.searchIndexPath !== undefined,
     scriptPath: options.script !== undefined ? "assets/script.js" : undefined,
   };

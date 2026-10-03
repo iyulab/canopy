@@ -915,3 +915,63 @@ describe("dated pages", () => {
     expect(ld(head(html))?.description).toBe("</script><script>alert(1)</script>");
   });
 });
+
+describe("listing", () => {
+  const listingNav: NavNode[] = [
+    { label: "Home", sitePath: "index.html", children: [] },
+    {
+      label: "Changes",
+      sitePath: "log/index.html",
+      children: [
+        { label: "Later", sitePath: "log/b.html", children: [] },
+        { label: "Earlier", sitePath: "log/a.html", children: [] },
+        { label: "Archive", children: [{ label: "Old", sitePath: "log/old/x.html", children: [] }] },
+      ],
+    },
+  ];
+  const entries: RenderedPage[] = [
+    page({ sitePath: "log/b.html", frontmatter: { date: "2026-10-03", description: "Feeds" } }),
+    page({ sitePath: "log/a.html", frontmatter: { description: "  " } }),
+  ];
+  const index = (frontmatter: Record<string, unknown>) =>
+    page({ sitePath: "log/index.html", frontmatter, html: "<h1>Changes</h1><p>Intro</p>" });
+  const listing = (html: string): string => {
+    const at = html.indexOf('<ul class="canopy-listing">');
+    return at === -1 ? "" : html.slice(at, html.indexOf("</article>"));
+  };
+
+  it("is opt-in: a page without listing: true shows nothing extra", () => {
+    expect(listing(renderPage(index({}), listingNav, { sitePages: entries }))).toBe("");
+    expect(listing(renderPage(index({ listing: "yes" }), listingNav, { sitePages: entries }))).toBe("");
+  });
+
+  it("lists the pages a page fronts, in sidebar order, with each one's date and own summary", () => {
+    const html = renderPage(index({ listing: true }), listingNav, { sitePages: entries });
+    const spelled = new Intl.DateTimeFormat("en", { dateStyle: "long", timeZone: "UTC" }).format(
+      new Date(Date.UTC(2026, 9, 3)),
+    );
+    expect(listing(html)).toBe(
+      '<ul class="canopy-listing">' +
+        `<li><a class="canopy-listing-title" href="b.html">Later</a> <time datetime="2026-10-03">${spelled}</time><p>Feeds</p></li>` +
+        '<li><a class="canopy-listing-title" href="a.html">Earlier</a></li>' +
+        '<li><span class="canopy-listing-title">Archive</span><ul><li><a class="canopy-listing-title" href="old/x.html">Old</a></li></ul></li>' +
+        "</ul>",
+    );
+    // After the page's own content, inside it.
+    expect(html).toContain("<p>Intro</p><ul class=\"canopy-listing\">");
+  });
+
+  it("lists the rest of the top level for the site's front page", () => {
+    const html = renderPage(
+      page({ sitePath: "index.html", frontmatter: { listing: true }, html: "<h1>Home</h1>" }),
+      listingNav,
+    );
+    expect(listing(html)).toContain('<a class="canopy-listing-title" href="log/index.html">Changes</a>');
+    expect(listing(html)).not.toContain(">Home<");
+  });
+
+  it("writes nothing for a page with nothing beneath it", () => {
+    const html = renderPage(page({ sitePath: "log/b.html", frontmatter: { listing: true } }), listingNav);
+    expect(listing(html)).toBe("");
+  });
+});

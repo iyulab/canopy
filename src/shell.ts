@@ -114,6 +114,12 @@ export interface ShellOptions {
    */
   feedLinks?: { dir: string; path: string; title: string }[];
   /**
+   * Every page of the site, so a page asking for a listing (`listing: true` in
+   * its frontmatter) can show each entry's date and summary, not only its
+   * name. Set by `emitSite`; without it a listing shows names alone.
+   */
+  sitePages?: readonly RenderedPage[];
+  /**
    * Overrides for the reader chrome's own text — search, the theme toggle,
    * and the navigation landmarks. `lang` changes what `<html lang>` declares,
    * but these are canopy's own UI, not vault content, so `lang` alone leaves
@@ -485,6 +491,59 @@ function renderArticleData(article: {
 }
 
 /**
+ * The pages a page fronts, as a listing at the end of its content — for a page
+ * whose frontmatter says `listing: true`: a folder's index page, typically, over
+ * a series of dated pages.
+ *
+ * A projection of the navigation tree, like the sidebar and prev/next: the
+ * entries are this page's own children there (for the site's front page, the
+ * rest of the top level), in the same order the sidebar shows them, and each is
+ * named the same way. What a page says about itself comes along — its `date:`
+ * and its own `description:` — so the index of a series stays current without
+ * anyone restating, by hand, what every entry already states. A group with no
+ * page of its own lists its pages beneath its label.
+ */
+function renderListing(
+  page: RenderedPage,
+  navigation: NavNode[],
+  options: ShellOptions,
+  lang: string,
+): string {
+  if (page.frontmatter.listing !== true) return "";
+  const chain = ancestorPath(navigation, page.sitePath);
+  const self = chain[chain.length - 1];
+  let entries = self?.children ?? [];
+  if (entries.length === 0 && page.sitePath.toLowerCase() === "index.html") {
+    entries = navigation.filter((node) => node !== self);
+  }
+  if (entries.length === 0) return "";
+
+  const bySitePath = new Map((options.sitePages ?? []).map((p) => [p.sitePath, p]));
+  const items = (nodes: NavNode[]): string =>
+    nodes
+      .map((node) => {
+        const label = escapeHtml(node.label);
+        const name =
+          node.sitePath === undefined
+            ? `<span class="canopy-listing-title">${label}</span>`
+            : `<a class="canopy-listing-title" href="${escapeHtml(relativeHref(page.sitePath, node.sitePath))}">${label}</a>`;
+        const entry = node.sitePath === undefined ? undefined : bySitePath.get(node.sitePath);
+        const published = frontmatterDate(entry?.frontmatter.date);
+        const date =
+          published === undefined
+            ? ""
+            : ` <time datetime="${escapeHtml(published)}">${escapeHtml(formatPageDate(published, lang))}</time>`;
+        const own = entry?.frontmatter.description;
+        const summary =
+          typeof own === "string" && own.trim() !== "" ? `<p>${escapeHtml(own.trim())}</p>` : "";
+        const nested = node.sitePath === undefined && node.children.length > 0 ? `<ul>${items(node.children)}</ul>` : "";
+        return `<li>${name}${date}${summary}${nested}</li>`;
+      })
+      .join("");
+  return `<ul class="canopy-listing">${items(entries)}</ul>`;
+}
+
+/**
  * The page's publication date where a reader looks for it: right under its
  * title, the `<h1>` that opens the content (or atop the content when the title
  * comes from frontmatter and the page has no heading of its own).
@@ -649,7 +708,7 @@ ${topbar}
 <div class="canopy-layout">
 <aside class="canopy-sidebar"><details class="canopy-nav" open><summary aria-label="${escapeHtml(strings.siteNav)}"></summary><nav>${renderNavList(navigation, page.sitePath)}</nav></details></aside>
 <main class="canopy-main">
-<article class="canopy-content">${withPageDate(page.html, page.frontmatter, lang)}</article>
+<article class="canopy-content">${withPageDate(page.html, page.frontmatter, lang)}${renderListing(page, navigation, options, lang)}</article>
 ${renderOutline(page.outline, strings.onThisPage)}
 ${renderBacklinks(page.backlinks, page.sitePath, strings.backlinks)}
 ${renderPageNav(navigation, page.sitePath, strings.pageNav)}

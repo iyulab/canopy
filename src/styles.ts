@@ -555,6 +555,16 @@ body {
   color: var(--text-muted);
   font-size: 0.9em;
 }
+/* A page's listing of the pages it fronts (\`listing: true\`): one entry per
+   row, its name first, then the date and summary the page states about itself
+   in the muted voice the byline above uses. Unbulleted — the rows are separated
+   by their own spacing, the way an index of articles reads. */
+.canopy-content .canopy-listing { list-style: none; padding-left: 0; margin: var(--sp-6) 0; }
+.canopy-content .canopy-listing ul { list-style: none; padding-left: var(--sp-4); }
+.canopy-content .canopy-listing li + li { margin-top: var(--sp-4); }
+.canopy-content .canopy-listing .canopy-listing-title { font-weight: var(--font-weight-semibold); }
+.canopy-content .canopy-listing time { margin-left: var(--sp-2); color: var(--text-muted); font-size: 0.9em; }
+.canopy-content .canopy-listing p { margin: var(--sp-1) 0 0; color: var(--text-muted); }
 .canopy-content ul, .canopy-content ol { padding-left: var(--sp-6); }
 .canopy-content li + li { margin-top: var(--sp-2); }
 

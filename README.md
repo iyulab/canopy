@@ -305,6 +305,12 @@ author: Jane Doe          # optional: a person's name
   search engines the headline, description, dates, language and author; its `image` and `url`
   appear when they can be absolute (`--site-url`).
 
+A page that fronts others — a folder's `index.md`, typically, over a series of dated pages — can
+list them with `listing: true` in its frontmatter: after its own content comes a list of the pages
+beneath it in sidebar order (`.canopy-listing`), each with its name, its `date:` and its own
+`description:`, so a series' index never has to restate by hand what each entry already says.
+On the site's front page, the listing is the rest of the top level.
+
 A folder of dated pages can be followed as a feed with `--feed <dir>` — each entry carries the
 page's name, its `date:` and `updated:`, its own `description:` as the summary, and its `author:`.
 

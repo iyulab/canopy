@@ -39,16 +39,24 @@ other default:
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --accent: #4ecfa2;
     --accent-hover: #6fdcb5;
   }
 }
+
+:root[data-theme="dark"] {
+  --accent: #4ecfa2;
+  --accent-hover: #6fdcb5;
+}
 ```
 
-Two blocks on purpose: a bare `:root` outside canopy's layer wins in **both** colour schemes, so
-a dark value needs its own block. A custom property canopy never reads is silently ignored, which
-is the usual reason an override "does nothing".
+Dark values are stated twice, the way canopy states its own: once for a reader whose system
+prefers dark (unless the page was switched to light), once for a page switched to dark. A bare
+`:root` outside canopy's layer applies in **both** schemes, so a dark value needs its own block —
+and a plain `:root` inside the media query would also override a reader's choice of light. A
+custom property canopy never reads is silently ignored, which is the usual reason an override
+"does nothing".
 
 | Property | What it colors |
 |---|---|

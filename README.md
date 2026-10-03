@@ -390,13 +390,15 @@ part of it — is [docs/THEMING.md](docs/THEMING.md).
 
 A caller may restate the whole token vocabulary to match an app exactly, or override a single
 value and keep the rest. A bare `:root` outside canopy's layer applies to **both** colour
-schemes, so a dark value needs its own block:
+schemes, so a dark value needs its own block — stated for the system preference and for an
+explicit `data-theme`, the way canopy states its own:
 
 ```css
 :root { --accent: #0a7c5a; --accent-hover: #096a4d; }
 @media (prefers-color-scheme: dark) {
-  :root { --accent: #4ecfa2; --accent-hover: #6fdcb5; }
+  :root:not([data-theme="light"]) { --accent: #4ecfa2; --accent-hover: #6fdcb5; }
 }
+:root[data-theme="dark"] { --accent: #4ecfa2; --accent-hover: #6fdcb5; }
 ```
 
 **A custom property canopy doesn't read is not an error — it's silently ignored.** There is no

@@ -28,6 +28,15 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
   script may rely on, as a documented and tested contract; everything else the shell emits is
   stated to be internal.
 
+### Fixed
+
+- **A caller's dark-mode tokens apply.** A dark value written as the documented
+  `@media (prefers-color-scheme: dark)` override used to lose to canopy's own dark palette, whose
+  selector is more specific; outside canopy's layer it now wins. The documented override is also
+  corrected to follow an explicit `data-theme` as canopy's own palette does — state dark values for
+  `@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) }` and for
+  `:root[data-theme="dark"]` (see docs/THEMING.md).
+
 ## [0.18.0] — 2026-10-03
 
 ### Added

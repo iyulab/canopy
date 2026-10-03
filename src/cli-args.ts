@@ -10,7 +10,6 @@ export type BuildArgs =
       vault: string;
       out: string;
       siteTitle?: string;
-      tokensCssPath?: string;
       /** Vault paths to leave unpublished; empty when the flag was not given. */
       exclude: string[];
       /** BCP 47 language tag for the published pages. */
@@ -63,6 +62,12 @@ export type BuildArgs =
        * Empty when the flag was not given.
        */
       rehypePluginPaths: string[];
+      /**
+       * Caller stylesheets to carry into assets/ and link after canopy's own,
+       * in the order given. Canopy does not read them — the same carrying
+       * `--script` does. Empty when the flag was not given.
+       */
+      stylesheetPaths: string[];
     }
   | { ok: false; error: string };
 
@@ -84,7 +89,7 @@ export const USAGE = [
   "  --lang <tag>               BCP 47 language tag (defaults to en)",
   "  --site-icon <path>         Vault-relative favicon, linked from every page",
   "  --nav <path>               JSON navigation spec: order and labels",
-  "  --tokens-css <path>        Design tokens appended after canopy's defaults",
+  "  --stylesheet <path>        Carry this CSS into assets/ and link it after canopy's own (repeatable)",
   "  --site-logo <path>         Vault-relative logo, shown beside the site title",
   "  --home-url <url>           Link back to the site this one sits beside",
   "  --home-label <text>        Link text for --home-url (required with it)",
@@ -113,7 +118,6 @@ const VALUE_FLAGS = {
   "--lang": "lang",
   "--site-icon": "siteIcon",
   "--nav": "navPath",
-  "--tokens-css": "tokensCssPath",
   "--site-logo": "siteLogo",
   "--home-url": "homeUrl",
   "--home-label": "homeLabel",
@@ -131,6 +135,7 @@ const LIST_FLAGS = {
   "--rehype-plugin": "rehypePluginPaths",
   "--alternate": "alternate",
   "--feed": "feeds",
+  "--stylesheet": "stylesheetPaths",
 } as const;
 
 /**
@@ -264,7 +269,7 @@ export function parseBuildArgs(argv: string[]): BuildArgs {
   const scanned = scanArgs("build", rest, BUILD_FLAGS, 2);
   if (!scanned.ok) return scanned;
   const { positional, single, lists } = scanned;
-  const { exclude, rehypePluginPaths, alternate, feeds } = lists;
+  const { exclude, rehypePluginPaths, alternate, feeds, stylesheetPaths } = lists;
 
   const vault = positional[0];
   if (vault === undefined) {
@@ -345,7 +350,6 @@ export function parseBuildArgs(argv: string[]): BuildArgs {
     lang: single.lang,
     siteIcon: single.siteIcon,
     navPath: single.navPath,
-    tokensCssPath: single.tokensCssPath,
     siteLogo: single.siteLogo,
     homeUrl: single.homeUrl,
     homeLabel: single.homeLabel,
@@ -353,6 +357,7 @@ export function parseBuildArgs(argv: string[]): BuildArgs {
     searchIndexPath: single.searchIndexPath,
     scriptPath: single.scriptPath,
     rehypePluginPaths,
+    stylesheetPaths,
     exclude,
     feeds,
   };

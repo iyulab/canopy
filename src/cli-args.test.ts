@@ -78,11 +78,11 @@ describe("parseBuildArgs", () => {
       lang: undefined,
       siteIcon: undefined,
       navPath: undefined,
-      tokensCssPath: undefined,
       searchIndexPath: undefined,
       scriptPath: undefined,
       exclude: [],
       rehypePluginPaths: [],
+      stylesheetPaths: [],
       feeds: [],
     });
   });
@@ -95,7 +95,7 @@ describe("parseBuildArgs", () => {
     });
   });
 
-  it("parses --site-title and --tokens-css", () => {
+  it("parses --site-title and repeated --stylesheet, in order", () => {
     expect(
       parseBuildArgs([
         "build",
@@ -103,16 +103,24 @@ describe("parseBuildArgs", () => {
         "out",
         "--site-title",
         "My Notes",
-        "--tokens-css",
-        "/t.css",
+        "--stylesheet",
+        "/brand.css",
+        "--stylesheet",
+        "/layout.css",
       ]),
     ).toMatchObject({
       ok: true,
       vault: "v",
       out: "out",
       siteTitle: "My Notes",
-      tokensCssPath: "/t.css",
+      stylesheetPaths: ["/brand.css", "/layout.css"],
     });
+  });
+
+  it("no longer knows --tokens-css, which --stylesheet replaces", () => {
+    const parsed = parseBuildArgs(["build", "v", "--tokens-css", "t.css"]);
+    expect(parsed.ok).toBe(false);
+    expect(parsed.ok ? "" : parsed.error).toContain('Unknown option "--tokens-css"');
   });
 
   it("accepts flags before the optional out positional", () => {

@@ -1,6 +1,6 @@
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { mkdir, copyFile, readdir, readFile } from "node:fs/promises";
+import { mkdir, copyFile, readdir, readFile, writeFile } from "node:fs/promises";
 import type { PluggableList } from "unified";
 import { build } from "./index.js";
 import { emitSite } from "./emit.js";
@@ -10,6 +10,7 @@ import { listVault, readDocuments, writeFiles, copyFiles } from "./fs-bundle.js"
 import { parseBuildArgs } from "./cli-args.js";
 import { bundleUsesKatex, KATEX_STYLESHEET } from "./katex.js";
 import { katexDirOfRenderer } from "./katex-assets.js";
+import { callerStylesheetPath, inCanopyLayer } from "./stylesheets.js";
 
 /**
  * `canopy build`. Kept out of `cli.ts` so the rendering pipeline it pulls in
@@ -79,9 +80,13 @@ async function copyKatexAssets(outDir: string): Promise<void> {
   const assetsDir = path.join(outDir, "assets");
   const fontsOut = path.join(assetsDir, "fonts");
   await mkdir(fontsOut, { recursive: true });
-  await copyFile(
-    path.join(katexDir, "dist", "katex.min.css"),
+  // Into canopy's layer like the rest of canopy's CSS, so a caller stylesheet
+  // can restyle math the same way it restyles anything else. KaTeX's
+  // stylesheet carries no @import/@charset (cli-build.test.ts checks the copy).
+  await writeFile(
     path.join(assetsDir, "katex.css"),
+    inCanopyLayer(await readFile(path.join(katexDir, "dist", "katex.min.css"), "utf8")),
+    "utf8",
   );
   const fontsDir = path.join(katexDir, "dist", "fonts");
   for (const font of await readdir(fontsDir)) {
@@ -101,6 +106,19 @@ export async function runBuild(argv: string[]): Promise<void> {
 
   const vault = path.resolve(args.vault);
   const outDir = path.resolve(args.out);
+  // Carried like --script: canopy never interprets a caller's CSS, only writes
+  // it to assets/ and links it after its own, in the order given.
+  const styles: string[] = [];
+  for (const stylesheetPath of args.stylesheetPaths) {
+    try {
+      styles.push(await readFile(path.resolve(stylesheetPath), "utf8"));
+    } catch {
+      console.error(`--stylesheet: "${stylesheetPath}" could not be read`);
+      process.exitCode = 1;
+      return;
+    }
+  }
+
   // Carried unread past this point — canopy neither runs nor inspects it, only
   // writes it to assets/ and links it (see docs/SCOPE.md, "Author client-side code").
   let script: string | undefined;
@@ -122,6 +140,17 @@ export async function runBuild(argv: string[]): Promise<void> {
   // copied, so the three cannot disagree about what the site publishes.
   const listing = await listVault(vault, args.exclude);
   const published = [...listing.pages, ...listing.assets];
+  // A vault file at a caller stylesheet's output path would be overwritten by
+  // the stylesheet, or overwrite it, depending on write order — neither is
+  // something to decide silently.
+  for (let index = 0; index < styles.length; index++) {
+    const target = callerStylesheetPath(index);
+    if (published.some((file) => file.toLowerCase() === target)) {
+      console.error(`--stylesheet: the vault already publishes a file at "${target}"`);
+      process.exitCode = 1;
+      return;
+    }
+  }
   for (const [flag, value] of [
     ["--site-icon", args.siteIcon],
     ["--site-logo", args.siteLogo],
@@ -211,6 +240,7 @@ export async function runBuild(argv: string[]): Promise<void> {
   const files = emitSite(bundle, {
     siteTitle: args.siteTitle ?? path.basename(vault),
     stylesheets,
+    ...(styles.length > 0 ? { styles } : {}),
     ...(script !== undefined ? { script } : {}),
     ...(args.lang ? { lang: args.lang } : {}),
     ...(args.siteIcon ? { iconPath: args.siteIcon.replace(/\\/g, "/") } : {}),

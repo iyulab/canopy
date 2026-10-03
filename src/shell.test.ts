@@ -841,6 +841,7 @@ describe("dated pages", () => {
     expect(html).not.toContain("canopy-date");
     expect(html).not.toContain("application/ld+json");
     expect(html).not.toContain("article:published_time");
+    expect(html).not.toContain("article:modified_time");
   });
 
   it("states when the page was published and last changed", () => {

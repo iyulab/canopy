@@ -389,7 +389,10 @@ function renderSocialMeta(
   if (published !== undefined) {
     tags.push(`<meta property="article:published_time" content="${escapeHtml(published)}">`);
   }
-  if (modified !== undefined) {
+  // A modification time belongs to an article's publication record, so it is
+  // written only beside the date it modifies — an undated page keeps exactly
+  // the metadata it had before pages could be dated.
+  if (published !== undefined && modified !== undefined) {
     tags.push(`<meta property="article:modified_time" content="${escapeHtml(modified)}">`);
   }
 

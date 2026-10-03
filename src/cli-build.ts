@@ -4,6 +4,7 @@ import { mkdir, copyFile, readdir, readFile } from "node:fs/promises";
 import type { PluggableList } from "unified";
 import { build } from "./index.js";
 import { emitSite } from "./emit.js";
+import { datedPagesUnder, feedPath, normalizeFeedDir } from "./feed.js";
 import { parseNavSpec, type NavSpec } from "./nav-spec.js";
 import { listVault, readDocuments, writeFiles, copyFiles } from "./fs-bundle.js";
 import { parseBuildArgs } from "./cli-args.js";
@@ -194,6 +195,22 @@ export async function runBuild(argv: string[]): Promise<void> {
     );
   }
 
+  // A feed is written from the folder's dated pages; one with none has nothing
+  // to say and no honest update time, so it is skipped — say so, or a missing
+  // feed.xml looks like canopy ignoring the flag. A vault file already at the
+  // feed's path would be overwritten by the asset copy, or overwrite the feed.
+  for (const dir of new Set(args.feeds.map(normalizeFeedDir))) {
+    const target = feedPath(dir);
+    if (published.some((file) => file.toLowerCase() === target.toLowerCase())) {
+      console.error(`--feed ${dir || "."}: the vault already publishes a file at "${target}"`);
+      process.exitCode = 1;
+      return;
+    }
+    if (datedPagesUnder(bundle.pages, dir).length === 0) {
+      console.warn(`--feed ${dir || "."}: no page there names a date:, so no feed is written`);
+    }
+  }
+
   // Gate KaTeX assets on actual usage: a math-free site would otherwise carry
   // the stylesheet + ~20 woff2 fonts as dead payload (often most of its bytes).
   const usesKatex = bundleUsesKatex(bundle);
@@ -220,6 +237,7 @@ export async function runBuild(argv: string[]): Promise<void> {
     ...(args.homeLabel ? { homeLabel: args.homeLabel } : {}),
     ...(args.strings ? { strings: args.strings } : {}),
     ...(args.searchIndexPath ? { searchIndexPath: args.searchIndexPath } : {}),
+    ...(args.feeds.length > 0 ? { feeds: args.feeds } : {}),
   });
 
   await writeFiles(outDir, files);

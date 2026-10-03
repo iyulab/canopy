@@ -83,6 +83,7 @@ describe("parseBuildArgs", () => {
       scriptPath: undefined,
       exclude: [],
       rehypePluginPaths: [],
+      feeds: [],
     });
   });
 
@@ -300,5 +301,17 @@ describe("parseBuildArgs: where the site is published", () => {
       "--alternate", "ko=https://example.test/ko?edition=1",
     ]);
     expect(args).toMatchObject({ ok: true, alternates: { ko: "https://example.test/ko?edition=1" } });
+  });
+});
+
+describe("--feed", () => {
+  it("collects every folder, and needs --site-url", () => {
+    expect(
+      parseBuildArgs(["build", "v", "--site-url", "https://e.org", "--feed", "log", "--feed", "."]),
+    ).toMatchObject({ ok: true, feeds: ["log", "."] });
+    expect(parseBuildArgs(["build", "v", "--feed", "log"])).toEqual({
+      ok: false,
+      error: "--feed needs --site-url: a feed's entries are absolute URLs",
+    });
   });
 });

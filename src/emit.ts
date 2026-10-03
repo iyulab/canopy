@@ -1,4 +1,5 @@
 import type { SiteBundle, OutputFile } from "./contract.js";
+import { feedPath, feedTitle, normalizeFeedDir, renderFeed } from "./feed.js";
 import { buildSearchIndex } from "./search-index.js";
 import { renderContentsPage, renderPage, type ShellOptions } from "./shell.js";
 import { BASE_CSS } from "./styles.js";
@@ -28,6 +29,14 @@ export interface EmitOptions extends ShellOptions {
    * carries what a caller gives it, the same way `tokens` carries CSS.
    */
   script?: string;
+  /**
+   * Folders (vault-relative, "" for the whole site) to publish an Atom feed
+   * for, at `<dir>/feed.xml`, listing the dated pages beneath each one. Needs
+   * `siteUrl`: a feed's ids and links are absolute. A folder with no dated page
+   * gets no feed — and no link to one — rather than an empty feed with an
+   * invented update time.
+   */
+  feeds?: string[];
 }
 
 /**
@@ -43,9 +52,29 @@ export function emitSite(
   options: EmitOptions = {},
 ): OutputFile[] {
   const stylesheets = options.stylesheets ?? ["tokens.css", "styles.css"];
+
+  const feeds: { dir: string; path: string; title: string; contents: string }[] = [];
+  if (options.siteUrl !== undefined) {
+    for (const dir of new Set((options.feeds ?? []).map(normalizeFeedDir))) {
+      const contents = renderFeed(bundle.pages, bundle.navigation, dir, {
+        siteUrl: options.siteUrl,
+        ...(options.siteTitle === undefined ? {} : { siteTitle: options.siteTitle }),
+        ...(options.lang === undefined ? {} : { lang: options.lang }),
+      });
+      if (contents === undefined) continue;
+      feeds.push({
+        dir,
+        path: feedPath(dir),
+        title: feedTitle(bundle.pages, bundle.navigation, dir, options.siteTitle),
+        contents,
+      });
+    }
+  }
+
   const shell: ShellOptions = {
     ...options,
     stylesheets,
+    feedLinks: feeds.map(({ dir, path, title }) => ({ dir, path, title })),
     search: options.searchIndexPath !== undefined,
     scriptPath: options.script !== undefined ? "assets/script.js" : undefined,
   };
@@ -84,6 +113,9 @@ export function emitSite(
   }
   if (options.script !== undefined) {
     files.push({ path: "assets/script.js", contents: options.script });
+  }
+  for (const feed of feeds) {
+    files.push({ path: feed.path, contents: feed.contents });
   }
   return files;
 }

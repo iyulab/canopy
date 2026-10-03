@@ -73,6 +73,11 @@ npx canopy build <vault-dir> [out-dir] [options]
   its counterpart at the same site path under every edition, its own included. Canopy sees one
   tree at a time and cannot check the other edition really has that page — the editions keep
   this true by mirroring each other's structure. Needs `--site-url`.
+- `--feed <dir>` — publish an Atom feed of the dated pages beneath a vault folder at
+  `<dir>/feed.xml` (`.` for the whole site), newest first, and link it from that folder's pages
+  (`<link rel="alternate" type="application/atom+xml">`) so browsers and feed readers find it.
+  Repeatable; needs `--site-url`. Entries are pages that name a `date:` (see *Dated pages*), apart
+  from the folder's own index page; a folder with none gets no feed and a warning.
 - `--lang <tag>` — BCP 47 language tag for `<html lang>` (defaults to `en`). Worth setting for
   any non-English vault: assistive technology reads pronunciation rules from it. It changes only
   what `<html lang>` declares — the reader chrome's own text (search, theme toggle, nav
@@ -300,9 +305,12 @@ author: Jane Doe          # optional: a person's name
   search engines the headline, description, dates, language and author; its `image` and `url`
   appear when they can be absolute (`--site-url`).
 
+A folder of dated pages can be followed as a feed with `--feed <dir>` — each entry carries the
+page's name, its `date:` and `updated:`, its own `description:` as the summary, and its `author:`.
+
 A value that names no real day (`2026-02-30`, `28/09/2026`) is not a date, and the page stays
 undated. Canopy reads dates only from frontmatter — it keeps no history, so it never infers one.
-`frontmatterDate()` is exported, so a tool reading the same frontmatter (a sitemap, a feed, a
+`frontmatterDate()` is exported, so a tool reading the same frontmatter (a sitemap, a
 checker) recognizes exactly the dates canopy does. Undated pages are unchanged.
 
 ### Markdown support

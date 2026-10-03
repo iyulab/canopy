@@ -107,6 +107,13 @@ export interface ShellOptions {
    */
   scriptPath?: string;
   /**
+   * Feeds to announce. A page inside a feed's folder (`dir`, "" for the whole
+   * site) links it as `<link rel="alternate" type="application/atom+xml">`,
+   * which is how a browser or a feed reader finds a feed from the page a
+   * reader is on. Set by `emitSite` for each feed it actually writes.
+   */
+  feedLinks?: { dir: string; path: string; title: string }[];
+  /**
    * Overrides for the reader chrome's own text — search, the theme toggle,
    * and the navigation landmarks. `lang` changes what `<html lang>` declares,
    * but these are canopy's own UI, not vault content, so `lang` alone leaves
@@ -534,6 +541,17 @@ export function renderPage(
     : "";
   const social = renderSocialMeta(page, title, description, options);
 
+  const feedTags = (options.feedLinks ?? [])
+    .filter(
+      (feed) =>
+        feed.dir === "" || page.sitePath.toLowerCase().startsWith(`${feed.dir.toLowerCase()}/`),
+    )
+    .map(
+      (feed) =>
+        `<link rel="alternate" type="application/atom+xml" title="${escapeHtml(feed.title)}" href="${escapeHtml(relativeHref(page.sitePath, feed.path))}">`,
+    )
+    .join("");
+
   const script = options.scriptPath
     ? `<script defer src="${escapeHtml(relativeHref(page.sitePath, options.scriptPath))}"></script>`
     : "";
@@ -621,7 +639,7 @@ export function renderPage(
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="canopy">
 <title>${escapeHtml(docTitle)}</title>
-${descriptionTag}${social}${icon}${links}${script}
+${descriptionTag}${social}${feedTags}${icon}${links}${script}
 </head>
 <body>
 ${topbar}

@@ -29,6 +29,8 @@ export type BuildArgs =
       siteImage?: string;
       /** Other language editions of the site, `hreflang` → that edition's site URL. */
       alternates?: Record<string, string>;
+      /** Vault folders to publish an Atom feed of dated pages for; empty when not given. */
+      feeds: string[];
       /** Path to a JSON navigation spec giving the order and labels. */
       navPath?: string;
       /** Vault-relative path of a logo shown beside the site title. */
@@ -78,6 +80,7 @@ export const USAGE = [
   "  --site-url <url>           Absolute URL the site is published at — enables canonical/og:url/og:image/hreflang",
   "  --site-image <path>        Vault-relative image for link previews (og:image); needs --site-url",
   "  --alternate <lang>=<url>   Another language edition of this site, by its own site URL (repeatable); needs --site-url",
+  "  --feed <dir>               Atom feed of the dated pages under a vault folder, at <dir>/feed.xml (repeatable; . = whole site); needs --site-url",
   "  --lang <tag>               BCP 47 language tag (defaults to en)",
   "  --site-icon <path>         Vault-relative favicon, linked from every page",
   "  --nav <path>               JSON navigation spec: order and labels",
@@ -127,6 +130,7 @@ const LIST_FLAGS = {
   "--exclude": "exclude",
   "--rehype-plugin": "rehypePluginPaths",
   "--alternate": "alternate",
+  "--feed": "feeds",
 } as const;
 
 /**
@@ -260,7 +264,7 @@ export function parseBuildArgs(argv: string[]): BuildArgs {
   const scanned = scanArgs("build", rest, BUILD_FLAGS, 2);
   if (!scanned.ok) return scanned;
   const { positional, single, lists } = scanned;
-  const { exclude, rehypePluginPaths, alternate } = lists;
+  const { exclude, rehypePluginPaths, alternate, feeds } = lists;
 
   const vault = positional[0];
   if (vault === undefined) {
@@ -294,6 +298,9 @@ export function parseBuildArgs(argv: string[]): BuildArgs {
       ok: false,
       error: "--alternate needs --site-url: a page has to name its own edition alongside the others",
     };
+  }
+  if (feeds.length > 0 && single.siteUrl === undefined) {
+    return { ok: false, error: "--feed needs --site-url: a feed's entries are absolute URLs" };
   }
   let alternates: Record<string, string> | undefined;
   if (alternate.length > 0) {
@@ -347,5 +354,6 @@ export function parseBuildArgs(argv: string[]): BuildArgs {
     scriptPath: single.scriptPath,
     rehypePluginPaths,
     exclude,
+    feeds,
   };
 }

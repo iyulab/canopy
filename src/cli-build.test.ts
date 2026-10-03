@@ -141,3 +141,87 @@ describe("canopy build — KaTeX", { timeout: RENDERS }, () => {
     expect(await readdir(path.join(out, "assets", "fonts"))).not.toHaveLength(0);
   });
 });
+
+describe("canopy build --layout", { timeout: RENDERS }, () => {
+  async function layoutFile(root: string, layout: unknown): Promise<string> {
+    const file = path.join(root, "layout.json");
+    await writeFile(file, JSON.stringify(layout), "utf8");
+    return file;
+  }
+
+  it("fills regions from vault fragments, writes a stream's index, and keeps fragments off the site", async () => {
+    const { root, out } = await vault({
+      "index.md": "# Home\n",
+      "blog/post.md": "---\ndate: 2026-10-03\ncta: Try it\n---\n# Post\n",
+      "partials/header.html": '<header class="host"><canopy-slot name="back"></canopy-slot></header>',
+      "partials/cta.html": '<p><canopy-slot name="page:cta">Default</canopy-slot></p>',
+    });
+    const layout = await layoutFile(root, {
+      dirs: {
+        blog: {
+          profile: "stream",
+          title: "Blog",
+          regions: { header: "partials/header.html", afterArticle: "partials/cta.html" },
+        },
+      },
+    });
+    vi.spyOn(console, "log").mockImplementation(() => {});
+
+    await runBuild(["build", path.join(root, "vault"), out, "--layout", layout]);
+
+    expect(process.exitCode).toBeUndefined();
+    const post = await readFile(path.join(out, "blog", "post.html"), "utf8");
+    expect(post).toContain('<header class="host"><a class="canopy-back" href="index.html">Blog</a></header>');
+    expect(post).toContain('<div class="canopy-after-article"><p>Try it</p></div>');
+    expect(await readFile(path.join(out, "blog", "index.html"), "utf8")).toContain("<h1>Blog</h1>");
+    await expect(readFile(path.join(out, "partials", "header.html"), "utf8")).rejects.toThrow();
+  });
+
+  it("refuses a fragment with an unknown slot, naming the file", async () => {
+    const { root, out } = await vault({
+      "index.md": "# Home\n",
+      "partials/header.html": '<canopy-slot name="nav"></canopy-slot>',
+    });
+    const layout = await layoutFile(root, { default: { regions: { header: "partials/header.html" } } });
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await runBuild(["build", path.join(root, "vault"), out, "--layout", layout]);
+
+    expect(process.exitCode).toBe(1);
+    expect(error.mock.calls.map((call) => call[0]).join("\n")).toContain(
+      '--layout: partials/header.html (header): unknown slot "nav"',
+    );
+  });
+
+  it("refuses a missing fragment", async () => {
+    const { root, out } = await vault({ "index.md": "# Home\n" });
+    const layout = await layoutFile(root, { default: { regions: { footer: "partials/footer.html" } } });
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    await runBuild(["build", path.join(root, "vault"), out, "--layout", layout]);
+    expect(process.exitCode).toBe(1);
+    expect(error.mock.calls[0]?.[0]).toBe('--layout: region fragment "partials/footer.html" could not be read');
+  });
+
+  it("refuses a page whose frontmatter cannot fill a page slot", async () => {
+    const { root, out } = await vault({
+      "index.md": "---\ncta:\n  - a\n  - b\n---\n# Home\n",
+      "partials/cta.html": '<canopy-slot name="page:cta"></canopy-slot>',
+    });
+    const layout = await layoutFile(root, { default: { regions: { afterArticle: "partials/cta.html" } } });
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    await runBuild(["build", path.join(root, "vault"), out, "--layout", layout]);
+    expect(process.exitCode).toBe(1);
+    expect(error.mock.calls[0]?.[0]).toBe(
+      '--layout: index.md: frontmatter "cta" must be text to fill <canopy-slot name="page:cta">, not a list',
+    );
+  });
+
+  it("refuses a layout file it cannot parse, naming it", async () => {
+    const { root, out } = await vault({ "index.md": "# Home\n" });
+    const layout = await layoutFile(root, { default: { profile: "garden" } });
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    await runBuild(["build", path.join(root, "vault"), out, "--layout", layout]);
+    expect(process.exitCode).toBe(1);
+    expect(error.mock.calls[0]?.[0]).toBe(`--layout ${layout}: default.profile: must be one of manual, stream`);
+  });
+});

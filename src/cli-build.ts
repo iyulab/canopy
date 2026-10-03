@@ -11,6 +11,8 @@ import { parseBuildArgs } from "./cli-args.js";
 import { bundleUsesKatex, KATEX_STYLESHEET } from "./katex.js";
 import { katexDirOfRenderer } from "./katex-assets.js";
 import { callerStylesheetPath, inCanopyLayer } from "./stylesheets.js";
+import { type Layout, layoutFragments, parseLayout } from "./layout.js";
+import { fragmentProblems, pageSlotProblems } from "./regions.js";
 
 /**
  * `canopy build`. Kept out of `cli.ts` so the rendering pipeline it pulls in
@@ -106,6 +108,41 @@ export async function runBuild(argv: string[]): Promise<void> {
 
   const vault = path.resolve(args.vault);
   const outDir = path.resolve(args.out);
+
+  // The layout and every fragment it names are read and checked before
+  // anything else, so a slot that cannot be filled fails the build naming the
+  // file — not halfway through writing the site.
+  let layout: Layout | undefined;
+  const fragments: Record<string, string> = {};
+  if (args.layoutPath !== undefined) {
+    try {
+      layout = parseLayout(await readFile(path.resolve(args.layoutPath), "utf8"));
+    } catch (error) {
+      console.error(`--layout ${args.layoutPath}: ${error instanceof Error ? error.message : String(error)}`);
+      process.exitCode = 1;
+      return;
+    }
+    for (const fragment of layoutFragments(layout)) {
+      let html: string;
+      try {
+        html = await readFile(path.join(vault, fragment.path), "utf8");
+      } catch {
+        console.error(`--layout: region fragment "${fragment.path}" could not be read`);
+        process.exitCode = 1;
+        return;
+      }
+      const problems = fragment.regions.flatMap((region) =>
+        fragmentProblems(html, region).map((problem) => `${fragment.path} (${region}): ${problem}`),
+      );
+      if (problems.length > 0) {
+        for (const problem of problems) console.error(`--layout: ${problem}`);
+        process.exitCode = 1;
+        return;
+      }
+      fragments[fragment.path] = html;
+    }
+  }
+
   // Carried like --script: canopy never interprets a caller's CSS, only writes
   // it to assets/ and links it after its own, in the order given.
   const styles: string[] = [];
@@ -138,7 +175,8 @@ export async function runBuild(argv: string[]): Promise<void> {
   //
   // One walk of the vault answers this, the pages rendered, and the assets
   // copied, so the three cannot disagree about what the site publishes.
-  const listing = await listVault(vault, args.exclude);
+  // A fragment is read into the pages it fills, not published beside them.
+  const listing = await listVault(vault, [...args.exclude, ...Object.keys(fragments)]);
   const published = [...listing.pages, ...listing.assets];
   // A vault file at a caller stylesheet's output path would be overwritten by
   // the stylesheet, or overwrite it, depending on write order — neither is
@@ -201,7 +239,15 @@ export async function runBuild(argv: string[]): Promise<void> {
     documents,
     ...(nav ? { nav } : {}),
     ...(rehypePlugins ? { rehypePlugins } : {}),
+    ...(layout ? { layout } : {}),
   });
+
+  const slotProblems = pageSlotProblems(bundle.pages, layout, fragments);
+  if (slotProblems.length > 0) {
+    for (const problem of slotProblems) console.error(`--layout: ${problem}`);
+    process.exitCode = 1;
+    return;
+  }
 
   // Report rather than fail: an omitted page may be deliberate, and canopy does
   // not know which. Saying so is what keeps the omission from being silent.
@@ -259,6 +305,7 @@ export async function runBuild(argv: string[]): Promise<void> {
     ...(args.strings ? { strings: args.strings } : {}),
     ...(args.searchIndexPath ? { searchIndexPath: args.searchIndexPath } : {}),
     ...(args.feeds.length > 0 ? { feeds: args.feeds } : {}),
+    ...(layout ? { layout, fragments } : {}),
   });
 
   await writeFiles(outDir, files);

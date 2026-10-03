@@ -74,16 +74,19 @@ export type BuildArgs =
        * inside one resolves as its author wrote it. Empty when not given.
        */
       siteStylesheets: string[];
+      /** JSON layout: each folder's profile and region fragments (see layout.ts). */
+      layoutPath?: string;
     }
   | { ok: false; error: string };
 
 export const USAGE = [
   "Usage: canopy build <vault-dir> [out-dir] [options]",
-  "       canopy list <vault-dir> [--exclude <pattern>]... [--json]",
+  "       canopy list <vault-dir> [--exclude <pattern>]... [--layout <path>] [--json]",
   "",
   "build publishes the vault as a site; list prints what build would publish, one",
   "vault-relative path per line, without building. list --json prints",
-  '{"pages": [...], "assets": [...], "unusedExcludes": [...]} instead.',
+  '{"pages": [...], "assets": [...], "unusedExcludes": [...], "generated": [...]} instead —',
+  "generated: the index pages a build writes for stream folders that have none.",
   "",
   "build options:",
   "  --site-title <title>       Site name (defaults to the vault folder name)",
@@ -95,6 +98,7 @@ export const USAGE = [
   "  --lang <tag>               BCP 47 language tag (defaults to en)",
   "  --site-icon <path>         Vault-relative favicon, linked from every page",
   "  --nav <path>               JSON navigation spec: order and labels",
+  "  --layout <path>            JSON layout: each folder's profile (manual, stream) and region fragments",
   "  --stylesheet <path>        Carry this CSS into assets/ and link it after canopy's own (repeatable)",
   "  --site-stylesheet <path>   Link a vault-relative stylesheet the site publishes, after all others (repeatable)",
   "  --site-logo <path>         Vault-relative logo, shown beside the site title",
@@ -125,6 +129,7 @@ const VALUE_FLAGS = {
   "--lang": "lang",
   "--site-icon": "siteIcon",
   "--nav": "navPath",
+  "--layout": "layoutPath",
   "--site-logo": "siteLogo",
   "--home-url": "homeUrl",
   "--home-label": "homeLabel",
@@ -162,7 +167,7 @@ interface FlagTable<V extends string, L extends string, B extends string> {
 
 const BUILD_FLAGS = { value: VALUE_FLAGS, list: LIST_FLAGS, boolean: {} } as const;
 const LIST_COMMAND_FLAGS = {
-  value: {},
+  value: { "--layout": "layoutPath" },
   list: { "--exclude": "exclude" },
   boolean: { "--json": "json" },
 } as const;
@@ -230,7 +235,7 @@ function scanArgs<V extends string, L extends string, B extends string>(
 
 /** A parsed `canopy list` invocation, or the reason it could not be parsed. */
 export type ListArgs =
-  | { ok: true; vault: string; exclude: string[]; json: boolean }
+  | { ok: true; vault: string; exclude: string[]; json: boolean; layoutPath?: string }
   | { ok: false; error: string };
 
 export function parseListArgs(argv: string[]): ListArgs {
@@ -249,6 +254,7 @@ export function parseListArgs(argv: string[]): ListArgs {
     vault,
     exclude: scanned.lists.exclude,
     json: scanned.flags.has("json"),
+    layoutPath: scanned.single.layoutPath,
   };
 }
 
@@ -367,6 +373,7 @@ export function parseBuildArgs(argv: string[]): BuildArgs {
     rehypePluginPaths,
     stylesheetPaths,
     siteStylesheets,
+    layoutPath: single.layoutPath,
     exclude,
     feeds,
   };

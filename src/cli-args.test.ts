@@ -27,6 +27,11 @@ describe("parseListArgs", () => {
     expect(parseListArgs(["list"]).ok).toBe(false);
   });
 
+  it("takes a layout file", () => {
+    const parsed = parseListArgs(["list", "vault", "--layout", "layout.json", "--json"]);
+    expect(parsed).toMatchObject({ ok: true, layoutPath: "layout.json", json: true });
+  });
+
   it("rejects --json on build", () => {
     expect(parseBuildArgs(["build", "v", "--json"]).ok).toBe(false);
   });
@@ -54,6 +59,13 @@ describe("requestedInfo", () => {
 });
 
 describe("parseBuildArgs", () => {
+  it("takes a layout file", () => {
+    expect(parseBuildArgs(["build", "vault", "--layout", "layout.json"])).toMatchObject({
+      ok: true,
+      layoutPath: "layout.json",
+    });
+  });
+
   it("rejects an option it does not know instead of taking it as the out dir", () => {
     expect(parseBuildArgs(["build", "v", "--site-titel", "X"])).toMatchObject({
       ok: false,

@@ -41,6 +41,22 @@ export {
 export { renderPage, pageTitle, renderContentsPage, type ShellOptions } from "./shell.js";
 export { extractOutline, extractFirstHeading, isOutlineUseful, type OutlineItem } from "./outline.js";
 export { declaredTitle, pageName, isIndexStem } from "./title.js";
+export {
+  parseLayout,
+  resolvePageLayout,
+  layoutFragments,
+  streamDirs,
+  streamIndexPath,
+  syntheticIndexPaths,
+  LayoutError,
+  PROFILES,
+  REGIONS,
+  type Layout,
+  type LayoutRule,
+  type PageLayout,
+  type Profile,
+  type RegionName,
+} from "./layout.js";
 export { emitSite, type EmitOptions } from "./emit.js";
 export { renderFeed, feedPath } from "./feed.js";
 export { buildSearchIndex, type SearchIndexEntry } from "./search-index.js";

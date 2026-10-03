@@ -2,10 +2,12 @@ import type { RenderedPage, Backlink } from "./contract.js";
 import { type Layout, type PageLayout, type RegionName, resolvePageLayout, streamIndexPath } from "./layout.js";
 import { isExternalUrl } from "./markdown-link.js";
 import { ancestorPath, flattenNav, subtreeContains, type NavNode } from "./navigation.js";
+import { htmlToText } from "./html-text.js";
 import { fileUrl, pageUrl, relativeHref } from "./site-path.js";
 import { isOutlineUseful, type OutlineItem } from "./outline.js";
 import { formatPageDate, frontmatterDate } from "./page-date.js";
 import { declaredTitle, pageName } from "./title.js";
+import { readingMinutes } from "./reading-time.js";
 import { type ControlSlot, pageSlotText, renderFragment } from "./regions.js";
 
 /** Options controlling the site shell wrapped around each page. */
@@ -258,6 +260,27 @@ function renderNavList(nodes: NavNode[], from: string, depth = 0): string {
   return `<ul>${items}</ul>`;
 }
 
+function outlineItems(outline: OutlineItem[]): string {
+  const top = Math.min(...outline.map((item) => item.level));
+  return outline
+    .map((item) => {
+      const depth = item.level - top;
+      return `<li class="canopy-outline-l${depth}"><a href="#${escapeHtml(item.id)}">${escapeHtml(item.text)}</a></li>`;
+    })
+    .join("");
+}
+
+/**
+ * A stream page's contents, before its body and open — a reader of one article
+ * looks at what it covers before reading it, not beside it while reading. The
+ * same `.canopy-outline` list as a manual page's, inside a disclosure a reader
+ * can close, so anything that follows the outline (a scrollspy) works on both.
+ */
+function renderToc(outline: OutlineItem[], label: string): string {
+  if (!isOutlineUseful(outline)) return "";
+  return `<details class="canopy-toc" open><summary>${escapeHtml(label)}</summary><nav class="canopy-outline" aria-label="${escapeHtml(label)}"><ul>${outlineItems(outline)}</ul></nav></details>`;
+}
+
 /**
  * The page's own headings as a contents list.
  *
@@ -269,19 +292,12 @@ function renderOutline(outline: OutlineItem[], label: string): string {
   if (!isOutlineUseful(outline)) {
     return "";
   }
-  const top = Math.min(...outline.map((item) => item.level));
-  const items = outline
-    .map((item) => {
-      const depth = item.level - top;
-      return `<li class="canopy-outline-l${depth}"><a href="#${escapeHtml(item.id)}">${escapeHtml(item.text)}</a></li>`;
-    })
-    .join("");
   // aria-label stays alongside the visible <h2>, not replaced by it: a page
   // can carry more than one <nav> landmark (site nav, page nav, this one),
   // and the label is what tells them apart in a screen reader's landmark
   // list — the <h2> only adds a sighted reader's version of the same name,
   // matching renderBacklinks below, which already shows its own heading.
-  return `<nav class="canopy-outline" aria-label="${escapeHtml(label)}"><h2>${escapeHtml(label)}</h2><ul>${items}</ul></nav>`;
+  return `<nav class="canopy-outline" aria-label="${escapeHtml(label)}"><h2>${escapeHtml(label)}</h2><ul>${outlineItems(outline)}</ul></nav>`;
 }
 
 /**
@@ -530,8 +546,12 @@ function renderListing(
   navigation: NavNode[],
   options: ShellOptions,
   lang: string,
+  pageLayout: PageLayout,
+  strings: ShellStrings,
 ): string {
-  if (page.frontmatter.listing !== true) return "";
+  // A stream's index always lists the stream — that is what it is for; any
+  // other page lists what it fronts only when it asks to.
+  if (page.frontmatter.listing !== true && !isStreamIndex(page, pageLayout)) return "";
   const chain = ancestorPath(navigation, page.sitePath);
   const self = chain[chain.length - 1];
   let entries = self?.children ?? [];
@@ -559,7 +579,13 @@ function renderListing(
         const summary =
           typeof own === "string" && own.trim() !== "" ? `<p>${escapeHtml(own.trim())}</p>` : "";
         const nested = node.sitePath === undefined && node.children.length > 0 ? `<ul>${items(node.children)}</ul>` : "";
-        return `<li>${name}${date}${summary}${nested}</li>`;
+        // Only in a stream, where how long a post is helps choose one; a manual
+        // listing stays exactly what it was.
+        const minutes =
+          pageLayout.profile === "stream" && entry !== undefined
+            ? ` <span class="canopy-reading-time">${escapeHtml(readingTime(entry.html, lang, strings.readingTime))}</span>`
+            : "";
+        return `<li>${name}${date}${minutes}${summary}${nested}</li>`;
       })
       .join("");
   return `<ul class="canopy-listing">${items(entries)}</ul>`;
@@ -574,14 +600,58 @@ function renderListing(
  * page chrome — the search index and every other reader of the body text never
  * see it as something the author wrote in the document.
  */
+/** Insert `markup` right after the page's `<h1>`, or at the very top when it has none. */
+function afterTitle(html: string, markup: string): string {
+  if (markup === "") return html;
+  const end = html.indexOf("</h1>");
+  if (end === -1) return markup + html;
+  const at = end + "</h1>".length;
+  return html.slice(0, at) + markup + html.slice(at);
+}
+
 function withPageDate(html: string, frontmatter: Record<string, unknown>, lang: string): string {
   const published = frontmatterDate(frontmatter.date);
   if (published === undefined) return html;
-  const line = `<p class="canopy-date"><time datetime="${escapeHtml(published)}">${escapeHtml(formatPageDate(published, lang))}</time></p>`;
-  const end = html.indexOf("</h1>");
-  if (end === -1) return line + html;
-  const at = end + "</h1>".length;
-  return html.slice(0, at) + line + html.slice(at);
+  return afterTitle(
+    html,
+    `<p class="canopy-date"><time datetime="${escapeHtml(published)}">${escapeHtml(formatPageDate(published, lang))}</time></p>`,
+  );
+}
+
+function readingTime(html: string, lang: string, template: string): string {
+  return template.replace("{n}", String(readingMinutes(htmlToText(html), lang)));
+}
+
+function isStreamIndex(page: RenderedPage, pageLayout: PageLayout): boolean {
+  return (
+    pageLayout.streamDir !== undefined &&
+    page.sitePath.toLowerCase() === streamIndexPath(pageLayout.streamDir).toLowerCase()
+  );
+}
+
+/**
+ * A stream page's opening, after its title: the page's own summary as a lead,
+ * then when it was published and how long it takes to read, then what it
+ * covers. The index of a stream gets only its lead — its date and length are
+ * not what a reader looks for there, and its list is its contents.
+ */
+function streamOpening(
+  page: RenderedPage,
+  pageLayout: PageLayout,
+  lang: string,
+  strings: ShellStrings,
+): string {
+  const own = page.frontmatter.description;
+  const lead =
+    typeof own === "string" && own.trim() !== "" ? `<p class="canopy-lead">${escapeHtml(own.trim())}</p>` : "";
+  if (isStreamIndex(page, pageLayout)) return afterTitle(page.html, lead);
+  const published = frontmatterDate(page.frontmatter.date);
+  const date =
+    published === undefined
+      ? ""
+      : `<time class="canopy-date" datetime="${escapeHtml(published)}">${escapeHtml(formatPageDate(published, lang))}</time>`;
+  const byline = `<p class="canopy-byline">${date}<span class="canopy-reading-time">${escapeHtml(readingTime(page.html, lang, strings.readingTime))}</span></p>`;
+  return afterTitle(page.html, `${lead}${byline}${renderToc(page.outline, strings.onThisPage)}`);
 }
 
 /**
@@ -810,16 +880,31 @@ export function renderPage(
   // itself, flush left, reading as a stray icon rather than as this pair. One
   // wrapper wraps as one unit, so the two always land together and stay
   // right-aligned together, on whichever line they end up on.
+  const stream = pageLayout.profile === "stream";
+  // A stream page's way back is its list, not a trail through a tree it does
+  // not show; the bar exists when it has that to hold, like anything else.
+  const trail = stream ? controls.back : controls.breadcrumb;
   const topbar =
-    controls["site-title"] === "" && controls.home === "" && controls.search === ""
+    controls["site-title"] === "" && controls.home === "" && controls.search === "" && (!stream || trail === "")
       ? ""
-      : `<header class="canopy-topbar">${controls["site-title"]}${controls.breadcrumb}${controls.home}<div class="canopy-topbar-controls">${controls.search}${controls["theme-toggle"]}</div></header>`;
+      : `<header class="canopy-topbar">${controls["site-title"]}${trail}${controls.home}<div class="canopy-topbar-controls">${controls.search}${controls["theme-toggle"]}</div></header>`;
   // A header fragment replaces the top bar outright — the site's own markup,
   // with canopy's controls only where its slots put them (see regions.ts).
   const header = pageLayout.regions.header === undefined ? topbar : region("header");
   const before = wrapRegion("canopy-before-article", region("beforeArticle"));
   const after = wrapRegion("canopy-after-article", region("afterArticle"));
   const footer = region("footer");
+  // A stream shows no tree: the whole tree on every page of a long stream is
+  // quadratic weight for navigation a reader of one post does not use.
+  const sidebar = stream
+    ? ""
+    : `<aside class="canopy-sidebar"><details class="canopy-nav" open><summary aria-label="${escapeHtml(strings.siteNav)}"></summary><nav>${renderNavList(navigation, page.sitePath)}</nav></details></aside>\n`;
+  const body = stream
+    ? streamOpening(page, pageLayout, lang, strings)
+    : withPageDate(page.html, page.frontmatter, lang);
+  const around = stream
+    ? ""
+    : `${renderOutline(page.outline, strings.onThisPage)}\n${renderBacklinks(page.backlinks, page.sitePath, strings.backlinks)}\n${renderPageNav(navigation, page.sitePath, strings.pageNav)}\n`;
 
   return `<!doctype html>
 <html lang="${escapeHtml(lang)}" data-canopy-profile="${pageLayout.profile}">
@@ -833,13 +918,9 @@ ${descriptionTag}${social}${feedTags}${icon}${links}${script}${region("head")}
 <body>
 ${header}
 <div class="canopy-layout">
-<aside class="canopy-sidebar"><details class="canopy-nav" open><summary aria-label="${escapeHtml(strings.siteNav)}"></summary><nav>${renderNavList(navigation, page.sitePath)}</nav></details></aside>
-<main class="canopy-main">
-<article class="canopy-content">${before}${withPageDate(page.html, page.frontmatter, lang)}${renderListing(page, navigation, options, lang)}${after}</article>
-${renderOutline(page.outline, strings.onThisPage)}
-${renderBacklinks(page.backlinks, page.sitePath, strings.backlinks)}
-${renderPageNav(navigation, page.sitePath, strings.pageNav)}
-</main>
+${sidebar}<main class="canopy-main">
+<article class="canopy-content">${before}${body}${renderListing(page, navigation, options, lang, pageLayout, strings)}${after}</article>
+${around}</main>
 </div>
 ${footer === "" ? "" : `${footer}\n`}</body>
 </html>

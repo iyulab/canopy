@@ -1095,3 +1095,78 @@ describe("the back control", () => {
     );
   });
 });
+
+describe("the stream profile", () => {
+  const layout = { dirs: { blog: { profile: "stream" as const } } };
+  const index = page({
+    sourcePath: "blog/index.md",
+    sitePath: "blog/index.html",
+    html: "<h1>Blog</h1><p>Notes from the team.</p>",
+  });
+  const post = page({
+    sourcePath: "blog/post.md",
+    sitePath: "blog/post.html",
+    frontmatter: { date: "2026-10-03", description: "What changed." },
+    html: '<h1 id="post">Post</h1><h2 id="one">One</h2><p>a</p><h2 id="two">Two</h2><p>b</p>',
+    outline: [
+      { level: 2, id: "one", text: "One" },
+      { level: 2, id: "two", text: "Two" },
+    ],
+  });
+  const streamNav: NavNode[] = [
+    { label: "Blog", sitePath: "blog/index.html", children: [{ label: "Post", sitePath: "blog/post.html", children: [] }] },
+  ];
+  const options = { layout, sitePages: [index, post], siteTitle: "Site" };
+
+  it("leaves out the sidebar, the side outline, backlinks and prev/next", () => {
+    const html = renderPage({ ...post, backlinks: [{ sitePath: "x.html", title: "X" }] }, streamNav, options);
+    expect(html).not.toContain("canopy-sidebar");
+    expect(html).not.toContain("canopy-backlinks");
+    expect(html).not.toContain("canopy-page-nav");
+    expect(html).toContain('<main class="canopy-main">\n<article class="canopy-content">');
+    expect(html).toContain("</article>\n</main>");
+  });
+
+  it("opens an article with its title, lead, byline and contents, in that order", () => {
+    expect(renderPage(post, streamNav, options)).toContain(
+      '<h1 id="post">Post</h1><p class="canopy-lead">What changed.</p>' +
+        '<p class="canopy-byline"><time class="canopy-date" datetime="2026-10-03">October 3, 2026</time>' +
+        '<span class="canopy-reading-time">1 min read</span></p>' +
+        '<details class="canopy-toc" open><summary>On this page</summary>' +
+        '<nav class="canopy-outline" aria-label="On this page"><ul>' +
+        '<li class="canopy-outline-l0"><a href="#one">One</a></li>' +
+        '<li class="canopy-outline-l0"><a href="#two">Two</a></li></ul></nav></details><h2 id="one">',
+    );
+  });
+
+  it("puts the back link where the breadcrumb was", () => {
+    expect(renderPage(post, streamNav, options)).toContain(
+      '<header class="canopy-topbar"><a class="canopy-site-title" href="../index.html">Site</a>' +
+        '<a class="canopy-back" href="index.html">Blog</a><div class="canopy-topbar-controls">',
+    );
+  });
+
+  it("lists the stream on its index, with date, reading time and summary, and no byline of its own", () => {
+    const html = renderPage(index, streamNav, options);
+    expect(html).toContain(
+      '<ul class="canopy-listing"><li><a class="canopy-listing-title" href="post.html">Post</a>' +
+        ' <time datetime="2026-10-03">October 3, 2026</time> <span class="canopy-reading-time">1 min read</span>' +
+        "<p>What changed.</p></li></ul>",
+    );
+    expect(html).not.toContain("canopy-byline");
+    expect(html).not.toContain("canopy-toc");
+  });
+
+  it("says reading time in the site's own words", () => {
+    expect(renderPage(post, streamNav, { ...options, strings: { readingTime: "{n}분" } })).toContain(
+      '<span class="canopy-reading-time">1분</span>',
+    );
+  });
+
+  it("keeps a manual listing exactly as it was", () => {
+    const manualIndex = { ...index, frontmatter: { listing: true } };
+    const html = renderPage(manualIndex, streamNav, { sitePages: [manualIndex, post] });
+    expect(html).toContain('<time datetime="2026-10-03">October 3, 2026</time><p>What changed.</p>');
+    expect(html).not.toContain("canopy-reading-time");
+  });
+});

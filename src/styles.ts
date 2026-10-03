@@ -93,29 +93,32 @@ body {
   border-bottom: 1px solid var(--border);
   font-weight: var(--font-weight-semibold);
 }
-/* Every other link the shell draws (sidebar, content, outline, backlinks,
-   page-nav) sets its own rest/hover colors; the topbar's two links —
-   the site title and .canopy-home — were the one place nothing did, so
-   both rendered in the browser's own default link blue with a permanent
-   underline instead of reading as chrome. .canopy-home's own rule below
-   still wins on specificity for color at rest (two classes beat one class
-   plus a type), so this only supplies the site-title link's rest color and
-   the underline reset shared by both; :hover here (two classes plus this
-   pseudo-class) outranks .canopy-home's plain rule, so hover still reaches
-   it too. */
-.canopy-topbar > a {
+/* The links canopy draws as chrome — the site title, the home link, a stream
+   page's back link — read as chrome wherever they are placed: in canopy's own
+   top bar, or in a site's own header through a slot. So their look hangs on
+   their own classes, not on sitting inside .canopy-topbar. */
+.canopy-site-title,
+.canopy-home,
+.canopy-back {
   color: var(--text-normal);
   text-decoration: none;
 }
-.canopy-topbar > a:hover {
+.canopy-site-title:hover,
+.canopy-home:hover,
+.canopy-back:hover {
   color: var(--accent);
   text-decoration: underline;
 }
-.canopy-topbar > a:not(.canopy-home) { display: flex; align-items: center; gap: var(--sp-2); }
+.canopy-site-title {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-weight: var(--font-weight-semibold);
+}
 /* A definite height, not max-height: a brand file supplies whatever it has,
    and a tall logo must not grow the bar past a single line — max-height would
    say that more precisely (cap, don't force), but it makes the logo's inline
-   contribution to .canopy-topbar > a's own intrinsic width indefinite, and
+   contribution to .canopy-site-title's own intrinsic width indefinite, and
    that indefinite replaced-element size is what the title text wraps around
    despite room to spare: measured live, the anchor's computed width came out
    equal to gap + text alone, as if the logo contributed zero, even though it
@@ -127,10 +130,12 @@ body {
    child — the trade is that a logo shorter than 1.75rem now scales up to fill
    it instead of sitting at its own smaller natural size. */
 .canopy-logo { height: 1.75rem; max-width: 100%; width: auto; }
-/* Specificity beats .canopy-topbar a without !important, which would also
-   override a caller's own stylesheet. */
-.canopy-topbar .canopy-home { font-weight: 400; font-size: 0.9em; color: var(--text-muted); }
-.canopy-home::before { content: "← "; }
+/* Later than the shared rule above at the same specificity, so the muted rest
+   color wins there while :hover (one pseudo-class more) still reaches it. */
+.canopy-home,
+.canopy-back { font-weight: 400; font-size: 0.9em; color: var(--text-muted); }
+.canopy-home::before,
+.canopy-back::before { content: "← "; }
 /* home.url can name a page outside the site entirely (settings lets it be
    any URL, not just an internal path) — and it sits right after the
    breadcrumb, which never leaves the site, so a reader has every reason to
@@ -718,8 +723,10 @@ body {
      :has() scopes the wider column to pages that actually have an outline
      (isOutlineUseful in shell.ts) — without it, a page short enough to skip
      the outline would still carry the extra width as a permanent gap where
-     an outline never renders. */
-  .canopy-main:has(.canopy-outline) {
+     an outline never renders. Only an outline that is main's own child — a
+     stream page's contents sit inside its article (.canopy-toc) and stay in
+     the text column. */
+  .canopy-main:has(> .canopy-outline) {
     max-width: calc(var(--content-max-width) + var(--sp-6) + 14rem);
     display: grid;
     grid-template-columns: minmax(0, 1fr) 14rem;
@@ -736,7 +743,7 @@ body {
      to match its spanned rows' combined height, and position: sticky has
      nothing to do inside a box that's already as tall as the space it could
      move through. */
-  .canopy-outline {
+  .canopy-main > .canopy-outline {
     grid-column: 2;
     grid-row: 1 / 3;
     align-self: start;
@@ -820,6 +827,48 @@ body {
     linear-gradient(to right, rgba(0, 0, 0, 0.15), transparent),
     linear-gradient(to left, rgba(0, 0, 0, 0.15), transparent);
 }
+
+/* The stream profile (shell.ts): one column, no sidebar — so none of the
+   sidebar column's tint either. */
+[data-canopy-profile="stream"] .canopy-layout {
+  grid-template-columns: minmax(0, 1fr);
+  background: var(--bg-primary);
+}
+
+/* A stream page's opening, after its title: the lead, then the byline, then
+   the contents. */
+.canopy-lead {
+  font-size: 1.15em;
+  color: var(--text-muted);
+  margin: var(--sp-2) 0 var(--sp-3);
+}
+.canopy-byline {
+  margin: 0 0 var(--sp-6);
+  font-size: 0.9em;
+  color: var(--text-muted);
+}
+/* The date is already muted and sized by the byline around it; the page-date
+   rule above would shrink and offset it a second time. */
+.canopy-byline .canopy-date { margin: 0; font-size: inherit; }
+.canopy-byline > * + *::before { content: "·"; margin: 0 var(--sp-2); }
+.canopy-listing .canopy-reading-time { font-size: 0.9em; color: var(--text-muted); }
+.canopy-toc {
+  margin: 0 0 var(--sp-8);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+}
+.canopy-toc > summary {
+  cursor: pointer;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-muted);
+}
+.canopy-toc .canopy-outline { margin: var(--sp-2) 0 0; padding: 0; border-left: 0; }
+
+/* Other-language links, placed by a \`language\` slot. */
+.canopy-language { display: flex; gap: var(--sp-3); font-size: 0.9em; }
+.canopy-language a { color: var(--text-muted); text-decoration: none; }
+.canopy-language a:hover { color: var(--accent); text-decoration: underline; }
 
 @media (max-width: 40rem) {
   /* The ancestor trail repeats what the sidebar's own expanded-to-current-item

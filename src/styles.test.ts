@@ -377,21 +377,28 @@ describe("top bar", () => {
     // (see shell.ts), so its styling must target the new selector and must not
     // constrain itself to the sidebar's 16rem column.
     expect(BASE_CSS).toMatch(/\.canopy-topbar\s*\{/);
-    expect(BASE_CSS).not.toMatch(/\.canopy-site-title\s*\{/);
+    // The title's look hangs on its own class (not on a position), and nothing
+    // ties it to the sidebar.
+    expect(BASE_CSS).not.toMatch(/\.canopy-sidebar[^{]*\.canopy-site-title/);
   });
 
   it("still sizes the logo and dims the home link the same way it did in the sidebar", () => {
     expect(BASE_CSS).toMatch(/\.canopy-logo\s*\{[^}]*height:\s*1\.75rem/);
-    expect(BASE_CSS).toMatch(/\.canopy-topbar\s*\.canopy-home\s*\{[^}]*color:\s*var\(--text-muted\)/);
+    expect(BASE_CSS).toMatch(/\.canopy-home,\s*\.canopy-back\s*\{[^}]*color:\s*var\(--text-muted\)/);
   });
 
   it("styles the site-title link like chrome, not like the browser's default blue underline", () => {
     // Every other link the shell draws sets its own rest/hover colors; the
     // topbar's two links were the one place nothing did, so both rendered in
     // the UA default link color with a permanent underline.
-    expect(BASE_CSS).toMatch(/\.canopy-topbar\s*>\s*a\s*\{[^}]*color:\s*var\(--text-normal\)/);
-    expect(BASE_CSS).toMatch(/\.canopy-topbar\s*>\s*a\s*\{[^}]*text-decoration:\s*none/);
-    expect(BASE_CSS).toMatch(/\.canopy-topbar\s*>\s*a:hover\s*\{[^}]*color:\s*var\(--accent\)/);
+    // Hung on the links' own classes, so a site title placed in a site's own
+    // header through a slot reads as chrome there too.
+    const chrome = String.raw`\.canopy-site-title,\s*\.canopy-home,\s*\.canopy-back\s*\{`;
+    expect(BASE_CSS).toMatch(new RegExp(`${chrome}[^}]*color:\\s*var\\(--text-normal\\)`));
+    expect(BASE_CSS).toMatch(new RegExp(`${chrome}[^}]*text-decoration:\\s*none`));
+    expect(BASE_CSS).toMatch(
+      /\.canopy-site-title:hover,\s*\.canopy-home:hover,\s*\.canopy-back:hover\s*\{[^}]*color:\s*var\(--accent\)/,
+    );
   });
 
   it("sizes the logo with a definite height, not max-height, so it contributes its full width to the title link's intrinsic size", () => {
@@ -663,9 +670,9 @@ describe("on-page outline", () => {
     // .canopy-backlinks on an explicit grid is what keeps "beside" true
     // once "sticky" needs the box to stay in flow.
     const desktopBlock = extractBlock(BASE_CSS, "@media (min-width: 75rem) {");
-    expect(desktopBlock).toMatch(/\.canopy-main:has\(\.canopy-outline\)\s*\{[^}]*display:\s*grid/);
+    expect(desktopBlock).toMatch(/\.canopy-main:has\(>\s*\.canopy-outline\)\s*\{[^}]*display:\s*grid/);
     expect(desktopBlock).toMatch(/\.canopy-content\s*\{[^}]*grid-column:\s*1/);
-    expect(desktopBlock).toMatch(/\.canopy-outline\s*\{[^}]*grid-column:\s*2/);
+    expect(desktopBlock).toMatch(/\.canopy-main\s*>\s*\.canopy-outline\s*\{[^}]*grid-column:\s*2/);
     expect(desktopBlock).toMatch(/\.canopy-backlinks\s*\{[^}]*grid-column:\s*1/);
   });
 
@@ -675,7 +682,7 @@ describe("on-page outline", () => {
     // 48rem column exactly as before instead of leaving a permanent gap where
     // an outline never renders.
     const desktopBlock = extractBlock(BASE_CSS, "@media (min-width: 75rem) {");
-    expect(desktopBlock).toMatch(/\.canopy-main:has\(\.canopy-outline\)\s*\{[^}]*max-width:\s*calc\(var\(--content-max-width\)/);
+    expect(desktopBlock).toMatch(/\.canopy-main:has\(>\s*\.canopy-outline\)\s*\{[^}]*max-width:\s*calc\(var\(--content-max-width\)/);
     expect(desktopBlock).not.toMatch(/^\s*\.canopy-main\s*\{[^}]*display:\s*grid/m);
   });
 

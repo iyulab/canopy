@@ -8,6 +8,16 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [0.18.0] — 2026-10-03
+
+### Added
+
+- **`listing: true`** in a page's frontmatter lists the pages it fronts after its own content
+  (`.canopy-listing`): its children in the navigation tree (the rest of the top level for the
+  site's front page), in sidebar order, each with its name, `date:` and own `description:`. A
+  series' index page stays current without restating its entries by hand. Opt-in; pages without
+  it are unchanged.
+
 ## [0.17.0] — 2026-10-03
 
 ### Added

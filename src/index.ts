@@ -57,6 +57,19 @@ export {
   type Profile,
   type RegionName,
 } from "./layout.js";
+export {
+  CONTROL_SLOTS,
+  FragmentError,
+  fragmentHref,
+  fragmentLinks,
+  fragmentProblems,
+  pageSlotKeys,
+  pageSlotProblems,
+  pageSlotText,
+  renderFragment,
+  type ControlSlot,
+  type FragmentContext,
+} from "./regions.js";
 export { emitSite, type EmitOptions } from "./emit.js";
 export { renderFeed, feedPath } from "./feed.js";
 export { buildSearchIndex, type SearchIndexEntry } from "./search-index.js";

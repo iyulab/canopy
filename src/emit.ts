@@ -3,19 +3,21 @@ import { feedPath, feedTitle, normalizeFeedDir, renderFeed } from "./feed.js";
 import { buildSearchIndex } from "./search-index.js";
 import { renderContentsPage, renderPage, type ShellOptions } from "./shell.js";
 import { BASE_CSS } from "./styles.js";
+import { callerStylesheetPath, inCanopyLayer } from "./stylesheets.js";
 import { CANOPY_TOKENS } from "./tokens.js";
 
 /** Options for emitting a site bundle to files. */
 export interface EmitOptions extends ShellOptions {
   /**
-   * Design-token overrides, appended after canopy's own tokens in `tokens.css`.
-   *
-   * A caller states only what it wants to change; everything else keeps canopy's
-   * value. Because the defaults end with a `prefers-color-scheme: dark` block and
-   * a media query adds no specificity, a bare `:root` here applies to both
-   * schemes — scheme-specific values need their own media query.
+   * Caller stylesheets' contents, in link order. Each is written to
+   * `assets/stylesheet-<n>.css` (see `callerStylesheetPath`) exactly as given
+   * and linked after canopy's own stylesheets. Canopy's CSS sits in the
+   * `canopy` cascade layer, so these — unlayered unless they declare a layer
+   * themselves — win over it at any specificity: a token restated, a region
+   * hidden, a layout rewritten. The vocabulary they can rely on is
+   * `THEME_HOOKS` and docs/THEMING.md.
    */
-  tokens?: string;
+  styles?: string[];
   /**
    * Output-relative path to write the search index JSON to. Opt-in: a
    * consumer with no search UI (or one that builds its own index some other
@@ -26,7 +28,7 @@ export interface EmitOptions extends ShellOptions {
    * A caller-supplied script's file contents, carried unread and unmodified
    * into `assets/script.js` and linked `<script defer>` from every page.
    * Canopy authors no JavaScript itself (see docs/SCOPE.md); this only
-   * carries what a caller gives it, the same way `tokens` carries CSS.
+   * carries what a caller gives it, the same way `styles` carries CSS.
    */
   script?: string;
   /**
@@ -51,7 +53,14 @@ export function emitSite(
   bundle: SiteBundle,
   options: EmitOptions = {},
 ): OutputFile[] {
-  const stylesheets = options.stylesheets ?? ["tokens.css", "styles.css"];
+  const callerStyles = (options.styles ?? []).map((contents, index) => ({
+    path: callerStylesheetPath(index),
+    contents,
+  }));
+  const stylesheets = [
+    ...(options.stylesheets ?? ["tokens.css", "styles.css"]),
+    ...callerStyles.map((sheet) => sheet.path),
+  ];
 
   const feeds: { dir: string; path: string; title: string; contents: string }[] = [];
   if (options.siteUrl !== undefined) {
@@ -94,17 +103,13 @@ export function emitSite(
     });
   }
 
-  // Layered, not replaced: `styles.css` reads ~60 custom properties, so a caller
-  // that overrides one value must not lose the other 59. The caller's block comes
-  // last, and the cascade does the rest.
-  files.push({
-    path: "tokens.css",
-    contents:
-      options.tokens === undefined
-        ? CANOPY_TOKENS
-        : `${CANOPY_TOKENS}\n/* --- caller tokens --- */\n${options.tokens}`,
-  });
-  files.push({ path: "styles.css", contents: BASE_CSS });
+  // Layered at the point canopy writes its own files, not in the exported
+  // constants: a caller embedding CANOPY_TOKENS or BASE_CSS in a page of its
+  // own keeps the cascade it already has. On a site canopy emits, the layer
+  // is what lets every caller stylesheet win (see stylesheets.ts).
+  files.push({ path: "tokens.css", contents: inCanopyLayer(CANOPY_TOKENS) });
+  files.push({ path: "styles.css", contents: inCanopyLayer(BASE_CSS) });
+  files.push(...callerStyles);
 
   if (options.searchIndexPath !== undefined) {
     files.push({

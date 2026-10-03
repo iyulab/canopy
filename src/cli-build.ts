@@ -101,19 +101,6 @@ export async function runBuild(argv: string[]): Promise<void> {
 
   const vault = path.resolve(args.vault);
   const outDir = path.resolve(args.out);
-  // A caller may inject its own design tokens so the published site matches its look;
-  // absent the flag, emitSite falls back to canopy's built-in tokens.
-  let tokens: string | undefined;
-  if (args.tokensCssPath !== undefined) {
-    try {
-      tokens = await readFile(path.resolve(args.tokensCssPath), "utf8");
-    } catch {
-      console.error(`--tokens-css: "${args.tokensCssPath}" could not be read`);
-      process.exitCode = 1;
-      return;
-    }
-  }
-
   // Carried unread past this point — canopy neither runs nor inspects it, only
   // writes it to assets/ and links it (see docs/SCOPE.md, "Author client-side code").
   let script: string | undefined;
@@ -224,7 +211,6 @@ export async function runBuild(argv: string[]): Promise<void> {
   const files = emitSite(bundle, {
     siteTitle: args.siteTitle ?? path.basename(vault),
     stylesheets,
-    tokens,
     ...(script !== undefined ? { script } : {}),
     ...(args.lang ? { lang: args.lang } : {}),
     ...(args.siteIcon ? { iconPath: args.siteIcon.replace(/\\/g, "/") } : {}),

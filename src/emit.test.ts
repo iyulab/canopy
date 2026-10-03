@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { build } from "./index.js";
 import { emitSite } from "./emit.js";
+import { BASE_CSS } from "./styles.js";
 import { CANOPY_TOKENS } from "./tokens.js";
 
 describe("emitSite", () => {
@@ -31,31 +32,49 @@ describe("emitSite", () => {
     expect(tokensAt).toBeLessThan(stylesAt); // tokens load first
   });
 
-  it("injects the consumer's tokens stylesheet when provided", async () => {
+  it("puts canopy's own token and layout stylesheets in the canopy cascade layer", async () => {
     const bundle = await build({ documents: [{ path: "index.md", content: "# Home" }] });
-    const files = emitSite(bundle, { tokens: ":root { --accent: hotpink; }" });
-    const tokens = files.find((f) => f.path === "tokens.css");
-    expect(tokens?.contents).toContain(":root { --accent: hotpink; }");
-  });
-
-  it("layers caller tokens on top of the defaults instead of replacing them", async () => {
-    const bundle = await build({ documents: [{ path: "index.md", content: "# Home" }] });
-    const tokens = emitSite(bundle, { tokens: ":root { --accent: #0a7c5a; }" }).find(
-      (f) => f.path === "tokens.css",
+    const files = emitSite(bundle);
+    expect(files.find((f) => f.path === "tokens.css")?.contents).toBe(
+      `@layer canopy {\n${CANOPY_TOKENS}\n}\n`,
     );
-    // The defaults survive, so a caller overriding one value keeps the rest.
-    expect(tokens?.contents).toContain("--content-max-width");
-    // The caller's block comes last, so the cascade resolves in its favour.
-    const defaultAccent = tokens?.contents.indexOf("--accent: #4a6cf0") ?? -1;
-    const callerAccent = tokens?.contents.indexOf("--accent: #0a7c5a") ?? -1;
-    expect(defaultAccent).toBeGreaterThan(-1);
-    expect(callerAccent).toBeGreaterThan(defaultAccent);
+    expect(files.find((f) => f.path === "styles.css")?.contents).toBe(
+      `@layer canopy {\n${BASE_CSS}\n}\n`,
+    );
   });
 
-  it("emits the defaults unchanged when no tokens are given", async () => {
+  it("writes caller stylesheets as they are, linked after canopy's own, in order", async () => {
     const bundle = await build({ documents: [{ path: "index.md", content: "# Home" }] });
-    const tokens = emitSite(bundle).find((f) => f.path === "tokens.css");
-    expect(tokens?.contents).toBe(CANOPY_TOKENS);
+    const files = emitSite(bundle, { styles: [":root { --accent: #0a7c5a; }", ".x { color: red; }"] });
+    // Unlayered on purpose: that is what lets them win over canopy's layer.
+    expect(files.find((f) => f.path === "assets/stylesheet-1.css")?.contents).toBe(
+      ":root { --accent: #0a7c5a; }",
+    );
+    expect(files.find((f) => f.path === "assets/stylesheet-2.css")?.contents).toBe(".x { color: red; }");
+    const index = files.find((f) => f.path === "index.html")?.contents ?? "";
+    const order = ["tokens.css", "styles.css", "assets/stylesheet-1.css", "assets/stylesheet-2.css"].map(
+      (sheet) => index.indexOf(`href="${sheet}"`),
+    );
+    expect(order.every((at) => at > -1)).toBe(true);
+    expect(order).toEqual([...order].sort((a, b) => a - b));
+  });
+
+  it("writes no caller stylesheet when none is given", async () => {
+    const bundle = await build({ documents: [{ path: "index.md", content: "# Home" }] });
+    const paths = emitSite(bundle).map((f) => f.path);
+    expect(paths.some((p) => p.startsWith("assets/stylesheet-"))).toBe(false);
+  });
+
+  it("links caller stylesheets after any extra canopy stylesheet the caller listed", async () => {
+    const bundle = await build({ documents: [{ path: "index.md", content: "# Home" }] });
+    const index =
+      emitSite(bundle, {
+        stylesheets: ["tokens.css", "styles.css", "assets/katex.css"],
+        styles: ["a {}"],
+      }).find((f) => f.path === "index.html")?.contents ?? "";
+    expect(index.indexOf('href="assets/katex.css"')).toBeLessThan(
+      index.indexOf('href="assets/stylesheet-1.css"'),
+    );
   });
 
   it("includes extra stylesheets passed by the consumer", async () => {

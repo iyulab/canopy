@@ -46,6 +46,7 @@ export { renderFeed, feedPath } from "./feed.js";
 export { buildSearchIndex, type SearchIndexEntry } from "./search-index.js";
 export { CANOPY_TOKENS } from "./tokens.js";
 export { BASE_CSS } from "./styles.js";
+export { THEME_HOOKS } from "./theme-hooks.js";
 
 
 /**

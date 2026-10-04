@@ -1069,6 +1069,17 @@ describe("the language control", () => {
     );
   });
 
+  it("leaves out the edition the page is already in, even when its tag is regional", () => {
+    const html = renderPage(page(), nav, {
+      ...options,
+      lang: "ko-KR",
+      siteUrl: "https://example.test/ko",
+      alternates: { ko: "https://example.test/ko/", en: "https://example.test/en" },
+    });
+    expect(html).toContain('hreflang="en"');
+    expect(html).not.toContain('<a href="https://example.test/ko/notes/idea.html" hreflang="ko"');
+  });
+
   it("is empty without alternates, and labelled in the site's words when given", () => {
     expect(renderPage(page(), nav, { ...options, alternates: undefined })).not.toContain("canopy-language");
     expect(renderPage(page(), nav, { ...options, strings: { language: "언어" } })).toContain('aria-label="언어"');

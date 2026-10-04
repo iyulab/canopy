@@ -60,6 +60,19 @@ function normalizePath(file: string): string {
   return file.replace(/\\/g, "/").replace(/^\.\//, "").replace(/^\/+/, "");
 }
 
+function hasParentSegment(path: string): boolean {
+  return path.split("/").includes("..");
+}
+
+/** A fragment's vault path, normalized — or a failure naming where it was written. */
+function fragmentPath(file: string, where: string): string {
+  const path = normalizePath(file);
+  if (hasParentSegment(path)) fail(`${where}: "${file}" must not contain ".." — a fragment is inside the vault`);
+  if (path === "" || path.endsWith("/")) fail(`${where}: "${file}" names no file`);
+  if (/[*?[\]]/.test(path)) fail(`${where}: "${file}" must not contain any of * ? [ ] — it is one file, not a pattern`);
+  return path;
+}
+
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -86,7 +99,7 @@ function validateRule(value: unknown, where: string): LayoutRule {
       if (typeof file !== "string") {
         fail(`${where}.regions.${name}: must be a vault path, or "" to turn the region off`);
       }
-      parsedRegions[name as RegionName] = file === "" ? "" : normalizePath(file);
+      parsedRegions[name as RegionName] = file === "" ? "" : fragmentPath(file, `${where}.regions.${name}`);
     }
   }
   return {
@@ -122,6 +135,7 @@ export function parseLayout(json: string): Layout {
     const parsed: Record<string, LayoutRule> = {};
     for (const [dir, rule] of Object.entries(dirs)) {
       const key = normalizeDir(dir);
+      if (hasParentSegment(key)) fail(`dirs: "${dir}" must not contain ".." — a folder is inside the vault`);
       if (key === "") fail(`dirs: "${dir}" names the whole site — that rule is "default"`);
       if (Object.keys(parsed).some((seen) => seen.toLowerCase() === key.toLowerCase())) {
         fail(`dirs: "${dir}" is given twice`);

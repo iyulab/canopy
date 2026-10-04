@@ -40,6 +40,15 @@ describe("fragmentProblems", () => {
     ]);
   });
 
+  it("explains a self-closing page slot that took in what follows", () => {
+    expect(
+      fragmentProblems('<p><canopy-slot name="page:cta"/> — <a href="pricing/">see pricing</a></p>', "afterArticle"),
+    ).toEqual([
+      '<canopy-slot name="page:cta"> must be empty — write it as <canopy-slot name="page:cta"></canopy-slot>; ' +
+        "HTML does not close a self-closing custom tag, so it takes in what follows",
+    ]);
+  });
+
   it("refuses any slot in the head region", () => {
     expect(fragmentProblems('<canopy-slot name="page:title"></canopy-slot>', "head")).toEqual([
       '<canopy-slot name="page:title"> cannot sit in the head region — nothing there is shown to a reader, ' +
@@ -71,6 +80,15 @@ describe("pageSlotKeys and fragmentLinks", () => {
     const html =
       '<a href="blog/">B</a><img src="img/x.png" alt=""><link rel="stylesheet" href="host.css"><a>none</a>';
     expect(fragmentLinks(html)).toEqual(["blog/", "img/x.png", "host.css"]);
+  });
+});
+
+describe("fragmentLinks: other URL attributes", () => {
+  it("lists poster, action and every srcset candidate, in order", () => {
+    const html =
+      '<video poster="img/p.png"></video><form action="go/"></form>' +
+      '<img src="a.png" srcset="a.png 1x, img/b.png 2x,c.png">';
+    expect(fragmentLinks(html)).toEqual(["img/p.png", "go/", "a.png", "a.png", "img/b.png", "c.png"]);
   });
 });
 
@@ -120,6 +138,18 @@ describe("renderFragment", () => {
     expect(html).not.toContain("<free>");
     expect(html).toContain("<p>Try it &#x3C;free");
     expect(html).toContain('<p>See <a href="./">all</a></p>');
+  });
+
+  it("rewrites each srcset candidate and keeps its descriptor", () => {
+    expect(
+      renderFragment('<img src="logo.png" srcset="logo.png 1x, img/logo-2x.png 2x, https://cdn.test/l.png 640w">', context),
+    ).toBe('<img src="../logo.png" srcset="../logo.png 1x, ../img/logo-2x.png 2x, https://cdn.test/l.png 640w">');
+  });
+
+  it("rewrites poster and form action", () => {
+    expect(renderFragment('<video poster="img/p.png"></video><form action="search/"></form>', context)).toBe(
+      '<video poster="../img/p.png"></video><form action="../search/"></form>',
+    );
   });
 
   it("keeps head markup intact", () => {

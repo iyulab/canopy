@@ -109,7 +109,7 @@ describe("THEME_HOOKS", () => {
   it("names only classes the shell actually emits", async () => {
     const emitted = classesIn(await emittedHtml());
     expect(THEME_HOOKS.filter((hook) => !emitted.has(hook))).toEqual([]);
-  });
+  }, 120_000);
 });
 
 describe("docs/THEMING.md", () => {

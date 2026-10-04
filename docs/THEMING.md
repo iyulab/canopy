@@ -142,7 +142,8 @@ A layout can also fill five regions with fragments — HTML files from the site 
 | `afterArticle` | At the end of the article, in `.canopy-after-article` |
 
 Links in a fragment are written from the site root (`blog/`, `assets/logo.svg`) and rewritten
-for each page. A scheme, `//host`, `#id` or `/path` is left as written.
+for each page: `href`, `src`, `poster`, `action`, and every URL in a `srcset`. A scheme,
+`//host`, `#id` or `/path` is left as written.
 
 A fragment places canopy's controls with slots, replaced when the site is built — nothing of
 the slot reaches the browser:

@@ -37,10 +37,8 @@ export function syntheticStreamPages(layout: Layout | undefined, sitePaths: read
 }
 
 /**
- * Newest first. Compared by the day the author wrote first — the day a reader
- * sees under the title — then, within a day, by the full stamp, so a post with
- * a time sorts after none of that day's untimed posts by accident of string
- * length alone but by what it states. Undated pages (and dates that are not
+ * Newest day first. Within a day, a post with a time comes before an untimed
+ * one, and timed posts go latest first. Undated pages (and dates that are not
  * dates) come last, by path, since nothing says where else they belong.
  */
 export function streamOrder(a: RenderedPage, b: RenderedPage): number {

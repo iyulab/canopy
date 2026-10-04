@@ -41,7 +41,8 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 - The site title link carries `class="canopy-site-title"`, and the site title, home and back
   links are styled by their own classes rather than by sitting in `.canopy-topbar` — so a
   control placed in a site's own header looks the same as in canopy's top bar. On a page with
-  no layout, nothing renders differently.
+  no layout everything looks the same; the only differences in its HTML are `data-canopy-profile`
+  on `<html>` and the class on the site title link.
 - `THEME_HOOKS` is frozen and typed as its literal names (`ThemeHook`).
 
 ## [0.19.0] — 2026-10-03

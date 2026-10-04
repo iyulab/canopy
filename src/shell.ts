@@ -591,15 +591,6 @@ function renderListing(
   return `<ul class="canopy-listing">${items(entries)}</ul>`;
 }
 
-/**
- * The page's publication date where a reader looks for it: right under its
- * title, the `<h1>` that opens the content (or atop the content when the title
- * comes from frontmatter and the page has no heading of its own).
- *
- * Placed by the shell rather than written into the page body, so the date is
- * page chrome — the search index and every other reader of the body text never
- * see it as something the author wrote in the document.
- */
 /** Insert `markup` right after the page's `<h1>`, or at the very top when it has none. */
 function afterTitle(html: string, markup: string): string {
   if (markup === "") return html;
@@ -609,6 +600,15 @@ function afterTitle(html: string, markup: string): string {
   return html.slice(0, at) + markup + html.slice(at);
 }
 
+/**
+ * The page's publication date where a reader looks for it: right under its
+ * title, the `<h1>` that opens the content (or atop the content when the title
+ * comes from frontmatter and the page has no heading of its own).
+ *
+ * Placed by the shell rather than written into the page body, so the date is
+ * page chrome — the search index and every other reader of the body text never
+ * see it as something the author wrote in the document.
+ */
 function withPageDate(html: string, frontmatter: Record<string, unknown>, lang: string): string {
   const published = frontmatterDate(frontmatter.date);
   if (published === undefined) return html;
@@ -714,9 +714,10 @@ function renderControls(
   // No option gates this, unlike search: a caller-supplied script can flip a
   // reader's color scheme regardless of what else the site configures, the
   // same way the tokens it flips between (light/dark) need no field either.
-  // It only rides along when a topbar exists for another reason, though —
-  // manufacturing one just to hold a hidden button would cost every reader of
-  // an otherwise chrome-free site a visible padded bar (see .canopy-topbar).
+  // canopy's own top bar carries it only when that bar exists for another
+  // reason — manufacturing one just to hold a hidden button would cost every
+  // reader of an otherwise chrome-free site a visible padded bar (see
+  // .canopy-topbar) — but a fragment can place it anywhere with a slot.
   const themeToggle = `<button type="button" class="canopy-theme-toggle" hidden aria-label="${escapeHtml(strings.toggleTheme)}"></button>`;
   return {
     "site-title": siteTitle,
@@ -766,8 +767,12 @@ export function languageName(tag: string): string {
 function renderLanguage(page: RenderedPage, options: ShellOptions, label: string): string {
   if (options.siteUrl === undefined || options.alternates === undefined) return "";
   const own = (options.lang ?? "en").toLowerCase();
+  const siteUrl = options.siteUrl.replace(/\/+$/, "");
   const links = Object.entries(options.alternates)
-    .filter(([tag]) => tag !== "x-default" && tag.toLowerCase() !== own)
+    .filter(
+      ([tag, url]) =>
+        tag !== "x-default" && tag.toLowerCase() !== own && url.replace(/\/+$/, "") !== siteUrl,
+    )
     .map(
       ([tag, url]) =>
         `<a href="${escapeHtml(pageUrl(url, page.sitePath))}" hreflang="${escapeHtml(tag)}" lang="${escapeHtml(tag)}">${escapeHtml(languageName(tag))}</a>`,

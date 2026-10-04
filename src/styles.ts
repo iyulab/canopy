@@ -852,6 +852,7 @@ body {
 .canopy-byline .canopy-date { margin: 0; font-size: inherit; }
 .canopy-byline > * + *::before { content: "·"; margin: 0 var(--sp-2); }
 .canopy-listing .canopy-reading-time { font-size: 0.9em; color: var(--text-muted); }
+.canopy-listing .canopy-reading-time::before { content: "·"; margin: 0 var(--sp-2); }
 .canopy-toc {
   margin: 0 0 var(--sp-8);
   padding: var(--sp-3) var(--sp-4);

@@ -77,6 +77,10 @@ function* elements(nodes: readonly (RootContent | ElementContent)[], inSlot = fa
  */
 export function fragmentProblems(html: string, region: RegionName): string[] {
   const problems: string[] = [];
+  // HTML does not close a custom element on "/>", so a slot written that way
+  // takes in everything after it. Found in the source: the parsed tree cannot
+  // tell it from a slot that was opened and left unclosed.
+  const selfClosing = new Set([...html.matchAll(/<canopy-slot\b[^>]*\/\s*>/gi)].map((match) => match.index));
   for (const [element, inSlot] of elements(parse(html).children)) {
     if (element.tagName !== SLOT_TAG) continue;
     const name = slotName(element);
@@ -90,13 +94,13 @@ export function fragmentProblems(html: string, region: RegionName): string[] {
         `${tag} cannot sit in the head region — nothing there is shown to a reader, ` +
           "and text inside <script> or <title> is not HTML a slot could become",
       );
-    } else if (name.startsWith(PAGE_PREFIX)) {
-      if (name.length === PAGE_PREFIX.length) problems.push(`${tag} needs a frontmatter key after "page:"`);
-    } else if (!isControlSlot(name)) {
+    } else if (name.startsWith(PAGE_PREFIX) && name.length === PAGE_PREFIX.length) {
+      problems.push(`${tag} needs a frontmatter key after "page:"`);
+    } else if (!name.startsWith(PAGE_PREFIX) && !isControlSlot(name)) {
       problems.push(
         `unknown slot "${name}" — slots are ${CONTROL_SLOTS.join(", ")}, or page:<frontmatter key>`,
       );
-    } else if (hasContent(element)) {
+    } else if (selfClosing.has(element.position?.start.offset ?? -1) || (isControlSlot(name) && hasContent(element))) {
       problems.push(
         `${tag} must be empty — write it as <canopy-slot name="${name}"></canopy-slot>; ` +
           "HTML does not close a self-closing custom tag, so it takes in what follows",
@@ -119,14 +123,44 @@ export function pageSlotKeys(html: string): string[] {
   return keys;
 }
 
-/** Every `href` and `src` a fragment holds, in document order, as written. */
+/** The attributes whose value is one URL. */
+const URL_ATTRIBUTES = ["href", "src", "poster", "action"] as const;
+
+/**
+ * The candidates of a `srcset`: each URL with whatever follows it up to the next
+ * comma (its width or density descriptor). A comma ends a URL only when it
+ * follows whitespace or a descriptor, as in the HTML parsing rules, so a URL
+ * that itself holds a comma stays whole.
+ */
+function srcsetCandidates(value: string): { url: string; descriptor: string }[] {
+  const candidates: { url: string; descriptor: string }[] = [];
+  let rest = value;
+  for (;;) {
+    rest = rest.replace(/^[\s,]+/, "");
+    if (rest === "") return candidates;
+    const url = (/^\S+/.exec(rest) as RegExpExecArray)[0];
+    rest = rest.slice(url.length);
+    if (url.endsWith(",")) {
+      candidates.push({ url: url.replace(/,+$/, ""), descriptor: "" });
+      continue;
+    }
+    const end = rest.indexOf(",");
+    const descriptor = (end === -1 ? rest : rest.slice(0, end)).trim();
+    rest = end === -1 ? "" : rest.slice(end + 1);
+    candidates.push({ url, descriptor });
+  }
+}
+
+/** Every URL a fragment holds — `href`, `src`, `poster`, `action` and each `srcset` candidate — in document order, as written. */
 export function fragmentLinks(html: string): string[] {
   const links: string[] = [];
   for (const [element] of elements(parse(html).children)) {
-    for (const attribute of ["href", "src"] as const) {
+    for (const attribute of URL_ATTRIBUTES) {
       const value = element.properties[attribute];
       if (typeof value === "string") links.push(value);
     }
+    const srcset = element.properties.srcSet;
+    if (typeof srcset === "string") links.push(...srcsetCandidates(srcset).map((candidate) => candidate.url));
   }
   return links;
 }
@@ -185,9 +219,15 @@ export function renderFragment(html: string, context: FragmentContext): string {
         // is set; the type lives in mdast-util-to-hast's augmentation of hast.
         return markup === "" ? [] : [{ type: "raw", value: markup } as unknown as RootContent];
       }
-      for (const attribute of ["href", "src"] as const) {
+      for (const attribute of URL_ATTRIBUTES) {
         const value = node.properties[attribute];
         if (typeof value === "string") node.properties[attribute] = fragmentHref(context.from, value);
+      }
+      const srcset = node.properties.srcSet;
+      if (typeof srcset === "string") {
+        node.properties.srcSet = srcsetCandidates(srcset)
+          .map(({ url, descriptor }) => `${fragmentHref(context.from, url)} ${descriptor}`.trim())
+          .join(", ");
       }
       node.children = replace(node.children) as ElementContent[];
       return [node];

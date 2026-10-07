@@ -19,8 +19,17 @@ import { fileUrl, pageUrl, relativeHref } from "./site-path.js";
 import { isOutlineUseful, type OutlineItem } from "./outline.js";
 import { formatPageDate, frontmatterDate, pageDate } from "./page-date.js";
 import { declaredTitle, pageName } from "./title.js";
-import { pageTags, streamPosts, streamTags, tagIndexPath, tagPageCount, tagPagePath, tagSlug } from "./tags.js";
-import { pickReadNext } from "./read-next.js";
+import {
+  pageTagSlugs,
+  pageTags,
+  streamPosts,
+  streamTags,
+  tagIndexPath,
+  tagPageCount,
+  tagPagePath,
+  tagSlug,
+} from "./tags.js";
+import { type ReadNext, readNextPlanner } from "./read-next.js";
 import { readingMinutes } from "./reading-time.js";
 import { type ControlSlot, pageSlotText, renderFragment } from "./regions.js";
 
@@ -668,7 +677,7 @@ function renderListing(
   if (tagged !== undefined) {
     entries = entries.filter((node) => {
       const entry = node.sitePath === undefined ? undefined : bySitePath.get(node.sitePath);
-      return entry !== undefined && pageTags(entry.frontmatter).some((name) => tagSlug(name) === tagged.slug);
+      return entry !== undefined && pageTagSlugs(entry.frontmatter).has(tagged.slug.toLowerCase());
     });
   }
   // The stream's list and each tag's list are both read a page at a time.
@@ -752,6 +761,20 @@ function siteLinkIndex(pages: readonly RenderedPage[]): LinkIndex {
   return index;
 }
 
+/** One read-next planner per site and layout, so a site's streams are read once however many posts are drawn. */
+const planners = new WeakMap<readonly RenderedPage[], Map<Layout | undefined, (page: RenderedPage) => ReadNext>>();
+
+function sitePlanner(pages: readonly RenderedPage[], layout: Layout | undefined): (page: RenderedPage) => ReadNext {
+  const byLayout = planners.get(pages) ?? new Map();
+  planners.set(pages, byLayout);
+  let planner = byLayout.get(layout);
+  if (planner === undefined) {
+    planner = readNextPlanner(pages, layout, siteLinkIndex(pages));
+    byLayout.set(layout, planner);
+  }
+  return planner;
+}
+
 /**
  * What to read after this page (see read-next.ts), at its end: each entry
  * named and dated as the stream's list names and dates it, with its summary.
@@ -767,7 +790,7 @@ function renderReadNext(
 ): string {
   if (page.sourcePath === "") return "";
   const pages = options.sitePages ?? [];
-  const { sitePaths, chosen } = pickReadNext(page, pages, options.layout, siteLinkIndex(pages));
+  const { sitePaths, chosen } = sitePlanner(pages, options.layout)(page);
   if (sitePaths.length === 0) return "";
   const labels = new Map(flattenNav(navigation).map((entry) => [entry.sitePath, entry.label]));
   const bySitePath = new Map(pages.map((candidate) => [candidate.sitePath, candidate]));

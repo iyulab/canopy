@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RenderedPage } from "./contract.js";
-import { pageTags, streamTagPaths, streamTags, tagIndexPath, tagPagePath, tagProblems, tagSlug } from "./tags.js";
+import { pageTagSlugs, pageTags, streamTagPaths, streamTags, tagIndexPath, tagPagePath, tagProblems, tagSlug } from "./tags.js";
 
 function post(sitePath: string, date: string, tags: unknown): RenderedPage {
   return { sourcePath: sitePath.replace(/\.html$/, ".md"), sitePath, frontmatter: { date, tags }, html: "", backlinks: [], outline: [] };
@@ -26,6 +26,14 @@ describe("pageTags", () => {
     expect(pageTags({ tags: "Design" })).toEqual(["Design"]);
     expect(pageTags({ tags: [1, "", " "] })).toEqual([]);
     expect(pageTags({})).toEqual([]);
+  });
+});
+
+describe("pageTagSlugs", () => {
+  it("gives a page's tags as slugs, the same set each time it is asked", () => {
+    const frontmatter = { tags: ["Release Notes", "release notes", "Design"] };
+    expect([...pageTagSlugs(frontmatter)]).toEqual(["release-notes", "design"]);
+    expect(pageTagSlugs(frontmatter)).toBe(pageTagSlugs(frontmatter));
   });
 });
 

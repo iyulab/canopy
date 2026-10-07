@@ -383,7 +383,8 @@ filled to three: what its author named, then the folder's `featured` posts, then
 like it, then the stream's newest. A post is like another by the tags they share — each adding
 `ln(N / df)`, so a tag few posts carry counts for more and one on every post adds nothing — and
 by a link from either to the other (adding 1); ties go to the post published nearer. With nothing named or featured, the list is
-titled "Related posts". `pickReadNext`, `relatedPosts` and `resolveReadNext` are exported.
+titled "Related posts". `pickReadNext`, `relatedPosts` and `resolveReadNext` are exported, and
+`readNextPlanner` answers every page of a site from one reading of its streams.
 
 ### Markdown support
 

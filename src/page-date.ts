@@ -97,13 +97,24 @@ export function newestFirst(
  */
 export function formatPageDate(iso: string, lang: string): string {
   const [year, month, day] = iso.slice(0, 10).split("-").map(Number);
-  const date = new Date(Date.UTC(year ?? 0, (month ?? 1) - 1, day ?? 1));
-  let locale = "en";
-  try {
-    locale = Intl.getCanonicalLocales(lang)[0] ?? "en";
-  } catch {
-    // A malformed tag — `<html lang>` still carries it as given; only the
-    // date's spelling needs a locale Intl accepts.
+  return dateFormat(lang).format(new Date(Date.UTC(year ?? 0, (month ?? 1) - 1, day ?? 1)));
+}
+
+/** One formatter per language: a site's every listed date is spelled by the same one. */
+const dateFormats = new Map<string, Intl.DateTimeFormat>();
+
+function dateFormat(lang: string): Intl.DateTimeFormat {
+  let format = dateFormats.get(lang);
+  if (format === undefined) {
+    let locale = "en";
+    try {
+      locale = Intl.getCanonicalLocales(lang)[0] ?? "en";
+    } catch {
+      // A malformed tag — `<html lang>` still carries it as given; only the
+      // date's spelling needs a locale Intl accepts.
+    }
+    format = new Intl.DateTimeFormat(locale, { dateStyle: "long", timeZone: "UTC" });
+    dateFormats.set(lang, format);
   }
-  return new Intl.DateTimeFormat(locale, { dateStyle: "long", timeZone: "UTC" }).format(date);
+  return format;
 }

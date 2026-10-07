@@ -60,6 +60,19 @@ export function pageTags(frontmatter: Readonly<Record<string, unknown>>): string
   return tags;
 }
 
+/** Slugs read once per frontmatter: a tag's pages ask every post of a stream whether it carries the tag. */
+const slugCache = new WeakMap<Readonly<Record<string, unknown>>, ReadonlySet<string>>();
+
+/** The slugs of a page's tags (see `pageTags`), read once per frontmatter object. */
+export function pageTagSlugs(frontmatter: Readonly<Record<string, unknown>>): ReadonlySet<string> {
+  let slugs = slugCache.get(frontmatter);
+  if (slugs === undefined) {
+    slugs = new Set(pageTags(frontmatter).map(tagSlug));
+    slugCache.set(frontmatter, slugs);
+  }
+  return slugs;
+}
+
 /**
  * The tags of one stream's posts, gathered by slug and sorted by it. Spellings
  * that share a slug are one tag, shown the way most of its posts spell it —

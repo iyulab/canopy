@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 import type { RenderedPage } from "./contract.js";
 import { buildLinkIndex } from "./links.js";
-import { pickReadNext, readNextProblems, readNextValues, relatedPosts, resolveReadNext } from "./read-next.js";
+import {
+  pickReadNext,
+  readNextPlanner,
+  readNextProblems,
+  readNextValues,
+  relatedPosts,
+  resolveReadNext,
+} from "./read-next.js";
 
 function page(sitePath: string, frontmatter: Record<string, unknown> = {}, linkedFrom: string[] = []): RenderedPage {
   return {
@@ -127,6 +134,11 @@ describe("pickReadNext", () => {
       sitePaths: ["blog/e.html"],
       chosen: true,
     });
+  });
+
+  it("answers every page from one reading of the site, as pickReadNext answers each", () => {
+    const plan = readNextPlanner(posts, layout, index);
+    for (const page of posts) expect(plan(page)).toEqual(pickReadNext(page, posts, layout, index));
   });
 
   it("does not fill in the stream's own list", () => {

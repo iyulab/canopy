@@ -3,7 +3,7 @@ import { type Layout, resolvePageLayout, streamFeatured } from "./layout.js";
 import type { LinkIndex } from "./links.js";
 import { resolveMarkdownLink } from "./markdown-link.js";
 import { newestFirst, pageDate } from "./page-date.js";
-import { pageTags, streamPosts, tagSlug, type TaggedPage } from "./tags.js";
+import { pageTagSlugs, streamPosts, type TaggedPage } from "./tags.js";
 import { parseWikiTarget } from "./wikilink.js";
 
 /**
@@ -66,41 +66,123 @@ export interface ReadNext {
   chosen: boolean;
 }
 
+/**
+ * What read next asks of one stream, worked out once for all its posts: each
+ * post's tags and day, which posts carry each tag, which posts link each other,
+ * and the stream's newest first. Asking it per post instead made a build of a
+ * stream quadratic in its posts, with every pair re-reading tags and dates.
+ */
+interface StreamFacts {
+  posts: Set<string>;
+  slugs: Map<string, ReadonlySet<string>>;
+  carrying: Map<string, string[]>;
+  linked: Map<string, Set<string>>;
+  day: Map<string, number>;
+  newest: string[];
+}
+
+function streamFacts(posts: readonly RenderedPage[]): StreamFacts {
+  const facts: StreamFacts = {
+    posts: new Set(posts.map((post) => post.sitePath)),
+    slugs: new Map(),
+    carrying: new Map(),
+    linked: new Map(),
+    day: new Map(),
+    newest: [...posts].sort(newestFirst).map((post) => post.sitePath),
+  };
+  const link = (a: string, b: string) => {
+    if (a === b || !facts.posts.has(a) || !facts.posts.has(b)) return;
+    facts.linked.set(a, (facts.linked.get(a) ?? new Set()).add(b));
+    facts.linked.set(b, (facts.linked.get(b) ?? new Set()).add(a));
+  };
+  for (const post of posts) {
+    const slugs = pageTagSlugs(post.frontmatter);
+    facts.slugs.set(post.sitePath, slugs);
+    for (const slug of slugs) {
+      const carrying = facts.carrying.get(slug);
+      if (carrying === undefined) facts.carrying.set(slug, [post.sitePath]);
+      else carrying.push(post.sitePath);
+    }
+    for (const backlink of post.backlinks) link(post.sitePath, backlink.sitePath);
+    const date = pageDate(post);
+    facts.day.set(post.sitePath, date === undefined ? Number.NaN : Date.parse(date.slice(0, 10)));
+  }
+  return facts;
+}
+
+/** The posts like `sitePath` in a stream, most alike first (see `relatedPosts`). */
+function related(sitePath: string, facts: StreamFacts): string[] {
+  const total = facts.posts.size;
+  const scores = new Map<string, number>();
+  for (const slug of facts.slugs.get(sitePath) ?? []) {
+    const carrying = facts.carrying.get(slug) ?? [];
+    const weight = Math.log(total / carrying.length);
+    for (const other of carrying) if (other !== sitePath) scores.set(other, (scores.get(other) ?? 0) + weight);
+  }
+  for (const other of facts.linked.get(sitePath) ?? []) scores.set(other, (scores.get(other) ?? 0) + 1);
+  const at = facts.day.get(sitePath) ?? Number.NaN;
+  const distance = (other: string) => {
+    const d = Math.abs((facts.day.get(other) ?? Number.NaN) - at);
+    return Number.isNaN(d) ? Number.POSITIVE_INFINITY : d;
+  };
+  return [...scores.entries()]
+    .filter(([, score]) => score > 0)
+    .map(([other, score]) => ({ other, score, distance: distance(other) }))
+    .sort((a, b) => b.score - a.score || a.distance - b.distance || a.other.localeCompare(b.other))
+    .map((entry) => entry.other);
+}
+
+/**
+ * What to read after each page of a site, as a function of the page: the
+ * site's streams are read once, here, so asking for every page of a large
+ * stream costs what one pass over it does.
+ */
+export function readNextPlanner(
+  pages: readonly RenderedPage[],
+  layout: Layout | undefined,
+  index: LinkIndex,
+): (page: RenderedPage) => ReadNext {
+  const streams = new Map(
+    streamPosts(layout, pages).map(({ dir, posts }) => [dir.toLowerCase(), { dir, facts: streamFacts(posts) }]),
+  );
+  return (page) => {
+    const seen = new Set([page.sitePath.toLowerCase()]);
+    const sitePaths: string[] = [];
+    const add = (sitePath: string | undefined): void => {
+      if (sitePath === undefined || seen.has(sitePath.toLowerCase())) return;
+      seen.add(sitePath.toLowerCase());
+      sitePaths.push(sitePath);
+    };
+    for (const value of readNextValues(page.frontmatter)) add(resolveReadNext(page.sitePath, value, index));
+
+    // Only a stream's post is filled in: a manual page's list is what its author wrote.
+    const dir = resolvePageLayout(layout, page.sitePath).streamDir;
+    const stream = dir === undefined ? undefined : streams.get(dir.toLowerCase());
+    if (stream === undefined || !stream.facts.posts.has(page.sitePath)) {
+      return { sitePaths, chosen: sitePaths.length > 0 };
+    }
+    const fill = (candidates: Iterable<string | undefined>) => {
+      for (const sitePath of candidates) {
+        if (sitePaths.length >= READ_NEXT_SLOTS) return;
+        add(sitePath);
+      }
+    };
+    fill(streamFeatured(layout, stream.dir).map((sitePath) => index.page(sitePath)));
+    const chosen = sitePaths.length > 0;
+    fill(related(page.sitePath, stream.facts));
+    fill(stream.facts.newest);
+    return { sitePaths, chosen };
+  };
+}
+
+/** What to read after one page — `readNextPlanner` for a single question. */
 export function pickReadNext(
   page: RenderedPage,
   pages: readonly RenderedPage[],
   layout: Layout | undefined,
   index: LinkIndex,
 ): ReadNext {
-  const seen = new Set([page.sitePath.toLowerCase()]);
-  const sitePaths: string[] = [];
-  const add = (sitePath: string | undefined): void => {
-    if (sitePath === undefined || seen.has(sitePath.toLowerCase())) return;
-    seen.add(sitePath.toLowerCase());
-    sitePaths.push(sitePath);
-  };
-  for (const value of readNextValues(page.frontmatter)) add(resolveReadNext(page.sitePath, value, index));
-
-  // Only a stream's post is filled in: a manual page's list is what its author wrote.
-  const dir = resolvePageLayout(layout, page.sitePath).streamDir;
-  const posts = streamPosts(layout, pages).find((stream) => stream.dir.toLowerCase() === dir?.toLowerCase())?.posts;
-  if (dir === undefined || posts === undefined || !posts.some((post) => post.sitePath === page.sitePath)) {
-    return { sitePaths, chosen: sitePaths.length > 0 };
-  }
-  for (const sitePath of streamFeatured(layout, dir)) {
-    if (sitePaths.length >= READ_NEXT_SLOTS) break;
-    add(index.page(sitePath));
-  }
-  const chosen = sitePaths.length > 0;
-  for (const sitePath of relatedPosts(page, posts)) {
-    if (sitePaths.length >= READ_NEXT_SLOTS) break;
-    add(sitePath);
-  }
-  for (const post of [...posts].sort(newestFirst)) {
-    if (sitePaths.length >= READ_NEXT_SLOTS) break;
-    add(post.sitePath);
-  }
-  return { sitePaths, chosen };
+  return readNextPlanner(pages, layout, index)(page);
 }
 
 /**
@@ -110,30 +192,5 @@ export function pickReadNext(
  * above zero; a tie goes to the post published nearer, then to its path.
  */
 export function relatedPosts(page: RenderedPage, posts: readonly RenderedPage[]): string[] {
-  const slugs = (post: TaggedPage) => new Set(pageTags(post.frontmatter).map(tagSlug));
-  const df = new Map<string, number>();
-  for (const post of posts) for (const slug of slugs(post)) df.set(slug, (df.get(slug) ?? 0) + 1);
-  const mine = slugs(page);
-  const when = (post: TaggedPage) => {
-    const date = pageDate(post);
-    return date === undefined ? Number.NaN : Date.parse(date.slice(0, 10));
-  };
-  const at = when(page);
-  const scored = posts
-    .filter((post) => post.sitePath !== page.sitePath)
-    .map((post) => {
-      let score = 0;
-      for (const slug of slugs(post)) {
-        if (mine.has(slug)) score += Math.log(posts.length / (df.get(slug) ?? 1));
-      }
-      const linked =
-        page.backlinks.some((link) => link.sitePath === post.sitePath) ||
-        post.backlinks.some((link) => link.sitePath === page.sitePath);
-      if (linked) score += 1;
-      const distance = Math.abs(when(post) - at);
-      return { sitePath: post.sitePath, score, distance: Number.isNaN(distance) ? Number.POSITIVE_INFINITY : distance };
-    })
-    .filter((entry) => entry.score > 0);
-  scored.sort((a, b) => b.score - a.score || a.distance - b.distance || a.sitePath.localeCompare(b.sitePath));
-  return scored.map((entry) => entry.sitePath);
+  return related(page.sitePath, streamFacts(posts));
 }

@@ -8,6 +8,20 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [Unreleased]
+
+### Fixed
+
+- What to read next no longer reads a whole stream again for every post — every pair's tags and
+  dates parsed anew — and a tag's pages no longer re-parse every post's tags; a 1000-post stream spent 16 of its 26 seconds there. Each stream is
+  now read once per site (`readNextPlanner`), a page's tag slugs once per page (`pageTagSlugs`),
+  and a language's date format once per build.
+
+### Added
+
+- `readNextPlanner(pages, layout, index)` — what to read after each page of a site, from one
+  reading of its streams; `pickReadNext` is it for a single page. `pageTagSlugs(frontmatter)`.
+
 ## [0.28.1] — 2026-10-07
 
 ### Fixed

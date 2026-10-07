@@ -14,8 +14,14 @@
 const WORDS_PER_MINUTE = 230;
 const CHARACTERS_PER_MINUTE = 500;
 
-/** Han ideographs and kana — the scripts read by the character. Hangul is read by the word. */
-const BY_CHARACTER = /[぀-ヿ㐀-䶿一-鿿豈-﫿]/u;
+/**
+ * Han ideographs and kana — the scripts read by the character. Hangul is read
+ * by the word. Named by script rather than by code-point block, so every block
+ * of them counts (extension B and later lie outside the Basic Multilingual
+ * Plane), and by script extension, so the marks used only within them — "々",
+ * the prolonged-sound "ー" — count with them.
+ */
+const BY_CHARACTER = /[\p{scx=Han}\p{scx=Hiragana}\p{scx=Katakana}]/gu;
 
 function segmenter(lang: string): Intl.Segmenter {
   try {
@@ -31,7 +37,7 @@ export function readingMinutes(text: string, lang: string): number {
   let characters = 0;
   for (const { segment, isWordLike } of segmenter(lang).segment(text)) {
     if (!isWordLike) continue;
-    const ideographic = [...segment].filter((char) => BY_CHARACTER.test(char)).length;
+    const ideographic = segment.match(BY_CHARACTER)?.length ?? 0;
     if (ideographic > 0) characters += ideographic;
     else words += 1;
   }

@@ -25,6 +25,16 @@ describe("readingMinutes", () => {
     expect(readingMinutes("かな".repeat(300), "ja")).toBe(2);
   });
 
+  // Every ideograph and kana counts, not only those in the most common blocks:
+  // CJK extension B lies outside the Basic Multilingual Plane, "々" repeats the
+  // ideograph before it, and half-width katakana is still katakana.
+  it("counts ideographs and kana outside the common blocks by the character too", () => {
+    expect(readingMinutes("𠀋".repeat(501), "zh")).toBe(2);
+    expect(readingMinutes("人々".repeat(250), "ja")).toBe(1);
+    expect(readingMinutes("人々".repeat(251), "ja")).toBe(2);
+    expect(readingMinutes("ｶﾀｶﾅ".repeat(126), "ja")).toBe(2);
+  });
+
   it("adds the two in mixed text", () => {
     expect(readingMinutes(`${words(115)} ${"字".repeat(250)}`, "en")).toBe(1);
     expect(readingMinutes(`${words(116)} ${"字".repeat(250)}`, "en")).toBe(2);

@@ -8,6 +8,14 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [Unreleased]
+
+### Fixed
+
+- A stream page's reading time counts every Han ideograph and kana by the character, as it
+  already did for the common blocks: ideographs outside the Basic Multilingual Plane (CJK
+  extension B and later), the iteration mark `々` and half-width katakana were counted as words.
+
 ## [0.21.0] — 2026-10-07
 
 Upgrading: a vault that publishes a file at a path canopy writes (see *Fixed*) now fails the

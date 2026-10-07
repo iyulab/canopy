@@ -85,6 +85,25 @@ describe("canopy build --stylesheet", { timeout: RENDERS }, () => {
   });
 });
 
+describe("canopy build — paths canopy writes itself", { timeout: RENDERS }, () => {
+  it("refuses a vault file at one of canopy's own outputs, naming each collision, and writes nothing", async () => {
+    const { root, out } = await vault({
+      "index.md": "# Home\n",
+      "tokens.css": ":root { --accent: red; }",
+      "index.html": "<p>hand-written</p>",
+    });
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await runBuild(["build", path.join(root, "vault"), out, "--site-stylesheet", "tokens.css"]);
+
+    expect(process.exitCode).toBe(1);
+    const message = error.mock.calls.flat().join("\n");
+    expect(message).toContain('"tokens.css", where canopy writes its design tokens');
+    expect(message).toContain('"index.html", where canopy writes the page rendered from index.md');
+    await expect(readdir(out)).rejects.toThrow();
+  });
+});
+
 describe("canopy build --site-stylesheet", { timeout: RENDERS }, () => {
   // A stylesheet that lives in the vault is published where it is, so a
   // relative url() inside it resolves exactly as its author wrote it.

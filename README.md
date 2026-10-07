@@ -130,6 +130,15 @@ npx canopy build <vault-dir> [out-dir] [options]
   before Shiki does; its output survives untouched because it runs after canopy's own HTML
   sanitizing, the same trust level canopy's own KaTeX and syntax-highlighting output already has.
 
+Canopy writes some files of its own into the output: `tokens.css`, `styles.css`, KaTeX's
+`assets/katex.css` and `assets/fonts/KaTeX_*`, each page's `.html`, the index page of a stream
+folder that has none, and whatever the flags above ask for (`assets/stylesheet-<n>.css`,
+`assets/script.js`, the search index, each `feed.xml`). Those paths are reserved: a vault that
+publishes a file at one of them fails the build, naming the file and what canopy writes there,
+instead of one silently replacing the other. KaTeX's paths are reserved even on a site with no
+math yet, so a first formula cannot break a working site. `outputCollisions` answers the same
+question for a caller checking a site before it builds.
+
 ### Listing what a build publishes
 
 ```sh
@@ -141,7 +150,9 @@ patterns, one per line, without building anything — the build's own walk, so a
 gate that runs first sees exactly the files that will ship rather than a restatement of the rules.
 A place-naming pattern that matched nothing (`_archive` where the folder is really
 `docs/_archive`) is reported on stderr; an extension pattern such as `*.tmp` is not, since it is a
-standing rule rather than a claim that something is there.
+standing rule rather than a claim that something is there. Neither is a pattern naming a dot-file,
+a dot-folder or `node_modules`: those are never published anyway, so the pattern is redundant
+rather than wrong.
 
 `--json` prints one object instead: `{"pages": [...], "assets": [...], "unusedExcludes": [...]}`,
 where `pages` are the markdown files `build` renders and `assets` everything it copies as-is.

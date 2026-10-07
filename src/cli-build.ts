@@ -4,13 +4,14 @@ import { mkdir, copyFile, readdir, readFile, writeFile } from "node:fs/promises"
 import type { PluggableList } from "unified";
 import { build } from "./index.js";
 import { emitSite } from "./emit.js";
-import { datedPagesUnder, feedPath, normalizeFeedDir } from "./feed.js";
+import { datedPagesUnder, normalizeFeedDir } from "./feed.js";
 import { parseNavSpec, type NavSpec } from "./nav-spec.js";
 import { listVault, readDocuments, writeFiles, copyFiles } from "./fs-bundle.js";
 import { parseBuildArgs } from "./cli-args.js";
 import { bundleUsesKatex, KATEX_STYLESHEET } from "./katex.js";
 import { katexDirOfRenderer } from "./katex-assets.js";
-import { callerStylesheetPath, inCanopyLayer } from "./stylesheets.js";
+import { inCanopyLayer } from "./stylesheets.js";
+import { type OutputOwner, outputCollisions } from "./output-paths.js";
 import { type Layout, layoutFragments, parseLayout } from "./layout.js";
 import { fragmentProblems, pageSlotProblems } from "./regions.js";
 
@@ -98,6 +99,34 @@ async function copyKatexAssets(outDir: string): Promise<void> {
   }
 }
 
+/** What canopy writes at a reserved path, in the CLI's own terms. */
+function describeOwner(owner: OutputOwner): string {
+  switch (owner.kind) {
+    case "tokens":
+      return "its design tokens";
+    case "styles":
+      return "its layout stylesheet";
+    case "katex":
+      return "KaTeX's stylesheet and fonts";
+    case "stylesheet":
+      return `the --stylesheet given ${ordinal(owner.index)}`;
+    case "script":
+      return "the --script";
+    case "search-index":
+      return "the --search-index";
+    case "feed":
+      return `the --feed for ${owner.dir || "."}`;
+    case "page":
+      return `the page rendered from ${owner.page}`;
+    case "stream-index":
+      return `the index page of stream folder ${owner.dir || "."}`;
+  }
+}
+
+function ordinal(index: number): string {
+  return ["first", "second", "third"][index] ?? `${index + 1}th`;
+}
+
 export async function runBuild(argv: string[]): Promise<void> {
   const args = parseBuildArgs(argv);
   if (!args.ok) {
@@ -178,16 +207,23 @@ export async function runBuild(argv: string[]): Promise<void> {
   // A fragment is read into the pages it fills, not published beside them.
   const listing = await listVault(vault, [...args.exclude, ...Object.keys(fragments)]);
   const published = [...listing.pages, ...listing.assets];
-  // A vault file at a caller stylesheet's output path would be overwritten by
-  // the stylesheet, or overwrite it, depending on write order — neither is
-  // something to decide silently.
-  for (let index = 0; index < styles.length; index++) {
-    const target = callerStylesheetPath(index);
-    if (published.some((file) => file.toLowerCase() === target)) {
-      console.error(`--stylesheet: the vault already publishes a file at "${target}"`);
-      process.exitCode = 1;
-      return;
+  // canopy writes its own files into the same tree the vault's are copied to;
+  // a vault file at one of those paths would replace canopy's or be replaced by
+  // it, silently either way (see output-paths.ts).
+  const collisions = outputCollisions(published, {
+    pages: listing.pages,
+    stylesheets: styles.length,
+    script: script !== undefined,
+    ...(args.searchIndexPath !== undefined ? { searchIndexPath: args.searchIndexPath } : {}),
+    feeds: args.feeds,
+    ...(layout ? { layout } : {}),
+  });
+  if (collisions.length > 0) {
+    for (const { path: file, owner } of collisions) {
+      console.error(`canopy: the vault publishes "${file}", where canopy writes ${describeOwner(owner)} — rename or move it`);
     }
+    process.exitCode = 1;
+    return;
   }
   const siteStylesheets = args.siteStylesheets.map((value) =>
     value.replace(/\\/g, "/").replace(/^\/+/, ""),
@@ -263,15 +299,8 @@ export async function runBuild(argv: string[]): Promise<void> {
 
   // A feed is written from the folder's dated pages; one with none has nothing
   // to say and no honest update time, so it is skipped — say so, or a missing
-  // feed.xml looks like canopy ignoring the flag. A vault file already at the
-  // feed's path would be overwritten by the asset copy, or overwrite the feed.
+  // feed.xml looks like canopy ignoring the flag.
   for (const dir of new Set(args.feeds.map(normalizeFeedDir))) {
-    const target = feedPath(dir);
-    if (published.some((file) => file.toLowerCase() === target.toLowerCase())) {
-      console.error(`--feed ${dir || "."}: the vault already publishes a file at "${target}"`);
-      process.exitCode = 1;
-      return;
-    }
     if (datedPagesUnder(bundle.pages, dir).length === 0) {
       console.warn(`--feed ${dir || "."}: no page there names a date:, so no feed is written`);
     }

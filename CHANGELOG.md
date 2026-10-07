@@ -8,6 +8,25 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [Unreleased]
+
+### Fixed
+
+- **A vault file at a path canopy writes itself fails the build.** A vault publishing
+  `tokens.css`, `styles.css`, KaTeX's files, a page's `.html`, a stream folder's generated index
+  page, or a path a flag writes (`--stylesheet`, `--script`, `--search-index`, `--feed`) used to
+  replace canopy's file or be replaced by it, silently — a vault `tokens.css` dropped canopy's
+  design tokens. The build now names each such file and what canopy writes there. Before this,
+  only `--stylesheet` and `--feed` paths were checked.
+- A `--exclude` pattern naming a dot-file, a dot-folder or something under `node_modules` is no
+  longer reported as matching nothing: those paths are never published, so the pattern is
+  redundant, not a mistake.
+
+### Added
+
+- `outputCollisions(published, plan)`: the published files that would land on a path canopy
+  writes, with what it writes there — the build's own check, for a caller checking a site first.
+
 ## [0.20.0] — 2026-10-04
 
 ### Added

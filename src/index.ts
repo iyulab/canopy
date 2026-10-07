@@ -79,6 +79,12 @@ export { CANOPY_TOKENS } from "./tokens.js";
 export { BASE_CSS } from "./styles.js";
 export { THEME_HOOKS, type ThemeHook } from "./theme-hooks.js";
 export { callerStylesheetPath } from "./stylesheets.js";
+export {
+  outputCollisions,
+  type OutputCollision,
+  type OutputOwner,
+  type OutputPlan,
+} from "./output-paths.js";
 export { readingMinutes } from "./reading-time.js";
 
 

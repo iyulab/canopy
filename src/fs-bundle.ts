@@ -21,13 +21,21 @@ async function walk(
   for (const entry of entries) {
     const childRel = rel ? `${rel}/${entry.name}` : entry.name;
     if (entry.isDirectory()) {
-      if (isSkippedDir(entry.name)) continue;
+      if (isSkippedDir(entry.name)) {
+        // Never published anyway, so a pattern naming it or something in it
+        // is redundant rather than a pattern that matched nothing.
+        exclusions.excludes(childRel);
+        exclusions.pruned(childRel);
+        continue;
+      }
       // Pruning at the directory keeps an excluded tree from being walked at
       // all, so a large archive folder costs nothing to skip.
       if (exclusions.excludes(childRel)) exclusions.pruned(childRel);
       else await walk(root, childRel, found, exclusions);
-    } else if (entry.isFile() && !isSkippedFile(entry.name) && !exclusions.excludes(childRel)) {
-      found.push(childRel);
+    } else if (entry.isFile()) {
+      // Tested even when the file is never published, for the same reason.
+      const excluded = exclusions.excludes(childRel);
+      if (!excluded && !isSkippedFile(entry.name)) found.push(childRel);
     }
   }
 }

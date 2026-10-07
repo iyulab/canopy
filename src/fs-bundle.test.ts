@@ -143,4 +143,26 @@ describe("fs-bundle", () => {
       });
     });
   });
+  it("does not report a pattern naming a file or folder that is never published anyway", async () => {
+    await withTempDir(async (tmp) => {
+      const vault = path.join(tmp, "vault");
+      await mkdir(path.join(vault, ".cache", "deep"), { recursive: true });
+      await mkdir(path.join(vault, "node_modules", "pkg"), { recursive: true });
+      await writeFile(path.join(vault, "index.md"), "# Home");
+      await writeFile(path.join(vault, ".source-index.json"), "{}");
+      await writeFile(path.join(vault, ".cache", "deep", "x.json"), "{}");
+      await writeFile(path.join(vault, "node_modules", "pkg", "index.js"), "");
+
+      const listing = await listVault(vault, [
+        ".source-index.json",
+        ".cache",
+        ".cache/deep/x.json",
+        "node_modules/pkg",
+        ".missing.json",
+      ]);
+      // Hidden and node_modules paths never ship, so naming them is redundant,
+      // not a pattern that matched nothing; one naming no file at all still is.
+      expect(listing).toEqual({ pages: ["index.md"], assets: [], unusedExcludes: [".missing.json"] });
+    });
+  });
 });

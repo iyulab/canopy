@@ -24,6 +24,14 @@ export interface ShellOptions {
    */
   lang?: string;
   /**
+   * The site's one colour scheme, for a site that has only one. Every page is
+   * drawn in it for every reader — `data-theme` on `<html>`, the attribute
+   * canopy's stylesheet already reads — whatever the system preference, and
+   * there is no theme toggle to place. Unset, a page follows the reader's
+   * system preference and a script may switch it.
+   */
+  colorScheme?: "light" | "dark";
+  /**
    * Stylesheet site paths to link in <head>, resolved relative to each page.
    * Defaults to ["tokens.css", "styles.css"]; consumers can append e.g. a
    * KaTeX stylesheet.
@@ -724,7 +732,13 @@ function renderControls(
   // reason — manufacturing one just to hold a hidden button would cost every
   // reader of an otherwise chrome-free site a visible padded bar (see
   // .canopy-topbar) — but a fragment can place it anywhere with a slot.
-  const themeToggle = `<button type="button" class="canopy-theme-toggle" hidden aria-label="${escapeHtml(strings.toggleTheme)}"></button>`;
+  // Nothing to toggle on a site with one scheme, so nothing a script could
+  // wire up either — and no remembered choice from another site on the same
+  // origin can switch it.
+  const themeToggle =
+    options.colorScheme !== undefined
+      ? ""
+      : `<button type="button" class="canopy-theme-toggle" hidden aria-label="${escapeHtml(strings.toggleTheme)}"></button>`;
   // Past every block repeated on each page — top bar or site header, sidebar
   // tree — to the page's own content (WCAG 2.4.1). The target is a fixed id,
   // part of the public contract, so a site's own link can point at it too.
@@ -928,13 +942,18 @@ export function renderPage(
     ? ""
     : `${renderOutline(page.outline, strings.onThisPage)}\n${renderBacklinks(page.backlinks, page.sitePath, strings.backlinks)}\n${renderPageNav(navigation, page.sitePath, strings.pageNav)}\n`;
 
+  // A fixed scheme also tells the browser, so its own controls and scrollbars match.
+  const schemeAttr = options.colorScheme === undefined ? "" : ` data-theme="${options.colorScheme}"`;
+  const schemeMeta =
+    options.colorScheme === undefined ? "" : `<meta name="color-scheme" content="${options.colorScheme}">\n`;
+
   return `<!doctype html>
-<html lang="${escapeHtml(lang)}" data-canopy-profile="${pageLayout.profile}">
+<html lang="${escapeHtml(lang)}" data-canopy-profile="${pageLayout.profile}"${schemeAttr}>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="canopy">
-<title>${escapeHtml(docTitle)}</title>
+${schemeMeta}<title>${escapeHtml(docTitle)}</title>
 ${descriptionTag}${social}${feedTags}${icon}${links}${script}${region("head")}
 </head>
 <body>

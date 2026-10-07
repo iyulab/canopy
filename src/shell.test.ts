@@ -1053,6 +1053,32 @@ describe("profiles, regions and slots", () => {
   });
 });
 
+describe("a site with one colour scheme", () => {
+  it("draws every page in it, tells the browser, and offers no toggle", () => {
+    const html = renderPage(page(), nav, { siteTitle: "Site", colorScheme: "dark" });
+    expect(html).toContain('data-canopy-profile="manual" data-theme="dark">');
+    expect(html).toContain('<meta name="color-scheme" content="dark">\n<title>');
+    expect(html).not.toContain("canopy-theme-toggle");
+  });
+
+  it("leaves a theme-toggle slot empty", () => {
+    const html = renderPage(page(), nav, {
+      colorScheme: "light",
+      layout: { default: { regions: { header: "h.html" } } },
+      fragments: { "h.html": '<header><canopy-slot name="theme-toggle"></canopy-slot></header>' },
+    });
+    expect(html).toContain('data-theme="light"');
+    expect(html).toContain("<header></header>");
+  });
+
+  it("is absent unless asked for: the page follows the reader's preference and carries the toggle", () => {
+    const html = renderPage(page(), nav, { siteTitle: "Site" });
+    expect(html).not.toContain("data-theme=");
+    expect(html).not.toContain('name="color-scheme"');
+    expect(html).toContain("canopy-theme-toggle");
+  });
+});
+
 describe("the skip link", () => {
   it("opens every page's body, pointing at the page's main content", () => {
     const html = renderPage(page(), nav, { siteTitle: "Site" });

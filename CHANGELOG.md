@@ -32,6 +32,10 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
   `id="canopy-main"` — a stable target for a site's own link too. A header fragment can place
   it with the new `skip-link` slot; the page then does not open with a second one. Text:
   `--strings` key `skipToContent`.
+- **`--color-scheme <light|dark>`** for a site with one colour scheme. Every page carries
+  `data-theme` and `<meta name="color-scheme">` from the start, so the palette, code highlighting
+  and a stylesheet's own dark block apply for every reader regardless of system preference, and
+  no theme toggle is drawn (a `theme-toggle` slot shows nothing, with a build warning).
 - `fragmentControls(html)`: the control slots a fragment places, for a caller checking a site.
 - Hook `.canopy-table`: the box each table in an article scrolls inside.
 

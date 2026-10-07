@@ -13,7 +13,7 @@ import { katexDirOfRenderer } from "./katex-assets.js";
 import { inCanopyLayer } from "./stylesheets.js";
 import { type OutputOwner, outputCollisions } from "./output-paths.js";
 import { type Layout, layoutFragments, parseLayout } from "./layout.js";
-import { fragmentProblems, pageSlotProblems } from "./regions.js";
+import { fragmentControls, fragmentProblems, pageSlotProblems } from "./regions.js";
 
 /**
  * `canopy build`. Kept out of `cli.ts` so the rendering pipeline it pulls in
@@ -285,6 +285,18 @@ export async function runBuild(argv: string[]): Promise<void> {
     return;
   }
 
+  // A toggle on a site with one scheme has nothing to switch, so the slot shows
+  // nothing; said here so a header's empty space is not a mystery.
+  if (args.colorScheme !== undefined) {
+    for (const [file, html] of Object.entries(fragments)) {
+      if (fragmentControls(html).includes("theme-toggle")) {
+        console.warn(
+          `--color-scheme ${args.colorScheme}: ${file} places the theme-toggle slot, which shows nothing on a site with one scheme`,
+        );
+      }
+    }
+  }
+
   // Report rather than fail: an omitted page may be deliberate, and canopy does
   // not know which. Saying so is what keeps the omission from being silent.
   for (const missing of bundle.navReport?.missing ?? []) {
@@ -323,6 +335,7 @@ export async function runBuild(argv: string[]): Promise<void> {
     ...(siteStylesheets.length > 0 ? { siteStylesheets } : {}),
     ...(script !== undefined ? { script } : {}),
     ...(args.lang ? { lang: args.lang } : {}),
+    ...(args.colorScheme ? { colorScheme: args.colorScheme } : {}),
     ...(args.siteIcon ? { iconPath: args.siteIcon.replace(/\\/g, "/") } : {}),
     ...(args.siteDescription ? { description: args.siteDescription } : {}),
     ...(args.siteUrl ? { siteUrl: args.siteUrl } : {}),

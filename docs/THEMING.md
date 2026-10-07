@@ -84,6 +84,12 @@ custom property canopy never reads is silently ignored, which is the usual reaso
 Dark mode is the attribute `data-theme="dark"` on `<html>` (or the system preference when it is
 absent), never a class.
 
+A site with only one colour scheme says so with `--color-scheme dark` (or `light`): every page
+carries that `data-theme` from the start, so canopy's palette, code highlighting and the dark
+blocks of your own overrides apply for every reader whatever their system prefers, and there is
+no theme toggle — a `theme-toggle` slot shows nothing. Your dark values still go in the
+`[data-theme="dark"]` block above; nothing else needs restating.
+
 ## Hooks
 
 These class names are stable: renaming or removing one is a breaking change, announced in the

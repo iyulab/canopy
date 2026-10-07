@@ -210,6 +210,15 @@ describe("parseBuildArgs", () => {
     });
   });
 
+  it("parses --color-scheme, and refuses anything but light or dark", () => {
+    expect(parseBuildArgs(["build", "vault", "--color-scheme", "dark"])).toMatchObject({ ok: true, colorScheme: "dark" });
+    expect(parseBuildArgs(["build", "vault"])).not.toHaveProperty("colorScheme");
+    expect(parseBuildArgs(["build", "vault", "--color-scheme", "auto"])).toEqual({
+      ok: false,
+      error: '--color-scheme: expected light or dark, got "auto"',
+    });
+  });
+
   it("refuses a home label with no URL", () => {
     const args = parseBuildArgs(["build", "vault", "--home-label", "제품 홈"]);
     expect(args).toEqual({ ok: false, error: "--home-label needs --home-url" });

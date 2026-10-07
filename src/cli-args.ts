@@ -14,6 +14,8 @@ export type BuildArgs =
       exclude: string[];
       /** BCP 47 language tag for the published pages. */
       lang?: string;
+      /** The one colour scheme a site has, when it has only one. */
+      colorScheme?: "light" | "dark";
       /** Vault-relative path of a favicon to link from every page. */
       siteIcon?: string;
       /** Site description for `<meta name="description">`. */
@@ -96,6 +98,7 @@ export const USAGE = [
   "  --alternate <lang>=<url>   Another language edition of this site, by its own site URL (repeatable); needs --site-url",
   "  --feed <dir>               Atom feed of the dated pages under a vault folder, at <dir>/feed.xml (repeatable; . = whole site); needs --site-url",
   "  --lang <tag>               BCP 47 language tag (defaults to en)",
+  "  --color-scheme <light|dark>  The site's one colour scheme, for a site that has only one",
   "  --site-icon <path>         Vault-relative favicon, linked from every page",
   "  --nav <path>               JSON navigation spec: order and labels",
   "  --layout <path>            JSON layout: each folder's profile (manual, stream) and region fragments",
@@ -127,6 +130,7 @@ const VALUE_FLAGS = {
   "--site-url": "siteUrl",
   "--site-image": "siteImage",
   "--lang": "lang",
+  "--color-scheme": "colorScheme",
   "--site-icon": "siteIcon",
   "--nav": "navPath",
   "--layout": "layoutPath",
@@ -321,6 +325,9 @@ export function parseBuildArgs(argv: string[]): BuildArgs {
   if (feeds.length > 0 && single.siteUrl === undefined) {
     return { ok: false, error: "--feed needs --site-url: a feed's entries are absolute URLs" };
   }
+  if (single.colorScheme !== undefined && single.colorScheme !== "light" && single.colorScheme !== "dark") {
+    return { ok: false, error: `--color-scheme: expected light or dark, got "${single.colorScheme}"` };
+  }
   let alternates: Record<string, string> | undefined;
   if (alternate.length > 0) {
     alternates = {};
@@ -362,6 +369,7 @@ export function parseBuildArgs(argv: string[]): BuildArgs {
     siteImage: single.siteImage,
     alternates,
     lang: single.lang,
+    ...(single.colorScheme !== undefined ? { colorScheme: single.colorScheme as "light" | "dark" } : {}),
     siteIcon: single.siteIcon,
     navPath: single.navPath,
     siteLogo: single.siteLogo,

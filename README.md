@@ -78,6 +78,10 @@ npx canopy build <vault-dir> [out-dir] [options]
   (`<link rel="alternate" type="application/atom+xml">`) so browsers and feed readers find it.
   Repeatable; needs `--site-url`. Entries are pages that name a `date:` (see *Dated pages*), apart
   from the folder's own index page; a folder with none gets no feed and a warning.
+- `--color-scheme <light|dark>` — for a site that has only one colour scheme: every page is drawn
+  in it whatever the reader's system prefers (`data-theme` on `<html>`, plus
+  `<meta name="color-scheme">`), and there is no theme toggle. Without it, pages follow the system
+  preference and a script may switch them. See [docs/THEMING.md](docs/THEMING.md#tokens).
 - `--lang <tag>` — BCP 47 language tag for `<html lang>` (defaults to `en`). Worth setting for
   any non-English vault: assistive technology reads pronunciation rules from it. It changes only
   what `<html lang>` declares — the reader chrome's own text (search, theme toggle, nav

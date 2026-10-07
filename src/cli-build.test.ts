@@ -244,3 +244,35 @@ describe("canopy build --layout", { timeout: RENDERS }, () => {
     expect(error.mock.calls[0]?.[0]).toBe(`--layout ${layout}: default.profile: must be one of manual, stream`);
   });
 });
+
+describe("canopy build --color-scheme", { timeout: RENDERS }, () => {
+  it("draws the site in its one scheme and says so when a fragment places a toggle", async () => {
+    const { root, out } = await vault({
+      "index.md": "# Home\n",
+      "partials/header.html": '<header><canopy-slot name="theme-toggle"></canopy-slot></header>',
+    });
+    await writeFile(
+      path.join(root, "layout.json"),
+      JSON.stringify({ default: { regions: { header: "partials/header.html" } } }),
+      "utf8",
+    );
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    await runBuild([
+      "build",
+      path.join(root, "vault"),
+      out,
+      "--color-scheme",
+      "dark",
+      "--layout",
+      path.join(root, "layout.json"),
+    ]);
+
+    expect(process.exitCode).toBeUndefined();
+    expect(await readFile(path.join(out, "index.html"), "utf8")).toContain('data-theme="dark"');
+    expect(warn.mock.calls.flat().join("\n")).toContain(
+      "--color-scheme dark: partials/header.html places the theme-toggle slot",
+    );
+  });
+});

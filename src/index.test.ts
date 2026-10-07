@@ -214,6 +214,22 @@ describe("build", () => {
     expect(install?.backlinks.map((b) => b.sitePath)).toEqual(["index.html"]);
   });
 
+  it("writes a folder link as the folder's index page, and counts it as a reference", async () => {
+    const bundle = await build({
+      documents: [
+        { path: "index.md", content: "---\ntitle: Home\n---\n[a](Guide/) [b](guide/#start) [c](notes/)" },
+        { path: "guide/index.md", content: "# Guide" },
+        { path: "notes/idea.md", content: "# Idea" },
+      ],
+    });
+    const home = bundle.pages.find((p) => p.sitePath === "index.html");
+    const hrefs = [...(home?.html ?? "").matchAll(/href="([^"]*)"/g)].map((m) => m[1]);
+    // `notes/` has no index page, so there is nothing to write it as.
+    expect(hrefs).toEqual(["guide/index.html", "guide/index.html#start", "notes/"]);
+    const guide = bundle.pages.find((p) => p.sitePath === "guide/index.html");
+    expect(guide?.backlinks.map((b) => b.sitePath)).toEqual(["index.html"]);
+  });
+
   it("leaves links that point outside the vault untouched", async () => {
     const bundle = await build({
       documents: [

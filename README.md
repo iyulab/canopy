@@ -369,7 +369,8 @@ checker) recognizes exactly the dates canopy does. Undated pages are unchanged.
   `[text][id]` form) resolve the same way, relative to the linking document, and count in the
   backlink graph. Both match a page ignoring letter case and are written as the page is spelled
   (`[x](Guide/Install.md)` → `guide/install.html`), so a host that tells case apart still serves
-  them. Files that are not pages (images, PDFs) keep the link's own spelling. Absolute URLs,
+  them. A folder link (`[x](guide/)`) reaches the folder's index page the same way and is written
+  as it (`guide/index.html`); a folder without one is left as written. Files that are not pages (images, PDFs) keep the link's own spelling. Absolute URLs,
   root-absolute paths (`/help/x.png`), bare fragments, and targets that were not published are
   left exactly as written.
 - Raw HTML is sanitized: safe authoring tags survive, scripts and injection vectors are stripped.

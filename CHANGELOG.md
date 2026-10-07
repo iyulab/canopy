@@ -8,6 +8,18 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [Unreleased]
+
+Upgrading: nothing to do. A folder link to a folder with an index page is now written as that page
+(`guide/` → `guide/index.html`).
+
+### Fixed
+
+- A markdown folder link (`[x](guide/)`, `../`) to a folder with an index page reaches that page:
+  it is written as the page's own location, in the page's spelling, and the page lists it among
+  its backlinks. It was left as written — leading nowhere when written in another letter case than
+  the folder — and was not counted as a reference.
+
 ## [0.22.0] — 2026-10-07
 
 Upgrading: a caller of `resolveMarkdownLink` or `buildLinkIndex` passes or reads a page lookup in

@@ -128,6 +128,9 @@ export function resolveRelative(fromSitePath: string, target: string): string | 
  * inventing an `.html` target for something that does not exist would turn a
  * visibly-wrong link into a plausible-looking broken one.
  *
+ * A folder target (`guide/`, `../`) names the folder's index page, and is
+ * resolved only when there is one — a folder without one is not a document.
+ *
  * Any other target with an extension is an asset, mirrored into the site at
  * its own path — including an `.html` file that is not a page. Assets are not
  * matched against anything, so they keep the author's spelling.
@@ -155,6 +158,10 @@ export function resolveMarkdownLink(
     return undefined;
   }
 
+  // A folder link (`guide/`) addresses the page that stands for the folder.
+  if (decoded.endsWith("/")) {
+    return page(resolved === "" ? "index.html" : `${resolved}/index.html`);
+  }
   if (/\.md$/i.test(resolved)) {
     return page(resolved.replace(/\.md$/i, ".html"));
   }

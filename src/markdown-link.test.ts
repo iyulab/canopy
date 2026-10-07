@@ -99,6 +99,18 @@ describe("resolveMarkdownLink", () => {
     );
   });
 
+  it("writes a folder link as the folder's index page, when it has one", () => {
+    // `guide/` addresses the document that stands for the folder; written as
+    // that page's own location, it works on any host and in any letter case.
+    const withIndexes = spelling(new Set([...pages, "guide/Index.html", "guide/settings/index.html"]));
+    expect(resolveMarkdownLink(from, "../", withIndexes)).toBe("guide/Index.html");
+    expect(resolveMarkdownLink(from, "./", withIndexes)).toBe("guide/settings/index.html");
+    expect(resolveMarkdownLink(from, "../../", withIndexes)).toBe("index.html");
+    expect(resolveMarkdownLink("index.html", "GUIDE/", withIndexes)).toBe("guide/Index.html");
+    // A folder with no index page is not a document: left as written.
+    expect(resolveMarkdownLink(from, "../orders/", withIndexes)).toBeUndefined();
+  });
+
   it("passes an .html path that is not a page through as written", () => {
     // A hand-written HTML file mirrored like any other asset.
     expect(resolveMarkdownLink(from, "Embed.html", page)).toBe("guide/settings/Embed.html");

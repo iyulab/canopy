@@ -17,6 +17,7 @@ import { fileUrl, pageUrl, relativeHref } from "./site-path.js";
 import { isOutlineUseful, type OutlineItem } from "./outline.js";
 import { formatPageDate, frontmatterDate, pageDate } from "./page-date.js";
 import { declaredTitle, pageName } from "./title.js";
+import { pageTags, streamPosts, streamTags, tagIndexPath, tagPagePath, tagSlug } from "./tags.js";
 import { readingMinutes } from "./reading-time.js";
 import { type ControlSlot, pageSlotText, renderFragment } from "./regions.js";
 
@@ -188,6 +189,8 @@ export interface ShellOptions {
     newerPosts?: string;
     /** The link from a page of a stream's listing to the one after it, with older posts. */
     olderPosts?: string;
+    /** A stream post's tags' label, and the title of the stream's list of tags. */
+    tags?: string;
   };
 }
 
@@ -211,6 +214,7 @@ const DEFAULT_STRINGS = {
   pageOf: "Page {n} of {total}",
   newerPosts: "Newer posts",
   olderPosts: "Older posts",
+  tags: "Tags",
 } as const;
 
 type ShellStrings = Record<keyof typeof DEFAULT_STRINGS, string>;
@@ -629,11 +633,17 @@ function renderListing(
   // does each later page of that list; any other page lists what it fronts only
   // when it asks to.
   const listed = streamListingPage(page.sitePath, pageLayout);
-  if (page.frontmatter.listing !== true && listed === undefined) return "";
+  const view = streamTagView(page.sitePath, pageLayout);
+  // A stream's list of tags is its own content; a tag's page lists that tag's posts.
+  if (view?.kind === "index") return "";
+  const tagged = view?.kind === "tag" ? view.slug : undefined;
+  if (page.frontmatter.listing !== true && listed === undefined && tagged === undefined) return "";
   // A later page of a stream's list is not in the tree; it lists what the
   // stream's index fronts.
   const indexPath =
-    listed === undefined || pageLayout.streamDir === undefined ? undefined : streamIndexPath(pageLayout.streamDir);
+    (listed === undefined && tagged === undefined) || pageLayout.streamDir === undefined
+      ? undefined
+      : streamIndexPath(pageLayout.streamDir);
   const anchor =
     indexPath === undefined
       ? page.sitePath
@@ -645,6 +655,13 @@ function renderListing(
   if (entries.length === 0 && anchor.toLowerCase() === "index.html") {
     entries = navigation.filter((node) => node !== self);
   }
+  const bySitePath = new Map((options.sitePages ?? []).map((p) => [p.sitePath, p]));
+  if (tagged !== undefined) {
+    entries = entries.filter((node) => {
+      const entry = node.sitePath === undefined ? undefined : bySitePath.get(node.sitePath);
+      return entry !== undefined && pageTags(entry.frontmatter).some((name) => tagSlug(name) === tagged);
+    });
+  }
   let pager = "";
   if (listed !== undefined && indexPath !== undefined) {
     const size = folderRule(options.layout, pageLayout.streamDir as string)?.pageSize ?? DEFAULT_PAGE_SIZE;
@@ -654,7 +671,6 @@ function renderListing(
   }
   if (entries.length === 0) return "";
 
-  const bySitePath = new Map((options.sitePages ?? []).map((p) => [p.sitePath, p]));
   const items = (nodes: NavNode[]): string =>
     nodes
       .map((node) => {
@@ -682,10 +698,18 @@ function renderListing(
         // A stream's cards carry their posts' covers; a manual listing stays as it was.
         const cover =
           pageLayout.profile === "stream" && entry !== undefined ? renderCover(entry, page.sitePath, true) : "";
-        return `<li>${cover}${name}${date}${minutes}${summary}${nested}</li>`;
+        const tags =
+          pageLayout.profile === "stream" && entry !== undefined ? renderTags(entry, page.sitePath, pageLayout, strings) : "";
+        return `<li>${cover}${name}${date}${minutes}${summary}${tags}${nested}</li>`;
       })
       .join("");
-  return `<ul class="canopy-listing">${items(entries)}</ul>${pager}`;
+  // The stream's first page and each tag's page lead to the list of all its
+  // tags — nothing else links there.
+  const toTags =
+    (listed === 1 || tagged !== undefined) && pageLayout.streamDir !== undefined
+      ? renderTagIndexLink(page.sitePath, pageLayout.streamDir, options, strings)
+      : "";
+  return `<ul class="canopy-listing">${items(entries)}</ul>${pager}${toTags}`;
 }
 
 /**
@@ -704,6 +728,93 @@ function renderPagination(from: string, indexPath: string, at: number, total: nu
     (at < total ? `<a rel="next" href="${href(at + 1)}">${escapeHtml(strings.olderPosts)}</a>` : "") +
     "</nav>"
   );
+}
+
+/**
+ * Which of a stream's tag pages a path is: the list of all its tags, a tag's
+ * page (by slug), or neither.
+ */
+function streamTagView(
+  sitePath: string,
+  pageLayout: PageLayout,
+): { kind: "index" } | { kind: "tag"; slug: string } | undefined {
+  if (pageLayout.streamDir === undefined) return undefined;
+  const key = sitePath.toLowerCase();
+  const indexKey = tagIndexPath(pageLayout.streamDir).toLowerCase();
+  if (key === indexKey) return { kind: "index" };
+  const prefix = indexKey.slice(0, -"index.html".length);
+  if (!key.startsWith(prefix) || !key.endsWith(".html")) return undefined;
+  const slug = sitePath.slice(prefix.length, -".html".length);
+  return slug === "" || slug.includes("/") ? undefined : { kind: "tag", slug };
+}
+
+/**
+ * A stream post's tags, each leading to its tag's page — at the post's end, and
+ * on its item in the stream's list (`from` is the page they appear on). A tag
+ * with no page of its own (`tagProblems`) is not linked anywhere.
+ */
+function renderTags(post: RenderedPage, from: string, pageLayout: PageLayout, strings: ShellStrings): string {
+  const dir = pageLayout.streamDir;
+  if (dir === undefined) return "";
+  const items = pageTags(post.frontmatter)
+    .filter((name) => tagSlug(name) !== "" && tagSlug(name) !== "index")
+    .map(
+      (name) =>
+        `<li><a href="${escapeHtml(relativeHref(from, tagPagePath(dir, tagSlug(name))))}">${escapeHtml(name)}</a></li>`,
+    );
+  if (items.length === 0) return "";
+  return `<ul class="canopy-tags" aria-label="${escapeHtml(strings.tags)}">${items.join("")}</ul>`;
+}
+
+/** A link to the list of a stream's tags, when the stream has any. */
+function renderTagIndexLink(from: string, dir: string, options: ShellOptions, strings: ShellStrings): string {
+  const stream = streamPosts(options.layout, options.sitePages ?? []).find(
+    (candidate) => candidate.dir.toLowerCase() === dir.toLowerCase(),
+  );
+  if (stream === undefined || streamTags(stream.posts).length === 0) return "";
+  return `<p class="canopy-tag-index-link"><a href="${escapeHtml(relativeHref(from, tagIndexPath(dir)))}">${escapeHtml(strings.tags)}</a></p>`;
+}
+
+/**
+ * The pages of every tagged stream's tags: the list of all its tags with how
+ * many posts carry each, and a page per tag listing those posts in the
+ * stream's order — drawn in the stream's shell, titled within the stream.
+ */
+export function renderStreamTagPages(
+  pages: readonly RenderedPage[],
+  navigation: NavNode[],
+  options: ShellOptions,
+): { path: string; contents: string }[] {
+  const strings = { ...DEFAULT_STRINGS, ...options.strings };
+  const files: { path: string; contents: string }[] = [];
+  for (const { dir, posts } of streamPosts(options.layout, pages)) {
+    const tags = streamTags(posts);
+    if (tags.length === 0) continue;
+    const indexPath = streamIndexPath(dir).toLowerCase();
+    const index = pages.find((candidate) => candidate.sitePath.toLowerCase() === indexPath);
+    const stream = index === undefined ? dir : pageTitle(index);
+    const listPath = tagIndexPath(dir);
+    const list = tags
+      .map(
+        (tag) =>
+          `<li><a href="${escapeHtml(relativeHref(listPath, tagPagePath(dir, tag.slug)))}">${escapeHtml(tag.name)}</a> ` +
+          `<span class="canopy-tag-count">${tag.posts.length}</span></li>`,
+      )
+      .join("");
+    const at = (sitePath: string, title: string, html: string) => ({
+      path: sitePath,
+      contents: renderPage(
+        { sourcePath: "", sitePath, frontmatter: { title: `${title} · ${stream}` }, html, backlinks: [], outline: [] },
+        navigation,
+        options,
+      ),
+    });
+    files.push(
+      at(listPath, strings.tags, `<h1>${escapeHtml(strings.tags)}</h1><ul class="canopy-tags canopy-tag-index">${list}</ul>`),
+    );
+    for (const tag of tags) files.push(at(tagPagePath(dir, tag.slug), tag.name, `<h1>${escapeHtml(tag.name)}</h1>`));
+  }
+  return files;
 }
 
 /**
@@ -797,7 +908,9 @@ function streamOpening(
   const own = page.frontmatter.description;
   const lead =
     typeof own === "string" && own.trim() !== "" ? `<p class="canopy-lead">${escapeHtml(own.trim())}</p>` : "";
-  if (streamListingPage(page.sitePath, pageLayout) !== undefined) return afterTitle(page.html, lead);
+  if (streamListingPage(page.sitePath, pageLayout) !== undefined || streamTagView(page.sitePath, pageLayout) !== undefined) {
+    return afterTitle(page.html, lead);
+  }
   const published = pageDate(page);
   const date =
     published === undefined
@@ -1121,6 +1234,13 @@ export function renderPage(
   const body = stream
     ? streamOpening(page, pageLayout, lang, strings)
     : withPageDate(page, lang);
+  // A post's tags close it; a page of the stream's lists carries none of its own.
+  const postTags =
+    stream &&
+    streamListingPage(page.sitePath, pageLayout) === undefined &&
+    streamTagView(page.sitePath, pageLayout) === undefined
+      ? renderTags(page, page.sitePath, pageLayout, strings)
+      : "";
   const around = stream
     ? renderStreamPageNav(page, navigation, pageLayout, strings)
     : `${renderOutline(page.outline, strings.onThisPage)}\n${renderBacklinks(page.backlinks, page.sitePath, strings.backlinks)}\n${renderPageNav(navigation, page.sitePath, strings.pageNav)}\n`;
@@ -1143,7 +1263,7 @@ ${descriptionTag}${social}${feedTags}${icon}${links}${script}${head}
 ${skip}${header}
 <div class="canopy-layout">
 ${sidebar}<main class="canopy-main" id="${MAIN_ID}">
-<article class="canopy-content">${before}${body}${renderListing(page, navigation, options, lang, pageLayout, strings)}${after}</article>
+<article class="canopy-content">${before}${body}${renderListing(page, navigation, options, lang, pageLayout, strings)}${postTags}${after}</article>
 ${around}</main>
 </div>
 ${footer === "" ? "" : `${footer}\n`}</body>

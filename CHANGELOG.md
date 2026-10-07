@@ -8,6 +8,22 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [Unreleased]
+
+Upgrading: a stream post's `tags:` now show and get pages under `<folder>/tags/`. A tag that can have
+no page — no letters or digits, or one named "index" — fails the build; so does a vault file at a tag
+page's path. Manual pages' `tags:` are unchanged.
+
+### Added
+
+- Tags in a stream: a post's `tags:` (a list, or one string) close the post and its item in the list
+  (`.canopy-tags`), each leading to `<folder>/tags/<slug>.html`, which lists the posts carrying it;
+  `<folder>/tags/index.html` lists every tag with its count (`.canopy-tag-index`,
+  `.canopy-tag-count`), linked from the folder's index and each tag's page (`.canopy-tag-index-link`).
+  Slugs keep letters of every script; spellings that share a slug are one
+  tag, shown the way most of its posts spell it. `--strings` key `tags`. `canopy list --json` names
+  the pages; `streamTagPaths`, `tagProblems`, `tagSlug` and the rest are exported for a checker.
+
 ## [0.25.0] — 2026-10-07
 
 Upgrading: a stream folder with more than ten posts now lists the newest ten on its index and the

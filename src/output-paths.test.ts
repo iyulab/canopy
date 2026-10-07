@@ -77,4 +77,17 @@ describe("outputCollisions", () => {
       { path: "blog/page/3.html", owner: { kind: "stream-page", dir: "blog", page: 3 } },
     ]);
   });
+
+  it("reserves the pages of a stream's tags it is given", () => {
+    const pages = ["blog/a.md", "blog/tags/design.md"];
+    expect(
+      outputCollisions(["blog/tags/index.html", ...pages], {
+        pages,
+        tagPaths: ["blog/tags/index.html", "blog/tags/design.html"],
+      }),
+    ).toEqual([
+      { path: "blog/tags/design.md", owner: { kind: "stream-tags", path: "blog/tags/design.html" } },
+      { path: "blog/tags/index.html", owner: { kind: "stream-tags", path: "blog/tags/index.html" } },
+    ]);
+  });
 });

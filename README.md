@@ -95,7 +95,8 @@ npx canopy build <vault-dir> [out-dir] [options]
   `breadcrumb`, `language`, `readingTime` (with `{n}` for the minutes), `skipToContent` (the
   link every page opens with, past the header and navigation to the content), `newerPost` and
   `olderPost` (over the links at a stream post's end), `pageOf` (with `{n}` and `{total}`),
-  `newerPosts` and `olderPosts` (between the pages of a stream's list). No
+  `newerPosts` and `olderPosts` (between the pages of a stream's list), `tags` (a stream post's tags,
+  and the title of a stream's list of tags). No
   built-in translation table — the same reasoning `--home-label` already follows: this text has
   to be written in the site's own language, and canopy has no way to guess it. Keys left out
   keep their English default.
@@ -450,7 +451,8 @@ for it.
   controls go where its `<canopy-slot>` elements say.
 
 `canopy list --layout <path> --json` answers with the build's view: fragments left out, and
-`generated` naming the index pages and the later pages of a stream's list the build will write. Slots, hooks and what each profile
+`generated` naming the index pages, the later pages of a stream's list, and a stream's tag pages
+the build will write. Slots, hooks and what each profile
 draws: [docs/THEMING.md](docs/THEMING.md).
 
 ### Theming

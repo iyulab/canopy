@@ -2,8 +2,17 @@ import path from "node:path";
 import { readFile } from "node:fs/promises";
 import { listVault, outputExclusion, outputIsVaultMessage } from "./fs-bundle.js";
 import { parseListArgs } from "./cli-args.js";
-import { type Layout, layoutFragments, parseLayout, streamPagePaths, syntheticIndexPaths } from "./layout.js";
+import {
+  type Layout,
+  layoutFragments,
+  parseLayout,
+  streamDirs,
+  streamPagePaths,
+  syntheticIndexPaths,
+} from "./layout.js";
 import { toSitePath } from "./site-path.js";
+import { parseFrontmatter } from "./frontmatter.js";
+import { streamTagPaths } from "./tags.js";
 
 /**
  * `canopy list`: what `build` would publish, without building it.
@@ -52,7 +61,23 @@ export async function runList(argv: string[]): Promise<void> {
   );
   if (args.json) {
     const sitePaths = listing.pages.map(toSitePath);
-    const generated = [...syntheticIndexPaths(layout, sitePaths), ...streamPagePaths(layout, sitePaths)];
+    // A stream's tag pages come from its posts' frontmatter, so those are read —
+    // only when a layout makes some folder a stream.
+    const tagged =
+      streamDirs(layout).length === 0
+        ? []
+        : await Promise.all(
+            listing.pages.map(async (page) => ({
+              sourcePath: page,
+              sitePath: toSitePath(page),
+              frontmatter: parseFrontmatter(await readFile(path.join(path.resolve(args.vault), page), "utf8")).data,
+            })),
+          );
+    const generated = [
+      ...syntheticIndexPaths(layout, sitePaths),
+      ...streamPagePaths(layout, sitePaths),
+      ...streamTagPaths(layout, tagged),
+    ];
     console.log(JSON.stringify({ pages: listing.pages, assets: listing.assets, unusedExcludes, generated }));
     return;
   }

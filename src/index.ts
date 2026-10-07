@@ -7,6 +7,8 @@ import { applyNavSpec } from "./nav-spec.js";
 import { extractOutline } from "./outline.js";
 import { declaredTitle } from "./title.js";
 import { streamPagePaths, syntheticIndexPaths } from "./layout.js";
+import { parseFrontmatter } from "./frontmatter.js";
+import { streamTagPaths } from "./tags.js";
 import { orderStreams, syntheticStreamPages } from "./stream.js";
 
 export type {
@@ -90,6 +92,17 @@ export {
   type OutputPlan,
 } from "./output-paths.js";
 export { readingMinutes } from "./reading-time.js";
+export {
+  pageTags,
+  streamTagPaths,
+  streamTags,
+  tagIndexPath,
+  tagPagePath,
+  tagProblems,
+  tagSlug,
+  type StreamTag,
+  type TaggedPage,
+} from "./tags.js";
 
 
 /**
@@ -110,7 +123,17 @@ export async function build(tree: SourceTree): Promise<SiteBundle> {
 
   // Pass 1: index (paths only — no content needed).
   // A later page of a stream's list is a page a link can reach too.
-  const index = buildLinkIndex([...sitePaths, ...synthetic, ...streamPagePaths(tree.layout, sitePaths)]);
+  const tagged = tree.documents.map((doc) => ({
+    sourcePath: doc.path,
+    sitePath: toSitePath(doc.path),
+    frontmatter: parseFrontmatter(doc.content).data,
+  }));
+  const index = buildLinkIndex([
+    ...sitePaths,
+    ...synthetic,
+    ...streamPagePaths(tree.layout, sitePaths),
+    ...streamTagPaths(tree.layout, tagged),
+  ]);
 
   // Pass 2: render in parallel; the wiki context resolves links per page.
   // `tree.rehypePlugins` is passed by reference to every call, which is what

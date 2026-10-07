@@ -77,7 +77,7 @@ async function emittedHtml(): Promise<string[]> {
       {
         path: "blog/post.md",
         content:
-          "---\ndate: 2026-10-03\ndescription: Lead.\nauthor: Ada\nimage: cover.png\n---\n# Post\n\n## One\n\na\n\n## Two\n\nb\n",
+          "---\ndate: 2026-10-03\ndescription: Lead.\nauthor: Ada\nimage: cover.png\ntags: [Notes]\n---\n# Post\n\n## One\n\na\n\n## Two\n\nb\n",
       },
       // A second post, so a post has another to lead on to.
       { path: "blog/earlier.md", content: "---\ndate: 2026-10-01\n---\n# Earlier\n" },

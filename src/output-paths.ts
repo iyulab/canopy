@@ -34,6 +34,8 @@ export interface OutputPlan {
   searchIndexPath?: string;
   /** `--feed` folders. */
   feeds?: readonly string[];
+  /** The pages a build writes for stream folders' tags (`streamTagPaths`), which need the pages' frontmatter. */
+  tagPaths?: readonly string[];
   /** The layout, whose stream folders may get a generated index page. */
   layout?: Layout;
 }
@@ -50,7 +52,9 @@ export type OutputOwner =
   | { kind: "page"; page: string }
   | { kind: "stream-index"; dir: string }
   /** A later page of a stream's list (`<dir>/page/<n>.html`). */
-  | { kind: "stream-page"; dir: string; page: number };
+  | { kind: "stream-page"; dir: string; page: number }
+  /** A page of a stream's tags (`<dir>/tags/…`). */
+  | { kind: "stream-tags"; path: string };
 
 /** A published vault file at a path canopy writes itself. */
 export interface OutputCollision {
@@ -96,6 +100,12 @@ export function outputCollisions(published: readonly string[], plan: OutputPlan)
     reserve(sitePath, owner);
     // A page of the vault's own at that path is not a file copied over it but a
     // page rendered to the same place — the same loss, from the other side.
+    const index = sitePaths.findIndex((candidate) => candidate.toLowerCase() === sitePath.toLowerCase());
+    if (index !== -1) collisions.push({ path: plan.pages[index] as string, owner });
+  }
+  for (const sitePath of plan.tagPaths ?? []) {
+    const owner: OutputOwner = { kind: "stream-tags", path: sitePath };
+    reserve(sitePath, owner);
     const index = sitePaths.findIndex((candidate) => candidate.toLowerCase() === sitePath.toLowerCase());
     if (index !== -1) collisions.push({ path: plan.pages[index] as string, owner });
   }

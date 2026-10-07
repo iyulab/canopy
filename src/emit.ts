@@ -1,7 +1,13 @@
 import type { SiteBundle, OutputFile } from "./contract.js";
 import { feedPath, feedTitle, normalizeFeedDir, renderFeed } from "./feed.js";
 import { buildSearchIndex } from "./search-index.js";
-import { renderContentsPage, renderPage, renderStreamListingPages, type ShellOptions } from "./shell.js";
+import {
+  renderContentsPage,
+  renderPage,
+  renderStreamListingPages,
+  renderStreamTagPages,
+  type ShellOptions,
+} from "./shell.js";
 import { BASE_CSS } from "./styles.js";
 import { callerStylesheetPath, inCanopyLayer } from "./stylesheets.js";
 import { CANOPY_TOKENS } from "./tokens.js";
@@ -104,6 +110,7 @@ export function emitSite(
       contents: renderPage(page, bundle.navigation, shell),
     })),
     ...renderStreamListingPages(bundle.pages, bundle.navigation, shell),
+    ...renderStreamTagPages(bundle.pages, bundle.navigation, shell),
   ];
 
   // A site with no root index page gets a synthetic contents landing page,

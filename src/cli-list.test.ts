@@ -103,6 +103,23 @@ describe("canopy list --layout — a stream's list in pages", () => {
 
     expect(JSON.parse(String(log.mock.calls[0]?.[0])).generated).toEqual(["blog/index.html", "blog/page/2.html"]);
   });
+
+  it("names a stream's tag pages among the generated ones", async () => {
+    const root = await vault({ "blog/a.md": "---\ntags: [Design, Notes]\n---\n# A\n" });
+    const layoutPath = path.join(root, "..", `${path.basename(root)}-tagged.json`);
+    temporary.push(layoutPath);
+    await writeFile(layoutPath, JSON.stringify({ dirs: { blog: { profile: "stream" } } }), "utf8");
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+
+    await runList(["list", root, "--layout", layoutPath, "--json"]);
+
+    expect(JSON.parse(String(log.mock.calls[0]?.[0])).generated).toEqual([
+      "blog/index.html",
+      "blog/tags/index.html",
+      "blog/tags/design.html",
+      "blog/tags/notes.html",
+    ]);
+  });
 });
 
 describe("canopy list --out", () => {

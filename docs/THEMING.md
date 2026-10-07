@@ -99,7 +99,7 @@ changelog. Select on them freely.
 |---|---|
 | Top bar and controls | `.canopy-topbar` `.canopy-topbar-controls` `.canopy-site-title` `.canopy-logo` `.canopy-home` `.canopy-home-external` `.canopy-back` `.canopy-breadcrumb` `.canopy-language` `.canopy-search` `.canopy-theme-toggle` `.canopy-skip-link` |
 | Layout and navigation | `.canopy-layout` `.canopy-sidebar` `.canopy-nav` `.canopy-nav-group` `.canopy-main` |
-| Article | `.canopy-content` `.canopy-contents` `.canopy-before-article` `.canopy-after-article` `.canopy-lead` `.canopy-byline` `.canopy-author` `.canopy-date` `.canopy-reading-time` `.canopy-cover` `.canopy-toc` `.canopy-listing` `.canopy-listing-title` `.canopy-pagination` `.canopy-table` |
+| Article | `.canopy-content` `.canopy-contents` `.canopy-before-article` `.canopy-after-article` `.canopy-lead` `.canopy-byline` `.canopy-author` `.canopy-date` `.canopy-reading-time` `.canopy-cover` `.canopy-toc` `.canopy-listing` `.canopy-listing-title` `.canopy-pagination` `.canopy-tags` `.canopy-tag-index` `.canopy-tag-count` `.canopy-tag-index-link` `.canopy-table` |
 | Callouts | `.callout` `.callout-note` `.callout-tip` `.callout-warning` `.callout-danger` `.callout-quote` `.callout-title` |
 | Around the article | `.canopy-outline` `.canopy-backlinks` `.canopy-page-nav` `.canopy-page-nav-label` `.canopy-prev` `.canopy-next` |
 
@@ -138,6 +138,13 @@ pages read one at a time, newest first:
   date, reading time and summary — canopy writes that index page when the folder has none. Ten
   posts to a page (the rule's `pageSize`): the rest continue on `page/2.html`, `page/3.html` …
   in the folder, each page ending with the way to the pages beside it (`.canopy-pagination`);
+- a post's `tags:` (a list, or one string) close the post and its item in the list
+  (`.canopy-tags`), each leading to the tag's page, `<folder>/tags/<slug>.html`, which lists the
+  posts carrying it; `<folder>/tags/index.html` lists every tag of the folder
+  (`.canopy-tag-index`) with how many posts carry it (`.canopy-tag-count`), and the folder's index
+  and each tag's page link to it (`.canopy-tag-index-link`). A slug is the tag
+  lowercased, with spaces and `/ ? # % \` as `-`; tags with one slug are one tag, shown the way
+  most of its posts spell it;
 - canopy's own top bar shows a link back to that index (`.canopy-back`) where a manual page
   shows its breadcrumb;
 - after the article, the post published before it (`.canopy-prev`) and the one after

@@ -234,4 +234,26 @@ describe("emitSite", () => {
     expect(third).toContain('<a class="canopy-listing-title" href="../a.html">A</a>');
     expect(third).toContain('<a rel="prev" href="2.html">Newer posts</a><span>Page 3 of 3</span></nav>');
   });
+
+  it("writes a stream's list of tags and a page for each tag, listing only its posts", async () => {
+    const layout = { dirs: { blog: { profile: "stream" as const, title: "Blog" } } };
+    const documents = [
+      { path: "blog/a.md", content: "---\ndate: 2026-10-01\ntags: [Design]\n---\n# A\n" },
+      { path: "blog/b.md", content: "---\ndate: 2026-10-02\ntags: [design, Notes]\n---\n# B\n" },
+      { path: "blog/c.md", content: "---\ndate: 2026-10-03\n---\n# C\n" },
+    ];
+    const files = emitSite(await build({ documents, layout }), { layout, siteTitle: "Site" });
+    const at = (path: string) => files.find((file) => file.path === path)?.contents ?? "";
+    expect(at("blog/tags/index.html")).toContain("<title>Tags · Blog · Site</title>");
+    expect(at("blog/tags/index.html")).toContain(
+      '<ul class="canopy-tags canopy-tag-index"><li><a href="design.html">design</a> <span class="canopy-tag-count">2</span></li>' +
+        '<li><a href="notes.html">Notes</a> <span class="canopy-tag-count">1</span></li></ul>',
+    );
+    const design = at("blog/tags/design.html");
+    expect(design).toContain("<title>design · Blog · Site</title>");
+    expect(design).toContain('<a class="canopy-listing-title" href="../b.html">B</a>');
+    expect(design).toContain('<a class="canopy-listing-title" href="../a.html">A</a>');
+    expect(design).not.toContain('href="../c.html"');
+    expect(design).not.toContain("canopy-byline");
+  });
 });

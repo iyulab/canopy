@@ -21,6 +21,9 @@ import { inCanopyLayer } from "./stylesheets.js";
 import { type OutputOwner, outputCollisions } from "./output-paths.js";
 import { type Layout, layoutFragments, parseLayout } from "./layout.js";
 import { fragmentControls, fragmentProblems, pageSlotProblems } from "./regions.js";
+import { parseFrontmatter } from "./frontmatter.js";
+import { toSitePath } from "./site-path.js";
+import { streamTagPaths, tagProblems } from "./tags.js";
 
 /**
  * `canopy build`. Kept out of `cli.ts` so the rendering pipeline it pulls in
@@ -129,6 +132,8 @@ function describeOwner(owner: OutputOwner): string {
       return `the index page of stream folder ${owner.dir || "."}`;
     case "stream-page":
       return `page ${owner.page} of stream folder ${owner.dir || "."}'s list`;
+    case "stream-tags":
+      return `the tag page ${owner.path}`;
   }
 }
 
@@ -231,6 +236,21 @@ export async function runBuild(argv: string[]): Promise<void> {
   // A fragment is read into the pages it fills, not published beside them.
   const listing = await listVault(vault, [...args.exclude, ...Object.keys(fragments), ...ownOutput]);
   const published = [...listing.pages, ...listing.assets];
+  // Read before anything is written: a stream's tag pages come from its posts'
+  // frontmatter, and both what they collide with and a tag that can have no
+  // page are reasons to write nothing.
+  const documents = await readDocuments(vault, listing.pages);
+  const tagged = documents.map((doc) => ({
+    sourcePath: doc.path,
+    sitePath: toSitePath(doc.path),
+    frontmatter: parseFrontmatter(doc.content).data,
+  }));
+  const badTags = tagProblems(layout, tagged);
+  if (badTags.length > 0) {
+    for (const problem of badTags) console.error(`canopy: ${problem}`);
+    process.exitCode = 1;
+    return;
+  }
   // canopy writes its own files into the same tree the vault's are copied to;
   // a vault file at one of those paths would replace canopy's or be replaced by
   // it, silently either way (see output-paths.ts).
@@ -240,6 +260,7 @@ export async function runBuild(argv: string[]): Promise<void> {
     script: script !== undefined,
     ...(args.searchIndexPath !== undefined ? { searchIndexPath: args.searchIndexPath } : {}),
     feeds: args.feeds,
+    tagPaths: streamTagPaths(layout, tagged),
     ...(layout ? { layout } : {}),
   });
   if (collisions.length > 0) {
@@ -294,7 +315,6 @@ export async function runBuild(argv: string[]): Promise<void> {
     }
   }
 
-  const documents = await readDocuments(vault, listing.pages);
   const bundle = await build({
     documents,
     ...(nav ? { nav } : {}),

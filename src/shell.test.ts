@@ -1252,6 +1252,38 @@ describe("the stream profile", () => {
     );
   });
 
+  describe("tags", () => {
+    const tagged = { ...post, frontmatter: { ...post.frontmatter, tags: ["Design", "release notes"] } };
+    const taggedOptions = { ...options, sitePages: [index, tagged] };
+
+    it("ends a post with its tags, each leading to its tag's page", () => {
+      expect(renderPage(tagged, streamNav, taggedOptions)).toContain(
+        '<ul class="canopy-tags" aria-label="Tags"><li><a href="tags/design.html">Design</a></li>' +
+          '<li><a href="tags/release-notes.html">release notes</a></li></ul></article>',
+      );
+    });
+
+    it("shows a post's tags on the stream's list", () => {
+      expect(renderPage(index, streamNav, taggedOptions)).toContain(
+        '<p>What changed.</p><ul class="canopy-tags" aria-label="Tags"><li><a href="tags/design.html">Design</a></li>',
+      );
+    });
+
+    it("leads from the stream's index to the list of its tags", () => {
+      expect(renderPage(index, streamNav, taggedOptions)).toContain(
+        '</ul><p class="canopy-tag-index-link"><a href="tags/index.html">Tags</a></p>',
+      );
+      expect(renderPage(index, streamNav, options)).not.toContain("canopy-tag-index-link");
+    });
+
+    it("leaves a manual page's tags alone", () => {
+      const manual = { ...tagged, sourcePath: "guide/a.md", sitePath: "guide/a.html" };
+      expect(renderPage(manual, [{ label: "A", sitePath: "guide/a.html", children: [] }], { sitePages: [manual] })).not.toContain(
+        "canopy-tags",
+      );
+    });
+  });
+
   describe("a listing in pages", () => {
     const paged = { dirs: { blog: { profile: "stream" as const, pageSize: 2 } } };
     const post = (name: string) => ({ label: name, sitePath: `blog/${name}.html`, children: [] });

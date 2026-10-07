@@ -135,6 +135,21 @@ describe("canopy build — an output directory inside the vault", { timeout: REN
   });
 });
 
+describe("canopy build — a stream's tags", { timeout: RENDERS }, () => {
+  it("refuses a tag that can have no page, naming the post, and writes nothing", async () => {
+    const { root, out } = await vault({ "blog/a.md": "---\ntags: ['?#']\n---\n# A\n" });
+    const layoutPath = path.join(root, "layout.json");
+    await writeFile(layoutPath, JSON.stringify({ dirs: { blog: { profile: "stream" } } }), "utf8");
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await runBuild(["build", path.join(root, "vault"), out, "--layout", layoutPath]);
+
+    expect(process.exitCode).toBe(1);
+    expect(error.mock.calls[0]?.[0]).toBe('canopy: blog/a.html: tag "?#" has no letters or digits to name its page');
+    await expect(readdir(out)).rejects.toThrow();
+  });
+});
+
 describe("canopy build --site-stylesheet", { timeout: RENDERS }, () => {
   // A stylesheet that lives in the vault is published where it is, so a
   // relative url() inside it resolves exactly as its author wrote it.

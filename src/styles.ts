@@ -921,6 +921,34 @@ body {
   margin: 0 0 var(--sp-2);
 }
 .canopy-listing .canopy-reading-time { font-size: 0.9em; color: var(--text-muted); }
+/* A post's tags, at its end and on its item in the list; the list of a stream's
+   tags is the same row, each with how many posts carry it. */
+.canopy-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  list-style: none;
+  margin: var(--sp-3) 0 0;
+  padding: 0;
+  font-size: 0.85em;
+}
+.canopy-tags a {
+  display: inline-block;
+  padding: 0 var(--sp-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.canopy-tags a:hover { color: var(--accent); border-color: var(--accent); }
+/* A row, not a list of the article's own: none of the article's list indent
+   or spacing between items. */
+.canopy-content ul.canopy-tags { padding-left: 0; }
+.canopy-content .canopy-tags li + li { margin-top: 0; }
+.canopy-content > .canopy-tags { margin-top: var(--sp-8); }
+.canopy-tag-index { font-size: 1em; }
+.canopy-tag-count { color: var(--text-muted); font-size: 0.85em; }
+.canopy-tag-index-link { margin-top: var(--sp-6); font-size: 0.95em; }
 /* The way between the pages of a stream's list: newer on the left, where this
    page is in the middle, older on the right. */
 .canopy-pagination {

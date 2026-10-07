@@ -94,7 +94,8 @@ npx canopy build <vault-dir> [out-dir] [options]
   page's title/heading — and a whole-site stream's written front page, when the layout gives it no `title`), `backlinks` (a page's "linked references" section heading),
   `breadcrumb`, `language`, `readingTime` (with `{n}` for the minutes), `skipToContent` (the
   link every page opens with, past the header and navigation to the content), `newerPost` and
-  `olderPost` (over the links at a stream post's end). No
+  `olderPost` (over the links at a stream post's end), `pageOf` (with `{n}` and `{total}`),
+  `newerPosts` and `olderPosts` (between the pages of a stream's list). No
   built-in translation table — the same reasoning `--home-label` already follows: this text has
   to be written in the site's own language, and canopy has no way to guess it. Keys left out
   keep their English default.
@@ -441,13 +442,15 @@ for it.
   newest first, one column, the folder's index listing them — written by canopy when the
   folder has none).
 - `title` — the title of that written index page.
+- `pageSize` — on a `stream` rule, how many posts the folder's index lists (default 10); the rest
+  continue on `<folder>/page/2.html`, `page/3.html` …, each linking to the pages beside it.
 - `regions` — `head`, `header`, `beforeArticle`, `afterArticle`, `footer`, each a vault path of
   an HTML fragment, or `""` to turn off one a shorter folder set. Fragments are read, not
   published. `header` and `footer` replace canopy's own with the fragment's markup; canopy's
   controls go where its `<canopy-slot>` elements say.
 
 `canopy list --layout <path> --json` answers with the build's view: fragments left out, and
-`generated` naming the index pages the build will write. Slots, hooks and what each profile
+`generated` naming the index pages and the later pages of a stream's list the build will write. Slots, hooks and what each profile
 draws: [docs/THEMING.md](docs/THEMING.md).
 
 ### Theming

@@ -1,7 +1,7 @@
 import type { SiteBundle, OutputFile } from "./contract.js";
 import { feedPath, feedTitle, normalizeFeedDir, renderFeed } from "./feed.js";
 import { buildSearchIndex } from "./search-index.js";
-import { renderContentsPage, renderPage, type ShellOptions } from "./shell.js";
+import { renderContentsPage, renderPage, renderStreamListingPages, type ShellOptions } from "./shell.js";
 import { BASE_CSS } from "./styles.js";
 import { callerStylesheetPath, inCanopyLayer } from "./stylesheets.js";
 import { CANOPY_TOKENS } from "./tokens.js";
@@ -98,10 +98,13 @@ export function emitSite(
     scriptPath: options.script !== undefined ? "assets/script.js" : undefined,
   };
 
-  const files: OutputFile[] = bundle.pages.map((page) => ({
-    path: page.sitePath,
-    contents: renderPage(page, bundle.navigation, shell),
-  }));
+  const files: OutputFile[] = [
+    ...bundle.pages.map((page) => ({
+      path: page.sitePath,
+      contents: renderPage(page, bundle.navigation, shell),
+    })),
+    ...renderStreamListingPages(bundle.pages, bundle.navigation, shell),
+  ];
 
   // A site with no root index page gets a synthetic contents landing page,
   // so the site root (and every page's site-title link) always resolves.

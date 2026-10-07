@@ -1,5 +1,15 @@
 import type { RenderedPage, Backlink } from "./contract.js";
-import { type Layout, type PageLayout, type RegionName, resolvePageLayout, streamIndexPath } from "./layout.js";
+import {
+  DEFAULT_PAGE_SIZE,
+  folderRule,
+  type Layout,
+  type PageLayout,
+  type RegionName,
+  resolvePageLayout,
+  streamIndexPath,
+  streamListingPage,
+  streamPagePaths,
+} from "./layout.js";
 import { isExternalUrl } from "./markdown-link.js";
 import { ancestorPath, flattenNav, subtreeContains, type NavNode } from "./navigation.js";
 import { htmlToText } from "./html-text.js";
@@ -172,6 +182,12 @@ export interface ShellOptions {
     newerPost?: string;
     /** Over the link at a stream post's end to the post published before it. */
     olderPost?: string;
+    /** Where a page of a stream's listing is, with `{n}` and `{total}`: "Page {n} of {total}". */
+    pageOf?: string;
+    /** The link from a page of a stream's listing to the one before it, with newer posts. */
+    newerPosts?: string;
+    /** The link from a page of a stream's listing to the one after it, with older posts. */
+    olderPosts?: string;
   };
 }
 
@@ -192,6 +208,9 @@ const DEFAULT_STRINGS = {
   skipToContent: "Skip to content",
   newerPost: "Newer post",
   olderPost: "Older post",
+  pageOf: "Page {n} of {total}",
+  newerPosts: "Newer posts",
+  olderPosts: "Older posts",
 } as const;
 
 type ShellStrings = Record<keyof typeof DEFAULT_STRINGS, string>;
@@ -606,14 +625,32 @@ function renderListing(
   pageLayout: PageLayout,
   strings: ShellStrings,
 ): string {
-  // A stream's index always lists the stream — that is what it is for; any
-  // other page lists what it fronts only when it asks to.
-  if (page.frontmatter.listing !== true && !isStreamIndex(page, pageLayout)) return "";
-  const chain = ancestorPath(navigation, page.sitePath);
+  // A stream's index always lists the stream — that is what it is for, and so
+  // does each later page of that list; any other page lists what it fronts only
+  // when it asks to.
+  const listed = streamListingPage(page.sitePath, pageLayout);
+  if (page.frontmatter.listing !== true && listed === undefined) return "";
+  // A later page of a stream's list is not in the tree; it lists what the
+  // stream's index fronts.
+  const indexPath =
+    listed === undefined || pageLayout.streamDir === undefined ? undefined : streamIndexPath(pageLayout.streamDir);
+  const anchor =
+    indexPath === undefined
+      ? page.sitePath
+      : (flattenNav(navigation).find((entry) => entry.sitePath.toLowerCase() === indexPath.toLowerCase())
+          ?.sitePath ?? indexPath);
+  const chain = ancestorPath(navigation, anchor);
   const self = chain[chain.length - 1];
   let entries = self?.children ?? [];
-  if (entries.length === 0 && page.sitePath.toLowerCase() === "index.html") {
+  if (entries.length === 0 && anchor.toLowerCase() === "index.html") {
     entries = navigation.filter((node) => node !== self);
+  }
+  let pager = "";
+  if (listed !== undefined && indexPath !== undefined) {
+    const size = folderRule(options.layout, pageLayout.streamDir as string)?.pageSize ?? DEFAULT_PAGE_SIZE;
+    const total = Math.ceil(entries.length / size);
+    entries = entries.slice((listed - 1) * size, listed * size);
+    if (total > 1) pager = renderPagination(page.sitePath, indexPath, listed, total, strings);
   }
   if (entries.length === 0) return "";
 
@@ -648,7 +685,62 @@ function renderListing(
         return `<li>${cover}${name}${date}${minutes}${summary}${nested}</li>`;
       })
       .join("");
-  return `<ul class="canopy-listing">${items(entries)}</ul>`;
+  return `<ul class="canopy-listing">${items(entries)}</ul>${pager}`;
+}
+
+/**
+ * The way between the pages of a stream's list: back to the page with newer
+ * posts, where this one is, on to the page with older ones. `rel` follows the
+ * pages' own order, which is the list's — newest first.
+ */
+function renderPagination(from: string, indexPath: string, at: number, total: number, strings: ShellStrings): string {
+  const base = indexPath.slice(0, -"index.html".length);
+  const href = (n: number) => escapeHtml(relativeHref(from, n === 1 ? indexPath : `${base}page/${n}.html`));
+  const where = strings.pageOf.replace("{n}", String(at)).replace("{total}", String(total));
+  return (
+    `<nav class="canopy-pagination" aria-label="${escapeHtml(strings.pageNav)}">` +
+    (at > 1 ? `<a rel="prev" href="${href(at - 1)}">${escapeHtml(strings.newerPosts)}</a>` : "") +
+    `<span>${escapeHtml(where)}</span>` +
+    (at < total ? `<a rel="next" href="${href(at + 1)}">${escapeHtml(strings.olderPosts)}</a>` : "") +
+    "</nav>"
+  );
+}
+
+/**
+ * The later pages of every stream's list — `<dir>/page/2.html` on — as files,
+ * drawn in the same shell as the stream's index: its title, and the posts that
+ * page holds. Which pages exist is `streamPagePaths`' answer, the one
+ * `list --json` gives too.
+ */
+export function renderStreamListingPages(
+  pages: readonly RenderedPage[],
+  navigation: NavNode[],
+  options: ShellOptions,
+): { path: string; contents: string }[] {
+  const paths = streamPagePaths(
+    options.layout,
+    pages.filter((page) => page.sourcePath !== "").map((page) => page.sitePath),
+  );
+  const strings = { ...DEFAULT_STRINGS, ...options.strings };
+  return paths.map((sitePath) => {
+    const pageLayout = resolvePageLayout(options.layout, sitePath);
+    const at = streamListingPage(sitePath, pageLayout) as number;
+    const indexPath = streamIndexPath(pageLayout.streamDir as string).toLowerCase();
+    const base = indexPath.slice(0, -"index.html".length);
+    const total = 1 + paths.filter((path) => path.toLowerCase().startsWith(`${base}page/`)).length;
+    const index = pages.find((candidate) => candidate.sitePath.toLowerCase() === indexPath);
+    const title = index === undefined ? (pageLayout.streamDir as string) : pageTitle(index);
+    const where = strings.pageOf.replace("{n}", String(at)).replace("{total}", String(total));
+    const page: RenderedPage = {
+      sourcePath: "",
+      sitePath,
+      frontmatter: { title: `${title} · ${where}` },
+      html: `<h1>${escapeHtml(title)}</h1>`,
+      backlinks: [],
+      outline: [],
+    };
+    return { path: sitePath, contents: renderPage(page, navigation, options) };
+  });
 }
 
 /** Insert `markup` right after the page's `<h1>`, or at the very top when it has none. */
@@ -705,7 +797,7 @@ function streamOpening(
   const own = page.frontmatter.description;
   const lead =
     typeof own === "string" && own.trim() !== "" ? `<p class="canopy-lead">${escapeHtml(own.trim())}</p>` : "";
-  if (isStreamIndex(page, pageLayout)) return afterTitle(page.html, lead);
+  if (streamListingPage(page.sitePath, pageLayout) !== undefined) return afterTitle(page.html, lead);
   const published = pageDate(page);
   const date =
     published === undefined

@@ -2,7 +2,7 @@ import path from "node:path";
 import { readFile } from "node:fs/promises";
 import { listVault, outputExclusion, outputIsVaultMessage } from "./fs-bundle.js";
 import { parseListArgs } from "./cli-args.js";
-import { type Layout, layoutFragments, parseLayout, syntheticIndexPaths } from "./layout.js";
+import { type Layout, layoutFragments, parseLayout, streamPagePaths, syntheticIndexPaths } from "./layout.js";
 import { toSitePath } from "./site-path.js";
 
 /**
@@ -51,7 +51,8 @@ export async function runList(argv: string[]): Promise<void> {
     (pattern) => !fragments.includes(pattern) && !ownOutput.includes(pattern),
   );
   if (args.json) {
-    const generated = syntheticIndexPaths(layout, listing.pages.map(toSitePath));
+    const sitePaths = listing.pages.map(toSitePath);
+    const generated = [...syntheticIndexPaths(layout, sitePaths), ...streamPagePaths(layout, sitePaths)];
     console.log(JSON.stringify({ pages: listing.pages, assets: listing.assets, unusedExcludes, generated }));
     return;
   }

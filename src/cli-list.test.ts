@@ -91,6 +91,20 @@ describe("canopy list --layout", () => {
   });
 });
 
+describe("canopy list --layout — a stream's list in pages", () => {
+  it("names the later pages of a stream's list among the generated ones", async () => {
+    const root = await vault({ "blog/a.md": "# A\n", "blog/b.md": "# B\n", "blog/c.md": "# C\n" });
+    const layoutPath = path.join(root, "..", `${path.basename(root)}-paged.json`);
+    temporary.push(layoutPath);
+    await writeFile(layoutPath, JSON.stringify({ dirs: { blog: { profile: "stream", pageSize: 2 } } }), "utf8");
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+
+    await runList(["list", root, "--layout", layoutPath, "--json"]);
+
+    expect(JSON.parse(String(log.mock.calls[0]?.[0])).generated).toEqual(["blog/index.html", "blog/page/2.html"]);
+  });
+});
+
 describe("canopy list --out", () => {
   // The answer is the build's, and a build never reads its own output back in.
   it("leaves the build's output directory out when it lies inside the vault", async () => {

@@ -1,6 +1,6 @@
 import { feedPath, normalizeFeedDir } from "./feed.js";
 import { KATEX_STYLESHEET } from "./katex.js";
-import { type Layout, syntheticIndexPaths } from "./layout.js";
+import { type Layout, streamPagePaths, syntheticIndexPaths } from "./layout.js";
 import { toSitePath } from "./site-path.js";
 import { callerStylesheetPath } from "./stylesheets.js";
 
@@ -48,7 +48,9 @@ export type OutputOwner =
   | { kind: "search-index" }
   | { kind: "feed"; dir: string }
   | { kind: "page"; page: string }
-  | { kind: "stream-index"; dir: string };
+  | { kind: "stream-index"; dir: string }
+  /** A later page of a stream's list (`<dir>/page/<n>.html`). */
+  | { kind: "stream-page"; dir: string; page: number };
 
 /** A published vault file at a path canopy writes itself. */
 export interface OutputCollision {
@@ -87,8 +89,17 @@ export function outputCollisions(published: readonly string[], plan: OutputPlan)
   for (const sitePath of syntheticIndexPaths(plan.layout, sitePaths)) {
     reserve(sitePath, { kind: "stream-index", dir: sitePath.replace(/\/?index\.html$/i, "") });
   }
-
   const collisions: OutputCollision[] = [];
+  for (const sitePath of streamPagePaths(plan.layout, sitePaths)) {
+    const [, dir = "", page = "0"] = /^(?:(.*)\/)?page\/(\d+)\.html$/i.exec(sitePath) ?? [];
+    const owner: OutputOwner = { kind: "stream-page", dir, page: Number(page) };
+    reserve(sitePath, owner);
+    // A page of the vault's own at that path is not a file copied over it but a
+    // page rendered to the same place — the same loss, from the other side.
+    const index = sitePaths.findIndex((candidate) => candidate.toLowerCase() === sitePath.toLowerCase());
+    if (index !== -1) collisions.push({ path: plan.pages[index] as string, owner });
+  }
+
   for (const file of published) {
     const key = file.toLowerCase();
     const owner = owners.get(key) ?? (key.startsWith(KATEX_FONT_PREFIX) ? { kind: "katex" as const } : undefined);

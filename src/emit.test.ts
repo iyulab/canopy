@@ -216,4 +216,22 @@ describe("emitSite", () => {
     expect(index).toContain('<time datetime="2026-10-03">');
     expect(index).toContain("<p>Feeds</p>");
   });
+
+  it("writes a stream's later listing pages, each titled with where it is", async () => {
+    const layout = { dirs: { blog: { profile: "stream" as const, pageSize: 2 } } };
+    const documents = ["a", "b", "c", "d", "e"].map((name, i) => ({
+      path: `blog/${name}.md`,
+      content: `---\ndate: 2026-10-0${i + 1}\n---\n# ${name.toUpperCase()}\n`,
+    }));
+    const files = emitSite(await build({ documents, layout }), { layout, siteTitle: "Site" });
+    const paths = files.map((file) => file.path);
+    expect(paths).toContain("blog/index.html");
+    expect(paths).toContain("blog/page/2.html");
+    expect(paths).toContain("blog/page/3.html");
+    expect(paths).not.toContain("blog/page/4.html");
+    const third = files.find((file) => file.path === "blog/page/3.html")?.contents ?? "";
+    expect(third).toContain("<title>blog · Page 3 of 3 · Site</title>");
+    expect(third).toContain('<a class="canopy-listing-title" href="../a.html">A</a>');
+    expect(third).toContain('<a rel="prev" href="2.html">Newer posts</a><span>Page 3 of 3</span></nav>');
+  });
 });

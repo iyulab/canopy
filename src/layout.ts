@@ -37,7 +37,16 @@ export interface LayoutRule {
   title?: string;
   /** Region → vault-relative path of the fragment that fills it. `""` turns an inherited region off. */
   regions?: Partial<Record<RegionName, string>>;
+  /**
+   * How many posts a stream folder's listing shows to a page — the index page
+   * shows the newest, `page/2.html` the next, and so on. Only on a rule that
+   * makes its folder a stream; `DEFAULT_PAGE_SIZE` when absent.
+   */
+  pageSize?: number;
 }
+
+/** Posts to a page of a stream's listing when its rule names no `pageSize`. */
+export const DEFAULT_PAGE_SIZE = 10;
 
 /** A site default and per-folder rules, keyed by vault-relative folder path. */
 export interface Layout {
@@ -79,7 +88,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 function validateRule(value: unknown, where: string): LayoutRule {
   if (!isObject(value)) fail(`${where}: expected an object`);
-  const { profile, title, regions, ...rest } = value;
+  const { profile, title, regions, pageSize, ...rest } = value;
   const unknown = Object.keys(rest)[0];
   if (unknown !== undefined) fail(`${where}: unknown key "${unknown}"`);
   if (profile !== undefined && !PROFILES.includes(profile as Profile)) {
@@ -87,6 +96,14 @@ function validateRule(value: unknown, where: string): LayoutRule {
   }
   if (title !== undefined && (typeof title !== "string" || title.trim() === "")) {
     fail(`${where}.title: must be a non-empty string`);
+  }
+  if (pageSize !== undefined) {
+    if (typeof pageSize !== "number" || !Number.isInteger(pageSize) || pageSize < 1) {
+      fail(`${where}.pageSize: must be a whole number of at least 1`);
+    }
+    if (profile !== "stream") {
+      fail(`${where}.pageSize: only a stream folder's listing is paged — this rule needs "profile": "stream"`);
+    }
   }
   let parsedRegions: Partial<Record<RegionName, string>> | undefined;
   if (regions !== undefined) {
@@ -106,6 +123,7 @@ function validateRule(value: unknown, where: string): LayoutRule {
     ...(profile === undefined ? {} : { profile: profile as Profile }),
     ...(title === undefined ? {} : { title: title as string }),
     ...(parsedRegions === undefined ? {} : { regions: parsedRegions }),
+    ...(pageSize === undefined ? {} : { pageSize: pageSize as number }),
   };
 }
 
@@ -225,6 +243,48 @@ export function syntheticIndexPaths(layout: Layout | undefined, sitePaths: reado
  * ignoring case; the folder's pages say how it is actually written. A folder
  * with no pages has nothing to go by, and keeps the rule's spelling.
  */
+/**
+ * The pages a stream folder's listing continues on past its index —
+ * `<dir>/page/2.html`, `<dir>/page/3.html` … — one for every `pageSize` posts
+ * after the first page's. Counted from paths alone (which pages the folder's
+ * stream rule covers, its index aside), so a caller that has not rendered
+ * anything — `list --json`, a link checker — names the same pages a build
+ * writes. In the folder's own spelling, like its index page.
+ */
+export function streamPagePaths(layout: Layout | undefined, sitePaths: readonly string[]): string[] {
+  const paths: string[] = [];
+  for (const dir of streamDirs(layout)) {
+    const index = streamIndexPath(dir).toLowerCase();
+    const posts = sitePaths.filter(
+      (sitePath) =>
+        sitePath.toLowerCase() !== index &&
+        resolvePageLayout(layout, sitePath).streamDir?.toLowerCase() === dir.toLowerCase(),
+    ).length;
+    const size = folderRule(layout, dir)?.pageSize ?? DEFAULT_PAGE_SIZE;
+    const base = dir === "" ? "" : `${inSiteCase(dir, sitePaths)}/`;
+    for (let page = 2; page <= Math.ceil(posts / size); page++) paths.push(`${base}page/${page}.html`);
+  }
+  return paths;
+}
+
+/**
+ * Which page of its stream's listing a page is: 1 for the stream's index, `n`
+ * for `<dir>/page/n.html` (from 2), undefined for anything else — a post, or a
+ * page outside a stream.
+ */
+export function streamListingPage(sitePath: string, pageLayout: PageLayout): number | undefined {
+  if (pageLayout.streamDir === undefined) return undefined;
+  const key = sitePath.toLowerCase();
+  if (key === streamIndexPath(pageLayout.streamDir).toLowerCase()) return 1;
+  const base = pageLayout.streamDir === "" ? "" : `${pageLayout.streamDir.toLowerCase()}/`;
+  const prefix = `${base}page/`;
+  if (!key.startsWith(prefix) || !key.endsWith(".html")) return undefined;
+  const number = key.slice(prefix.length, -".html".length);
+  if (!/^[1-9][0-9]*$/.test(number)) return undefined;
+  const page = Number(number);
+  return page >= 2 ? page : undefined;
+}
+
 function inSiteCase(dir: string, sitePaths: readonly string[]): string {
   if (dir === "") return dir;
   const prefix = `${dir.toLowerCase()}/`;

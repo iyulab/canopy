@@ -66,6 +66,8 @@ async function emittedHtml(): Promise<string[]> {
       blog: {
         profile: "stream" as const,
         title: "Blog",
+        // One post to a page, so the two posts make a list in pages.
+        pageSize: 1,
         regions: { header: "h.html", beforeArticle: "b.html", afterArticle: "a.html" },
       },
     },

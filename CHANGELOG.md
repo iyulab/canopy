@@ -8,6 +8,20 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [Unreleased]
+
+Upgrading: a stream folder with more than ten posts now lists the newest ten on its index and the
+rest on `<folder>/page/2.html` on — set the rule's `pageSize` for another count. A vault page at one
+of those paths is refused, like any file at a path canopy writes.
+
+### Added
+
+- A stream's list in pages: the layout rule's `pageSize` (default 10) posts on the folder's index,
+  the next on `<folder>/page/2.html`, `page/3.html` …, each page ending with the way to the pages
+  beside it (`.canopy-pagination`, new hook; `rel="prev"`/`"next"`). `--strings` keys `pageOf`,
+  `newerPosts`, `olderPosts`. `canopy list --json` names the pages in `generated`; `streamPagePaths`
+  and `streamListingPage` are exported.
+
 ## [0.24.0] — 2026-10-07
 
 Upgrading: nothing to do. Stream pages gain an author, a cover and links to the neighbouring posts

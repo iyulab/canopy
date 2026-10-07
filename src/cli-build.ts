@@ -127,6 +127,8 @@ function describeOwner(owner: OutputOwner): string {
       return `the page rendered from ${owner.page}`;
     case "stream-index":
       return `the index page of stream folder ${owner.dir || "."}`;
+    case "stream-page":
+      return `page ${owner.page} of stream folder ${owner.dir || "."}'s list`;
   }
 }
 

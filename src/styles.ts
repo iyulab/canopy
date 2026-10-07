@@ -921,6 +921,26 @@ body {
   margin: 0 0 var(--sp-2);
 }
 .canopy-listing .canopy-reading-time { font-size: 0.9em; color: var(--text-muted); }
+/* The way between the pages of a stream's list: newer on the left, where this
+   page is in the middle, older on the right. */
+.canopy-pagination {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: baseline;
+  gap: var(--sp-4);
+  margin: var(--sp-8) 0 0;
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--border);
+  font-size: 0.95em;
+}
+/* Fixed columns, so where this page is stays centred when one side has no link. */
+.canopy-pagination [rel="prev"] { grid-column: 1; justify-self: start; }
+.canopy-pagination span { grid-column: 2; color: var(--text-muted); }
+.canopy-pagination [rel="next"] { grid-column: 3; justify-self: end; }
+.canopy-pagination a { color: var(--accent); text-decoration: none; }
+.canopy-pagination a:hover { color: var(--accent-hover); text-decoration: underline; }
+.canopy-pagination [rel="prev"]::before { content: "← "; }
+.canopy-pagination [rel="next"]::after { content: " →"; }
 .canopy-listing .canopy-reading-time::before { content: "·"; margin: 0 var(--sp-2); }
 .canopy-toc {
   margin: 0 0 var(--sp-8);

@@ -99,7 +99,7 @@ changelog. Select on them freely.
 |---|---|
 | Top bar and controls | `.canopy-topbar` `.canopy-topbar-controls` `.canopy-site-title` `.canopy-logo` `.canopy-home` `.canopy-home-external` `.canopy-back` `.canopy-breadcrumb` `.canopy-language` `.canopy-search` `.canopy-theme-toggle` `.canopy-skip-link` |
 | Layout and navigation | `.canopy-layout` `.canopy-sidebar` `.canopy-nav` `.canopy-nav-group` `.canopy-main` |
-| Article | `.canopy-content` `.canopy-contents` `.canopy-before-article` `.canopy-after-article` `.canopy-lead` `.canopy-byline` `.canopy-author` `.canopy-date` `.canopy-reading-time` `.canopy-cover` `.canopy-toc` `.canopy-listing` `.canopy-listing-title` `.canopy-table` |
+| Article | `.canopy-content` `.canopy-contents` `.canopy-before-article` `.canopy-after-article` `.canopy-lead` `.canopy-byline` `.canopy-author` `.canopy-date` `.canopy-reading-time` `.canopy-cover` `.canopy-toc` `.canopy-listing` `.canopy-listing-title` `.canopy-pagination` `.canopy-table` |
 | Callouts | `.callout` `.callout-note` `.callout-tip` `.callout-warning` `.callout-danger` `.callout-quote` `.callout-title` |
 | Around the article | `.canopy-outline` `.canopy-backlinks` `.canopy-page-nav` `.canopy-page-nav-label` `.canopy-prev` `.canopy-next` |
 
@@ -135,7 +135,9 @@ pages read one at a time, newest first:
   (`.canopy-cover`), then the contents, open, in a disclosure (`.canopy-toc`, holding the same
   `.canopy-outline` list);
 - the folder's index page lists the folder's pages newest first (`.canopy-listing`), with cover,
-  date, reading time and summary — canopy writes that index page when the folder has none;
+  date, reading time and summary — canopy writes that index page when the folder has none. Ten
+  posts to a page (the rule's `pageSize`): the rest continue on `page/2.html`, `page/3.html` …
+  in the folder, each page ending with the way to the pages beside it (`.canopy-pagination`);
 - canopy's own top bar shows a link back to that index (`.canopy-back`) where a manual page
   shows its breadcrumb;
 - after the article, the post published before it (`.canopy-prev`) and the one after

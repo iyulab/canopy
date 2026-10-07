@@ -1252,6 +1252,59 @@ describe("the stream profile", () => {
     );
   });
 
+  describe("a listing in pages", () => {
+    const paged = { dirs: { blog: { profile: "stream" as const, pageSize: 2 } } };
+    const post = (name: string) => ({ label: name, sitePath: `blog/${name}.html`, children: [] });
+    const pagedNav: NavNode[] = [
+      { label: "Blog", sitePath: "blog/index.html", children: [post("e"), post("d"), post("c"), post("b"), post("a")] },
+    ];
+    const pagedOptions = { layout: paged, sitePages: [index], siteTitle: "Site" };
+    const second = page({
+      sourcePath: "",
+      sitePath: "blog/page/2.html",
+      frontmatter: { title: "Blog · Page 2 of 3" },
+      html: "<h1>Blog</h1>",
+    });
+
+    it("shows the newest pageSize posts on the index, and the way on to the next page", () => {
+      const html = renderPage(index, pagedNav, pagedOptions);
+      expect(html).toContain('href="e.html">e</a></li><li><a class="canopy-listing-title" href="d.html">d</a></li></ul>');
+      expect(html).not.toContain('href="c.html"');
+      expect(html).toContain(
+        '</ul><nav class="canopy-pagination" aria-label="Page navigation">' +
+          '<span>Page 1 of 3</span><a rel="next" href="page/2.html">Older posts</a></nav>',
+      );
+    });
+
+    it("shows the next posts on a later page, between the ways back and on", () => {
+      const html = renderPage(second, pagedNav, pagedOptions);
+      expect(html).toContain('<a class="canopy-listing-title" href="../c.html">c</a>');
+      expect(html).toContain('<a class="canopy-listing-title" href="../b.html">b</a>');
+      expect(html).not.toContain('href="../a.html"');
+      expect(html).toContain(
+        '<nav class="canopy-pagination" aria-label="Page navigation">' +
+          '<a rel="prev" href="../index.html">Newer posts</a><span>Page 2 of 3</span>' +
+          '<a rel="next" href="3.html">Older posts</a></nav>',
+      );
+      // A page of the list is not a post: no byline, no way to neighbouring posts.
+      expect(html).not.toContain("canopy-byline");
+      expect(html).not.toContain("canopy-page-nav");
+      expect(html).toContain("<title>Blog · Page 2 of 3 · Site</title>");
+    });
+
+    it("says it in the site's own words", () => {
+      const html = renderPage(second, pagedNav, {
+        ...pagedOptions,
+        strings: { pageOf: "{n} / {total}", newerPosts: "최근 글", olderPosts: "이전 글" },
+      });
+      expect(html).toContain('<a rel="prev" href="../index.html">최근 글</a><span>2 / 3</span><a rel="next" href="3.html">이전 글</a>');
+    });
+
+    it("has no pagination while every post fits on the index", () => {
+      expect(renderPage(index, streamNav, options)).not.toContain("canopy-pagination");
+    });
+  });
+
   describe("newer and older posts", () => {
     const at = (name: string, date: string) =>
       page({

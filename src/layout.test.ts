@@ -7,6 +7,8 @@ import {
   resolvePageLayout,
   streamDirs,
   streamIndexPath,
+  streamListingPage,
+  streamPagePaths,
   syntheticIndexPaths,
 } from "./layout.js";
 
@@ -55,7 +57,7 @@ describe("parseLayout", () => {
     ['{"default":"stream"}', /default: expected an object/],
     ['{"dirs":{"blog":{"regions":["h.html"]}}}', /dirs\.blog\.regions: expected an object of region → fragment path/],
     ['{"defaults":{}}', /unknown key "defaults"/],
-    ['{"default":{"pageSize":3}}', /default: unknown key "pageSize"/],
+    ['{"default":{"pageSize":3}}', /default.pageSize: only a stream folder's listing is paged/],
     ['{"default":{"title":""}}', /default\.title: must be a non-empty string/],
     ["[", /not valid JSON/],
   ])("rejects %s", (json, message) => {
@@ -155,5 +157,48 @@ describe("layoutFragments", () => {
       { path: "h.html", regions: ["header"] },
     ]);
     expect(layoutFragments(undefined)).toEqual([]);
+  });
+});
+
+describe("a stream's listing in pages", () => {
+  const posts = (dir: string, n: number) => Array.from({ length: n }, (_, i) => `${dir}/p${i + 1}.html`);
+
+  it("takes a pageSize on a stream rule, and refuses one that is not a positive whole number or not on a stream", () => {
+    expect(parseLayout('{"dirs":{"blog":{"profile":"stream","pageSize":5}}}').dirs?.blog?.pageSize).toBe(5);
+    for (const size of ["0", "-1", "2.5", '"10"']) {
+      expect(() => parseLayout(`{"dirs":{"blog":{"profile":"stream","pageSize":${size}}}}`)).toThrow(
+        "dirs.blog.pageSize: must be a whole number of at least 1",
+      );
+    }
+    expect(() => parseLayout('{"dirs":{"guide":{"pageSize":5}}}')).toThrow(
+      'dirs.guide.pageSize: only a stream folder\'s listing is paged — this rule needs "profile": "stream"',
+    );
+  });
+
+  it("names a page for every pageSize posts past the first, ten to a page unless the rule says otherwise", () => {
+    const layout: Layout = { dirs: { blog: { profile: "stream" } } };
+    expect(streamPagePaths(layout, ["blog/index.html", ...posts("blog", 10)])).toEqual([]);
+    expect(streamPagePaths(layout, ["blog/index.html", ...posts("blog", 21)])).toEqual([
+      "blog/page/2.html",
+      "blog/page/3.html",
+    ]);
+    const small: Layout = { dirs: { Blog: { profile: "stream", pageSize: 2 } } };
+    // In the folder's own spelling, like the index page.
+    expect(streamPagePaths(small, posts("blog", 5))).toEqual(["blog/page/2.html", "blog/page/3.html"]);
+  });
+
+  it("pages a whole-site stream from the root", () => {
+    const layout: Layout = { default: { profile: "stream", pageSize: 1 } };
+    expect(streamPagePaths(layout, ["index.html", "a.html", "b.html"])).toEqual(["page/2.html"]);
+  });
+
+  it("says which page of a stream's listing a path is", () => {
+    const layout = resolvePageLayout({ dirs: { blog: { profile: "stream" } } }, "blog/page/3.html");
+    expect(streamListingPage("blog/index.html", layout)).toBe(1);
+    expect(streamListingPage("blog/page/3.html", layout)).toBe(3);
+    expect(streamListingPage("blog/post.html", layout)).toBeUndefined();
+    expect(streamListingPage("blog/page/1.html", layout)).toBeUndefined();
+    expect(streamListingPage("blog/page/x.html", layout)).toBeUndefined();
+    expect(streamListingPage("guide/index.html", resolvePageLayout(undefined, "guide/index.html"))).toBeUndefined();
   });
 });

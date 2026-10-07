@@ -6,7 +6,7 @@ import { buildLinkIndex } from "./links.js";
 import { applyNavSpec } from "./nav-spec.js";
 import { extractOutline } from "./outline.js";
 import { declaredTitle } from "./title.js";
-import { syntheticIndexPaths } from "./layout.js";
+import { streamPagePaths, syntheticIndexPaths } from "./layout.js";
 import { orderStreams, syntheticStreamPages } from "./stream.js";
 
 export type {
@@ -50,6 +50,9 @@ export {
   streamDirs,
   streamIndexPath,
   syntheticIndexPaths,
+  streamPagePaths,
+  streamListingPage,
+  DEFAULT_PAGE_SIZE,
   LayoutError,
   PROFILES,
   REGIONS,
@@ -106,7 +109,8 @@ export async function build(tree: SourceTree): Promise<SiteBundle> {
   const synthetic = syntheticIndexPaths(tree.layout, sitePaths);
 
   // Pass 1: index (paths only — no content needed).
-  const index = buildLinkIndex([...sitePaths, ...synthetic]);
+  // A later page of a stream's list is a page a link can reach too.
+  const index = buildLinkIndex([...sitePaths, ...synthetic, ...streamPagePaths(tree.layout, sitePaths)]);
 
   // Pass 2: render in parallel; the wiki context resolves links per page.
   // `tree.rehypePlugins` is passed by reference to every call, which is what

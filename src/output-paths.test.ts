@@ -68,4 +68,13 @@ describe("outputCollisions", () => {
       { path: "blog/index.html", owner: { kind: "stream-index", dir: "blog" } },
     ]);
   });
+
+  it("reserves the later pages of a stream's list, against a copied file and a page of the vault's own", () => {
+    const layout = parseLayout('{"dirs":{"blog":{"profile":"stream","pageSize":1}}}');
+    const pages = ["blog/a.md", "blog/b.md", "blog/page/2.md"];
+    expect(outputCollisions(["blog/page/3.html", ...pages], { pages, layout })).toEqual([
+      { path: "blog/page/2.md", owner: { kind: "stream-page", dir: "blog", page: 2 } },
+      { path: "blog/page/3.html", owner: { kind: "stream-page", dir: "blog", page: 3 } },
+    ]);
+  });
 });

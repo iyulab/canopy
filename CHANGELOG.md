@@ -8,7 +8,7 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
-## [Unreleased]
+## [0.22.1] — 2026-10-07
 
 Upgrading: nothing to do. A folder link to a folder with an index page is now written as that page
 (`guide/` → `guide/index.html`).

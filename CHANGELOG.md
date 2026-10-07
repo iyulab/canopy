@@ -8,6 +8,18 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [0.28.1] — 2026-10-07
+
+### Fixed
+
+- A stream post's byline ran past the text column on a narrow screen once it held an author, a date
+  and a reading time: its pieces had nothing between them to break at. It now wraps between them,
+  and never inside one ("1 min" / "read").
+- A stream's list puts each card's title on a line of its own, a little larger, with the date and
+  reading time beneath — inline after the title they wrapped wherever it ended. The dot between
+  the date and the reading time sits centred, and an undated card has no dot leading its reading
+  time.
+
 ## [0.28.0] — 2026-10-07
 
 ### Changed

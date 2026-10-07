@@ -897,7 +897,11 @@ body {
   color: var(--text-muted);
   margin: var(--sp-2) 0 var(--sp-3);
 }
+/* A row that wraps between its pieces, never inside one (see the nowrap below):
+   its pieces sit side by side with nothing between them to break at. */
 .canopy-byline {
+  display: flex;
+  flex-wrap: wrap;
   margin: 0 0 var(--sp-6);
   font-size: 0.9em;
   color: var(--text-muted);
@@ -921,6 +925,21 @@ body {
   margin: 0 0 var(--sp-2);
 }
 .canopy-listing .canopy-reading-time { font-size: 0.9em; color: var(--text-muted); }
+/* A stream's card: the title on a line of its own, the date and reading time
+   beneath it. Set inline after a title, they wrapped wherever the title
+   happened to end — mid-pair on a phone. */
+[data-canopy-profile="stream"] .canopy-content .canopy-listing .canopy-listing-title {
+  display: block;
+  margin-bottom: var(--sp-1);
+  font-size: 1.15em;
+  line-height: 1.35;
+}
+[data-canopy-profile="stream"] .canopy-content .canopy-listing .canopy-listing-title + time { margin-left: 0; }
+/* Each piece of a byline, and of a card's date and reading time, wraps whole —
+   "1 min" never ends a line with "read" starting the next. */
+.canopy-byline > *,
+.canopy-listing time,
+.canopy-listing .canopy-reading-time { white-space: nowrap; }
 /* A featured post, atop the first page of a stream's list: marked by an accent
    rule beside it, so an older post at the top reads as chosen, not misplaced. */
 .canopy-content .canopy-listing .canopy-featured {
@@ -994,7 +1013,10 @@ body {
 .canopy-pagination a:hover { color: var(--accent-hover); text-decoration: underline; }
 .canopy-pagination [rel="prev"]::before { content: "← "; }
 .canopy-pagination [rel="next"]::after { content: " →"; }
-.canopy-listing .canopy-reading-time::before { content: "·"; margin: 0 var(--sp-2); }
+/* Between the date and the reading time — an undated post's card has no date to
+   separate it from. The space before the reading time in the markup is half the
+   gap on its left, so the dot sits centred between the two. */
+.canopy-listing time + .canopy-reading-time::before { content: "·"; margin: 0 var(--sp-2) 0 var(--sp-1); }
 .canopy-toc {
   margin: 0 0 var(--sp-8);
   padding: var(--sp-3) var(--sp-4);

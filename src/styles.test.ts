@@ -722,3 +722,20 @@ describe("main column shrink", () => {
     expect(BASE_CSS).toMatch(/\.canopy-main\s*\{[^}]*min-width:\s*0/);
   });
 });
+
+describe("a stream's bylines and cards on a narrow screen", () => {
+  it("wraps a byline between its pieces, never inside one", () => {
+    // The pieces sit side by side with nothing between them to break at, so
+    // a nowrap row alone ran past the column on a phone (measured at 375px:
+    // author · date · reading time 21px wider than the text). A wrapping flex
+    // row breaks between them; nowrap keeps "1 min read" whole.
+    expect(BASE_CSS).toMatch(/\.canopy-byline\s*\{[^}]*display:\s*flex;[^}]*flex-wrap:\s*wrap/);
+    expect(BASE_CSS).toMatch(/\.canopy-byline > \*,[^{]*\{\s*white-space:\s*nowrap/);
+  });
+
+  it("puts a card's title on its own line, the date and reading time beneath it", () => {
+    expect(BASE_CSS).toMatch(
+      /\[data-canopy-profile="stream"\] \.canopy-content \.canopy-listing \.canopy-listing-title\s*\{[^}]*display:\s*block/,
+    );
+  });
+});

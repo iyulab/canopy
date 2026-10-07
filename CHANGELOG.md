@@ -8,7 +8,10 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
-## [Unreleased]
+## [0.21.1] — 2026-10-07
+
+Upgrading: nothing to do. `resolvePageLayout().streamDir` now spells the folder as the page's own
+path does (see *Changed*); compare it ignoring case if you compare it to a layout key.
 
 ### Fixed
 
@@ -21,6 +24,11 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 - The front page written for a whole-site stream (`--layout` with `default.profile: "stream"` and no
   root index) takes `--strings`' `indexTitle` when the layout gives it no `title`, as the contents
   page does. It was always "Contents".
+
+### Changed
+
+- `PageLayout.streamDir` (from `resolvePageLayout`) is spelled as in the page's own path, not as
+  the layout rule that matched it ignoring case wrote it.
 
 ## [0.21.0] — 2026-10-07
 

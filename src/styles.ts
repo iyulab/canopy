@@ -828,6 +828,17 @@ body {
 .canopy-prev::before { content: "← "; }
 .canopy-next { margin-left: auto; text-align: right; }
 .canopy-next::after { content: " →"; }
+/* A stream post's way on says which way each link goes, above its title — and
+   the arrow goes with that line, not on one of its own above it. */
+.canopy-page-nav-label {
+  display: block;
+  font-size: 0.85em;
+  color: var(--text-muted);
+}
+.canopy-page-nav a:has(> .canopy-page-nav-label)::before,
+.canopy-page-nav a:has(> .canopy-page-nav-label)::after { content: none; }
+.canopy-prev > .canopy-page-nav-label::before { content: "← "; }
+.canopy-next > .canopy-page-nav-label::after { content: " →"; }
 
 /* Shiki dual-theme: swap to the dark palette via the CSS variables Shiki
    emits (--shiki-dark*), so code blocks match the page's color scheme. Both

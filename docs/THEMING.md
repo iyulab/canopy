@@ -101,7 +101,7 @@ changelog. Select on them freely.
 | Layout and navigation | `.canopy-layout` `.canopy-sidebar` `.canopy-nav` `.canopy-nav-group` `.canopy-main` |
 | Article | `.canopy-content` `.canopy-contents` `.canopy-before-article` `.canopy-after-article` `.canopy-lead` `.canopy-byline` `.canopy-author` `.canopy-date` `.canopy-reading-time` `.canopy-cover` `.canopy-toc` `.canopy-listing` `.canopy-listing-title` `.canopy-table` |
 | Callouts | `.callout` `.callout-note` `.callout-tip` `.callout-warning` `.callout-danger` `.callout-quote` `.callout-title` |
-| Around the article | `.canopy-outline` `.canopy-backlinks` `.canopy-page-nav` `.canopy-prev` `.canopy-next` |
+| Around the article | `.canopy-outline` `.canopy-backlinks` `.canopy-page-nav` `.canopy-page-nav-label` `.canopy-prev` `.canopy-next` |
 
 State is read from standard attributes, not classes: `aria-current="page"` on the current page's
 link, `[open]` on a disclosure, `[hidden]` on a control no script has revealed.
@@ -137,7 +137,10 @@ pages read one at a time, newest first:
 - the folder's index page lists the folder's pages newest first (`.canopy-listing`), with cover,
   date, reading time and summary — canopy writes that index page when the folder has none;
 - canopy's own top bar shows a link back to that index (`.canopy-back`) where a manual page
-  shows its breadcrumb.
+  shows its breadcrumb;
+- after the article, the post published before it (`.canopy-prev`) and the one after
+  (`.canopy-next`), each over its title with which one it is (`.canopy-page-nav-label`) — the
+  same `.canopy-page-nav` a manual page ends with, in the stream's newest-first order.
 
 Some hooks appear only where the page has that part: `.canopy-sidebar` on manual pages,
 `.canopy-toc` on stream pages, `.canopy-topbar` only where canopy draws its own top bar.

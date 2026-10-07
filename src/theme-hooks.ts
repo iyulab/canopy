@@ -59,6 +59,7 @@ export const THEME_HOOKS = Object.freeze([
   "canopy-outline",
   "canopy-backlinks",
   "canopy-page-nav",
+  "canopy-page-nav-label",
   "canopy-prev",
   "canopy-next",
 ] as const);

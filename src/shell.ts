@@ -168,6 +168,10 @@ export interface ShellOptions {
     readingTime?: string;
     /** The link that skips past the page's repeated header and navigation to its main content. */
     skipToContent?: string;
+    /** Over the link at a stream post's end to the post published after it. */
+    newerPost?: string;
+    /** Over the link at a stream post's end to the post published before it. */
+    olderPost?: string;
   };
 }
 
@@ -186,6 +190,8 @@ const DEFAULT_STRINGS = {
   language: "Languages",
   readingTime: "{n} min read",
   skipToContent: "Skip to content",
+  newerPost: "Newer post",
+  olderPost: "Older post",
 } as const;
 
 type ShellStrings = Record<keyof typeof DEFAULT_STRINGS, string>;
@@ -385,6 +391,43 @@ function renderPageNav(navigation: NavNode[], from: string, label: string): stri
     ? `<a class="canopy-next" rel="next" href="${escapeHtml(relativeHref(from, next.sitePath))}">${escapeHtml(next.label)}</a>`
     : "";
   return `<nav class="canopy-page-nav" aria-label="${escapeHtml(label)}">${prevLink}${nextLink}</nav>`;
+}
+
+/**
+ * A stream post's way on: the post published before it and the one after, in
+ * the stream's one order — its section of the tree, newest first (the order
+ * its listing shows). The older post is the previous one, as a reader going
+ * through the stream from its start meets them; each says which it is in the
+ * site's words, since a title alone does not.
+ */
+function renderStreamPageNav(
+  page: RenderedPage,
+  navigation: NavNode[],
+  pageLayout: PageLayout,
+  strings: ShellStrings,
+): string {
+  if (pageLayout.streamDir === undefined || isStreamIndex(page, pageLayout)) return "";
+  const index = streamIndexPath(pageLayout.streamDir).toLowerCase();
+  const chain = ancestorPath(navigation, page.sitePath);
+  const siblings = chain.length >= 2 ? (chain[chain.length - 2]?.children ?? []) : navigation;
+  const posts = siblings.filter(
+    (node): node is NavNode & { sitePath: string } =>
+      node.sitePath !== undefined && node.sitePath.toLowerCase() !== index,
+  );
+  const at = posts.findIndex((node) => node.sitePath === page.sitePath);
+  if (at === -1) return "";
+  const newer = posts[at - 1];
+  const older = posts[at + 1];
+  if (newer === undefined && older === undefined) return "";
+  const link = (node: NavNode & { sitePath: string }, cls: string, rel: string, label: string) =>
+    `<a class="${cls}" rel="${rel}" href="${escapeHtml(relativeHref(page.sitePath, node.sitePath))}">` +
+    `<span class="canopy-page-nav-label">${escapeHtml(label)}</span>${escapeHtml(node.label)}</a>`;
+  return (
+    `<nav class="canopy-page-nav" aria-label="${escapeHtml(strings.pageNav)}">` +
+    (older === undefined ? "" : link(older, "canopy-prev", "prev", strings.olderPost)) +
+    (newer === undefined ? "" : link(newer, "canopy-next", "next", strings.newerPost)) +
+    "</nav>\n"
+  );
 }
 
 /**
@@ -987,7 +1030,7 @@ export function renderPage(
     ? streamOpening(page, pageLayout, lang, strings)
     : withPageDate(page, lang);
   const around = stream
-    ? ""
+    ? renderStreamPageNav(page, navigation, pageLayout, strings)
     : `${renderOutline(page.outline, strings.onThisPage)}\n${renderBacklinks(page.backlinks, page.sitePath, strings.backlinks)}\n${renderPageNav(navigation, page.sitePath, strings.pageNav)}\n`;
 
   // A fixed scheme also tells the browser, so its own controls and scrollbars match.

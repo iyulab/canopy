@@ -16,6 +16,9 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
   cover (`.canopy-cover`) — under the byline, and atop its item on the folder's listing. A site path
   is addressed from the page; an absolute or root-absolute URL is used as written. Manual pages are
   unchanged. Two new theming hooks: `.canopy-author`, `.canopy-cover`.
+- A stream post ends with the post published before it and the one after (`.canopy-page-nav`,
+  `rel="prev"`/`"next"`), in the stream's newest-first order, each over its title with which one it
+  is (`.canopy-page-nav-label`, new hook) — `--strings` keys `olderPost` and `newerPost`.
 
 ## [0.23.0] — 2026-10-07
 

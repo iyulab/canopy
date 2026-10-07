@@ -1252,6 +1252,60 @@ describe("the stream profile", () => {
     );
   });
 
+  describe("newer and older posts", () => {
+    const at = (name: string, date: string) =>
+      page({
+        sourcePath: `blog/${name}.md`,
+        sitePath: `blog/${name}.html`,
+        frontmatter: { date },
+        html: `<h1>${name}</h1>`,
+      });
+    const newest = at("newest", "2026-10-05");
+    const middle = at("middle", "2026-10-04");
+    const oldest = at("oldest", "2026-10-03");
+    // The stream's one order: its section of the tree, newest first.
+    const threeNav: NavNode[] = [
+      {
+        label: "Blog",
+        sitePath: "blog/index.html",
+        children: [
+          { label: "Newest", sitePath: "blog/newest.html", children: [] },
+          { label: "Middle", sitePath: "blog/middle.html", children: [] },
+          { label: "Oldest", sitePath: "blog/oldest.html", children: [] },
+        ],
+      },
+    ];
+    const threeOptions = { layout, sitePages: [index, newest, middle, oldest], siteTitle: "Site" };
+
+    it("links the older post as previous and the newer one as next, after the article", () => {
+      expect(renderPage(middle, threeNav, threeOptions)).toContain(
+        '</article>\n<nav class="canopy-page-nav" aria-label="Page navigation">' +
+          '<a class="canopy-prev" rel="prev" href="oldest.html"><span class="canopy-page-nav-label">Older post</span>Oldest</a>' +
+          '<a class="canopy-next" rel="next" href="newest.html"><span class="canopy-page-nav-label">Newer post</span>Newest</a>' +
+          "</nav>\n</main>",
+      );
+    });
+
+    it("has only the side there is at either end", () => {
+      const first = renderPage(newest, threeNav, threeOptions);
+      expect(first).toContain('href="middle.html"><span class="canopy-page-nav-label">Older post</span>Middle</a></nav>');
+      expect(first).not.toContain("Newer post");
+      const last = renderPage(oldest, threeNav, threeOptions);
+      expect(last).toContain('<nav class="canopy-page-nav" aria-label="Page navigation"><a class="canopy-next"');
+      expect(last).not.toContain("Older post");
+    });
+
+    it("says newer and older in the site's own words", () => {
+      expect(
+        renderPage(middle, threeNav, { ...threeOptions, strings: { newerPost: "새 글", olderPost: "지난 글" } }),
+      ).toContain('<span class="canopy-page-nav-label">지난 글</span>Oldest');
+    });
+
+    it("is not on the stream's index", () => {
+      expect(renderPage(index, threeNav, threeOptions)).not.toContain("canopy-page-nav");
+    });
+  });
+
   describe("author and cover", () => {
     const covered = {
       ...post,

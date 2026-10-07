@@ -93,7 +93,8 @@ npx canopy build <vault-dir> [out-dir] [options]
   `toggleTheme`, `siteNav`, `pageNav`, `onThisPage`, `indexTitle` (the auto-generated contents
   page's title/heading — and a whole-site stream's written front page, when the layout gives it no `title`), `backlinks` (a page's "linked references" section heading),
   `breadcrumb`, `language`, `readingTime` (with `{n}` for the minutes), `skipToContent` (the
-  link every page opens with, past the header and navigation to the content). No
+  link every page opens with, past the header and navigation to the content), `newerPost` and
+  `olderPost` (over the links at a stream post's end). No
   built-in translation table — the same reasoning `--home-label` already follows: this text has
   to be written in the site's own language, and canopy has no way to guess it. Keys left out
   keep their English default.

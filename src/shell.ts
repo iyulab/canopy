@@ -874,12 +874,27 @@ function renderTags(post: RenderedPage, from: string, pageLayout: PageLayout, st
   return `<ul class="canopy-tags" aria-label="${escapeHtml(strings.tags)}">${items.join("")}</ul>`;
 }
 
+/** Which of a site's streams have tags, by folder in lower case — worked out once per site and layout. */
+const taggedStreamDirs = new WeakMap<readonly RenderedPage[], Map<Layout | undefined, ReadonlySet<string>>>();
+
+function taggedStreams(pages: readonly RenderedPage[], layout: Layout | undefined): ReadonlySet<string> {
+  const byLayout = taggedStreamDirs.get(pages) ?? new Map();
+  taggedStreamDirs.set(pages, byLayout);
+  let dirs = byLayout.get(layout);
+  if (dirs === undefined) {
+    dirs = new Set(
+      streamPosts(layout, pages)
+        .filter(({ posts }) => streamTags(posts).length > 0)
+        .map(({ dir }) => dir.toLowerCase()),
+    );
+    byLayout.set(layout, dirs);
+  }
+  return dirs;
+}
+
 /** A link to the list of a stream's tags, when the stream has any. */
 function renderTagIndexLink(from: string, dir: string, options: ShellOptions, strings: ShellStrings): string {
-  const stream = streamPosts(options.layout, options.sitePages ?? []).find(
-    (candidate) => candidate.dir.toLowerCase() === dir.toLowerCase(),
-  );
-  if (stream === undefined || streamTags(stream.posts).length === 0) return "";
+  if (!taggedStreams(options.sitePages ?? [], options.layout).has(dir.toLowerCase())) return "";
   return `<p class="canopy-tag-index-link"><a href="${escapeHtml(relativeHref(from, tagIndexPath(dir)))}">${escapeHtml(strings.tags)}</a></p>`;
 }
 

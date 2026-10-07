@@ -8,6 +8,15 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [0.28.3] — 2026-10-07
+
+### Fixed
+
+- The link to a stream's list of tags no longer re-reads the whole site on every page that shows it
+  (the first page of the stream's list and of every tag's); which streams have tags is worked out
+  once per site. With 0.28.2's changes, a 1000-post stream's pages now take about 3 seconds of
+  CPU to write, down from about 21.
+
 ## [0.28.2] — 2026-10-07
 
 ### Fixed

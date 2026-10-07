@@ -8,7 +8,12 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
-## [Unreleased]
+## [0.21.0] — 2026-10-07
+
+Upgrading: a vault that publishes a file at a path canopy writes (see *Fixed*) now fails the
+build instead of silently losing one of the two — rename or move the file the error names. Pages
+gain a skip link and `<main id="canopy-main">`; tables gain a `.canopy-table` box; a page named by
+its day (`2026-10-03-….md`) with no `date:` is now dated. Nothing is removed or renamed.
 
 ### Fixed
 
@@ -42,7 +47,6 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
   `date:`. `date:` wins when both are present. Exports `pageDate` (the rule) and `fileNameDate`.
 - `fragmentControls(html)`: the control slots a fragment places, for a caller checking a site.
 - Hook `.canopy-table`: the box each table in an article scrolls inside.
-
 - `outputCollisions(published, plan)`: the published files that would land on a path canopy
   writes, with what it writes there — the build's own check, for a caller checking a site first.
 

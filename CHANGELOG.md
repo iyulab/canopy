@@ -8,7 +8,7 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
-## [Unreleased]
+## [0.26.0] — 2026-10-07
 
 Upgrading: a stream post's `tags:` now show and get pages under `<folder>/tags/`. A tag that can have
 no page — no letters or digits, or one named "index" — fails the build; so does a vault file at a tag

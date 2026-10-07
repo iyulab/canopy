@@ -921,6 +921,12 @@ body {
   margin: 0 0 var(--sp-2);
 }
 .canopy-listing .canopy-reading-time { font-size: 0.9em; color: var(--text-muted); }
+/* A featured post, atop the first page of a stream's list: marked by an accent
+   rule beside it, so an older post at the top reads as chosen, not misplaced. */
+.canopy-content .canopy-listing .canopy-featured {
+  padding-left: var(--sp-3);
+  border-left: 3px solid var(--accent);
+}
 /* A post's tags, at its end and on its item in the list; the list of a stream's
    tags is the same row, each with how many posts carry it. */
 .canopy-tags {

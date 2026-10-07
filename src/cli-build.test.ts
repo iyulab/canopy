@@ -135,6 +135,21 @@ describe("canopy build — an output directory inside the vault", { timeout: REN
   });
 });
 
+describe("canopy build — a stream's featured posts", { timeout: RENDERS }, () => {
+  it("refuses a featured entry that is no post of the stream, and writes nothing", async () => {
+    const { root, out } = await vault({ "blog/a.md": "# A\n" });
+    const layoutPath = path.join(root, "layout.json");
+    await writeFile(layoutPath, JSON.stringify({ dirs: { blog: { profile: "stream", featured: ["blog/b.md"] } } }), "utf8");
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await runBuild(["build", path.join(root, "vault"), out, "--layout", layoutPath]);
+
+    expect(process.exitCode).toBe(1);
+    expect(error.mock.calls[0]?.[0]).toBe(`--layout ${layoutPath}: dirs.blog.featured: "blog/b.md" is not a page this site publishes`);
+    await expect(readdir(out)).rejects.toThrow();
+  });
+});
+
 describe("canopy build — a stream's tags", { timeout: RENDERS }, () => {
   it("refuses a tag that can have no page, naming the post, and writes nothing", async () => {
     const { root, out } = await vault({ "blog/a.md": "---\ntags: ['?#']\n---\n# A\n" });

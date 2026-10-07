@@ -379,11 +379,11 @@ own `description:`, under "Read next". Every one named is shown. A value that na
 the site is left out; `readNextProblems` names each one, for a checker to report.
 
 A stream's post (`--layout`, see [docs/THEMING.md](docs/THEMING.md#profiles)) always has the list,
-filled to three: what its author named, then the posts most like it, then the stream's newest. A
-post is like another by the tags they share — each adding `ln(N / df)`, so a tag few posts carry
-counts for more and one on every post adds nothing — and by a link from either to the other
-(adding 1); ties go to the post published nearer. With nothing named, the list is titled "Related
-posts". `pickReadNext`, `relatedPosts` and `resolveReadNext` are exported.
+filled to three: what its author named, then the folder's `featured` posts, then the posts most
+like it, then the stream's newest. A post is like another by the tags they share — each adding
+`ln(N / df)`, so a tag few posts carry counts for more and one on every post adds nothing — and
+by a link from either to the other (adding 1); ties go to the post published nearer. With nothing named or featured, the list is
+titled "Related posts". `pickReadNext`, `relatedPosts` and `resolveReadNext` are exported.
 
 ### Markdown support
 
@@ -470,6 +470,10 @@ for it.
 - `pageSize` — on a `stream` rule, how many posts the folder's index lists (default 10); the rest
   continue on `<folder>/page/2.html`, `page/3.html` …, each linking to the pages beside it. A
   tag's page is read the same way, continuing on `<folder>/tags/<slug>/page/2.html` ….
+- `featured` — on a `stream` rule, posts (vault paths, `.md`) the folder puts first, in this
+  order: atop the first page of its list (`.canopy-featured`) and out of the dated pages after
+  it, and after a post's own `readNext:` in [what to read next](#what-to-read-next). An entry
+  that is not a post of that folder fails the build (`featuredProblems` names it).
 - `regions` — `head`, `header`, `beforeArticle`, `afterArticle`, `footer`, each a vault path of
   an HTML fragment, or `""` to turn off one a shorter folder set. Fragments are read, not
   published. `header` and `footer` replace canopy's own with the fragment's markup; canopy's

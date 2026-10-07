@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  featuredProblems,
   type Layout,
   LayoutError,
   layoutFragments,
@@ -185,6 +186,40 @@ describe("a stream's listing in pages", () => {
     const small: Layout = { dirs: { Blog: { profile: "stream", pageSize: 2 } } };
     // In the folder's own spelling, like the index page.
     expect(streamPagePaths(small, posts("blog", 5))).toEqual(["blog/page/2.html", "blog/page/3.html"]);
+  });
+
+  it("takes a stream's featured posts by vault path, and refuses what cannot be one", () => {
+    expect(parseLayout('{"dirs":{"blog":{"profile":"stream","featured":["./blog/Welcome.md"]}}}').dirs?.blog?.featured).toEqual([
+      "blog/Welcome.md",
+    ]);
+    expect(() => parseLayout('{"dirs":{"guide":{"featured":["guide/a.md"]}}}')).toThrow(
+      'dirs.guide.featured: only a stream folder has posts to feature — this rule needs "profile": "stream"',
+    );
+    expect(() => parseLayout('{"dirs":{"blog":{"profile":"stream","featured":"blog/a.md"}}}')).toThrow(
+      "dirs.blog.featured: expected a list of the posts' vault paths",
+    );
+    expect(() => parseLayout('{"dirs":{"blog":{"profile":"stream","featured":["blog/cover.png"]}}}')).toThrow(
+      'dirs.blog.featured[0]: "blog/cover.png" is not a markdown post',
+    );
+    expect(() => parseLayout('{"dirs":{"blog":{"profile":"stream","featured":["../a.md"]}}}')).toThrow(
+      'dirs.blog.featured[0]: "../a.md" must not contain ".."',
+    );
+  });
+
+  it("leaves featured posts out of the dated pages", () => {
+    const layout: Layout = { dirs: { blog: { profile: "stream", pageSize: 2, featured: ["blog/P1.md", "blog/p2.md"] } } };
+    expect(streamPagePaths(layout, posts("blog", 6))).toEqual(["blog/page/2.html"]);
+  });
+
+  it("names a featured entry that is no post of its stream", () => {
+    const layout: Layout = {
+      dirs: { blog: { profile: "stream", featured: ["blog/a.md", "blog/gone.md", "guide/x.md", "blog/index.md"] } },
+    };
+    expect(featuredProblems(layout, ["blog/A.md", "blog/index.md", "guide/x.md"])).toEqual([
+      'dirs.blog.featured: "blog/gone.md" is not a page this site publishes',
+      'dirs.blog.featured: "guide/x.md" is not a post of this stream',
+      'dirs.blog.featured: "blog/index.md" is not a post of this stream',
+    ]);
   });
 
   it("pages a whole-site stream from the root", () => {

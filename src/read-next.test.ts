@@ -113,6 +113,14 @@ describe("pickReadNext", () => {
     ]);
   });
 
+  it("puts the stream's featured posts after the author's choice, as chosen, before related ones", () => {
+    const featured = { dirs: { blog: { profile: "stream" as const, featured: ["blog/A.md", "blog/b.md"] } } };
+    expect(pickReadNext(at("blog/b.html", { readNext: "c.md" }), posts, featured, index)).toEqual({
+      sitePaths: ["blog/c.html", "blog/a.html", "blog/d.html"],
+      chosen: true,
+    });
+  });
+
   it("gives a manual page only what its author named", () => {
     expect(pickReadNext(at("guide/start.html"), posts, layout, index)).toEqual({ sitePaths: [], chosen: false });
     expect(pickReadNext(at("guide/start.html", { readNext: "[[e]]" }), posts, layout, index)).toEqual({

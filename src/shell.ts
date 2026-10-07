@@ -6,6 +6,7 @@ import {
   type PageLayout,
   type RegionName,
   resolvePageLayout,
+  streamFeatured,
   streamIndexPath,
   streamListingPage,
   streamPagePaths,
@@ -672,6 +673,15 @@ function renderListing(
   }
   // The stream's list and each tag's list are both read a page at a time.
   const at = listed ?? tagged?.page;
+  // A stream's featured posts stand atop the first page of its list, in the
+  // order its rule gives, and out of the dated pages.
+  let pinned: NavNode[] = [];
+  if (listed !== undefined && pageLayout.streamDir !== undefined) {
+    const featured = streamFeatured(options.layout, pageLayout.streamDir).map((sitePath) => sitePath.toLowerCase());
+    const rank = (node: NavNode) => (node.sitePath === undefined ? -1 : featured.indexOf(node.sitePath.toLowerCase()));
+    pinned = entries.filter((node) => rank(node) >= 0).sort((a, b) => rank(a) - rank(b));
+    entries = entries.filter((node) => rank(node) < 0);
+  }
   let pager = "";
   if (at !== undefined && indexPath !== undefined) {
     const dir = pageLayout.streamDir as string;
@@ -685,6 +695,7 @@ function renderListing(
         : (n: number) => tagPagePath(dir, tagged.slug, n);
     if (total > 1) pager = renderPagination(page.sitePath, pathOf, at, total, strings);
   }
+  if (listed === 1) entries = [...pinned, ...entries];
   if (entries.length === 0) return "";
 
   const items = (nodes: NavNode[]): string =>
@@ -716,7 +727,8 @@ function renderListing(
           pageLayout.profile === "stream" && entry !== undefined ? renderCover(entry, page.sitePath, true) : "";
         const tags =
           pageLayout.profile === "stream" && entry !== undefined ? renderTags(entry, page.sitePath, pageLayout, strings) : "";
-        return `<li>${cover}${name}${date}${minutes}${summary}${tags}${nested}</li>`;
+        const featured = pinned.includes(node) ? ' class="canopy-featured"' : "";
+        return `<li${featured}>${cover}${name}${date}${minutes}${summary}${tags}${nested}</li>`;
       })
       .join("");
   // The first page of the stream's list and of each tag's lead to the list of

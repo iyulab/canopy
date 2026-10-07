@@ -137,7 +137,9 @@ pages read one at a time, newest first:
 - the folder's index page lists the folder's pages newest first (`.canopy-listing`), with cover,
   date, reading time and summary — canopy writes that index page when the folder has none. Ten
   posts to a page (the rule's `pageSize`): the rest continue on `page/2.html`, `page/3.html` …
-  in the folder, each page ending with the way to the pages beside it (`.canopy-pagination`);
+  in the folder, each page ending with the way to the pages beside it (`.canopy-pagination`). The
+  rule's `featured` posts stand atop the first page, in the order given (`.canopy-featured` on
+  their items), and out of the dated pages;
 - a post's `tags:` (a list, or one string) close the post and its item in the list
   (`.canopy-tags`), each leading to the tag's page, `<folder>/tags/<slug>.html`, which lists the
   posts carrying it — `pageSize` to a page like the folder's list, the rest on

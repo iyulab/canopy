@@ -1,5 +1,5 @@
 import type { PageProblem, RenderedPage } from "./contract.js";
-import { type Layout, resolvePageLayout } from "./layout.js";
+import { type Layout, resolvePageLayout, streamFeatured } from "./layout.js";
 import type { LinkIndex } from "./links.js";
 import { resolveMarkdownLink } from "./markdown-link.js";
 import { newestFirst, pageDate } from "./page-date.js";
@@ -8,12 +8,14 @@ import { parseWikiTarget } from "./wikilink.js";
 
 /**
  * What to read after a page: the pages its author named, then — on a stream's
- * post — the posts most like it, then the stream's newest.
+ * post — the stream's featured posts, the posts most like it, and the stream's
+ * newest.
  *
  * The author's choice comes first and is never cut short: a page's `readNext:`
  * (a path, written like a markdown link from the page, or a `"[[wikilink]]"`;
  * one, or a list, in order) is shown whole, on any page of any profile. A
- * stream's post then fills what is left of its slots: posts sharing its tags —
+ * stream's post then fills what is left of its slots: the posts its stream
+ * features (the rule's `featured`, the site's own choice), then posts sharing its tags —
  * a tag few posts carry counting for more than one most do — or linking to it
  * or from it, then the stream's newest posts.
  */
@@ -78,12 +80,18 @@ export function pickReadNext(
     sitePaths.push(sitePath);
   };
   for (const value of readNextValues(page.frontmatter)) add(resolveReadNext(page.sitePath, value, index));
-  const chosen = sitePaths.length > 0;
 
   // Only a stream's post is filled in: a manual page's list is what its author wrote.
   const dir = resolvePageLayout(layout, page.sitePath).streamDir;
   const posts = streamPosts(layout, pages).find((stream) => stream.dir.toLowerCase() === dir?.toLowerCase())?.posts;
-  if (posts === undefined || !posts.some((post) => post.sitePath === page.sitePath)) return { sitePaths, chosen };
+  if (dir === undefined || posts === undefined || !posts.some((post) => post.sitePath === page.sitePath)) {
+    return { sitePaths, chosen: sitePaths.length > 0 };
+  }
+  for (const sitePath of streamFeatured(layout, dir)) {
+    if (sitePaths.length >= READ_NEXT_SLOTS) break;
+    add(index.page(sitePath));
+  }
+  const chosen = sitePaths.length > 0;
   for (const sitePath of relatedPosts(page, posts)) {
     if (sitePaths.length >= READ_NEXT_SLOTS) break;
     add(sitePath);

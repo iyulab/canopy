@@ -68,6 +68,8 @@ async function emittedHtml(): Promise<string[]> {
         title: "Blog",
         // One post to a page, so the two posts make a list in pages.
         pageSize: 1,
+        // The earlier post featured, so the list marks one.
+        featured: ["blog/earlier.md"],
         regions: { header: "h.html", beforeArticle: "b.html", afterArticle: "a.html" },
       },
     },
@@ -81,6 +83,8 @@ async function emittedHtml(): Promise<string[]> {
       },
       // A second post, so a post has another to lead on to.
       { path: "blog/earlier.md", content: "---\ndate: 2026-10-01\n---\n# Earlier\n" },
+      // A third, so the list still runs to a second page past the featured one.
+      { path: "blog/first.md", content: "---\ndate: 2026-09-01\n---\n# First\n" },
     ],
     layout: streamLayout,
   });

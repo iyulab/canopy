@@ -23,6 +23,11 @@ with that hook. `tagProblems` returns `{ sitePath, message }` objects instead of
   author named any, `strings.related` ("Related posts") otherwise. Exported: `pickReadNext`,
   `relatedPosts`, `resolveReadNext`, `readNextValues`, `readNextProblems` (a value naming no page,
   by the page), `READ_NEXT_SLOTS`, and the `LinkIndex` type.
+- Featured posts: a stream rule's `featured` (vault paths of its posts, in order) puts them atop the
+  first page of the list (`.canopy-featured`, an accent rule beside each) and out of the dated
+  pages — page counts follow — and after a post's own `readNext:` in what to read next. An entry
+  that is no post of the stream fails `canopy build`; `featuredProblems` and `streamFeatured` are
+  exported.
 - `newestFirst`, the order of a stream's posts, and the `PageProblem` type are exported.
 
 - A tag's page is read a page at a time, like the stream's own list: past the stream rule's

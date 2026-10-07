@@ -54,6 +54,8 @@ export {
   streamIndexPath,
   syntheticIndexPaths,
   streamPagePaths,
+  streamFeatured,
+  featuredProblems,
   streamListingPage,
   DEFAULT_PAGE_SIZE,
   LayoutError,

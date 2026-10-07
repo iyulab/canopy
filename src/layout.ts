@@ -14,6 +14,8 @@
  * pages a build will write, and it must stay as quick as a directory walk.
  */
 
+import { toSitePath } from "./site-path.js";
+
 /** The ways a folder of pages can be read. `manual`: a tree to look things up in. `stream`: dated pages, newest first. */
 export const PROFILES = ["manual", "stream"] as const;
 export type Profile = (typeof PROFILES)[number];
@@ -43,6 +45,13 @@ export interface LayoutRule {
    * makes its folder a stream; `DEFAULT_PAGE_SIZE` when absent.
    */
   pageSize?: number;
+  /**
+   * Posts a stream folder puts first, by vault path, in this order: atop the
+   * first page of its list and out of the dated pages after it, and after
+   * whatever a post's own `readNext:` names in what to read next. Only on a
+   * rule that makes its folder a stream.
+   */
+  featured?: string[];
 }
 
 /** Posts to a page of a stream's listing when its rule names no `pageSize`. */
@@ -88,7 +97,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 function validateRule(value: unknown, where: string): LayoutRule {
   if (!isObject(value)) fail(`${where}: expected an object`);
-  const { profile, title, regions, pageSize, ...rest } = value;
+  const { profile, title, regions, pageSize, featured, ...rest } = value;
   const unknown = Object.keys(rest)[0];
   if (unknown !== undefined) fail(`${where}: unknown key "${unknown}"`);
   if (profile !== undefined && !PROFILES.includes(profile as Profile)) {
@@ -104,6 +113,19 @@ function validateRule(value: unknown, where: string): LayoutRule {
     if (profile !== "stream") {
       fail(`${where}.pageSize: only a stream folder's listing is paged — this rule needs "profile": "stream"`);
     }
+  }
+  let parsedFeatured: string[] | undefined;
+  if (featured !== undefined) {
+    if (!Array.isArray(featured)) fail(`${where}.featured: expected a list of the posts' vault paths`);
+    if (profile !== "stream") {
+      fail(`${where}.featured: only a stream folder has posts to feature — this rule needs "profile": "stream"`);
+    }
+    parsedFeatured = featured.map((file, i) => {
+      if (typeof file !== "string") fail(`${where}.featured[${i}]: must be a post's vault path`);
+      const path = fragmentPath(file, `${where}.featured[${i}]`);
+      if (!/\.md$/i.test(path)) fail(`${where}.featured[${i}]: "${file}" is not a markdown post`);
+      return path;
+    });
   }
   let parsedRegions: Partial<Record<RegionName, string>> | undefined;
   if (regions !== undefined) {
@@ -124,6 +146,7 @@ function validateRule(value: unknown, where: string): LayoutRule {
     ...(title === undefined ? {} : { title: title as string }),
     ...(parsedRegions === undefined ? {} : { regions: parsedRegions }),
     ...(pageSize === undefined ? {} : { pageSize: pageSize as number }),
+    ...(parsedFeatured === undefined ? {} : { featured: parsedFeatured }),
   };
 }
 
@@ -250,9 +273,12 @@ export function streamPagePaths(layout: Layout | undefined, sitePaths: readonly 
   const paths: string[] = [];
   for (const dir of streamDirs(layout)) {
     const index = streamIndexPath(dir).toLowerCase();
+    // A featured post stands atop the first page, not in the dated pages.
+    const featured = new Set(streamFeatured(layout, dir).map((sitePath) => sitePath.toLowerCase()));
     const posts = sitePaths.filter(
       (sitePath) =>
         sitePath.toLowerCase() !== index &&
+        !featured.has(sitePath.toLowerCase()) &&
         resolvePageLayout(layout, sitePath).streamDir?.toLowerCase() === dir.toLowerCase(),
     ).length;
     const size = folderRule(layout, dir)?.pageSize ?? DEFAULT_PAGE_SIZE;
@@ -290,6 +316,34 @@ function inSiteCase(dir: string, sitePaths: readonly string[]): string {
   const prefix = `${dir.toLowerCase()}/`;
   const page = sitePaths.find((sitePath) => sitePath.toLowerCase().startsWith(prefix));
   return page === undefined ? dir : page.slice(0, dir.length);
+}
+
+/**
+ * The site paths of the posts a stream folder features, in the order its rule
+ * gives them — as written, to be matched ignoring case like every path here.
+ */
+export function streamFeatured(layout: Layout | undefined, dir: string): string[] {
+  return (folderRule(layout, dir)?.featured ?? []).map(toSitePath);
+}
+
+/**
+ * Featured entries that name no post of their stream — a file the site does not
+ * publish, or one outside the folder, or its index — as messages naming the rule.
+ */
+export function featuredProblems(layout: Layout | undefined, sourcePaths: readonly string[]): string[] {
+  const problems: string[] = [];
+  for (const dir of streamDirs(layout)) {
+    const where = dir === "" ? "default" : `dirs.${dir}`;
+    const index = streamIndexPath(dir).toLowerCase();
+    for (const file of folderRule(layout, dir)?.featured ?? []) {
+      const sitePath = toSitePath(file).toLowerCase();
+      const published = sourcePaths.some((source) => source.toLowerCase() === file.toLowerCase());
+      const own = resolvePageLayout(layout, sitePath).streamDir?.toLowerCase() === dir.toLowerCase();
+      if (!published) problems.push(`${where}.featured: "${file}" is not a page this site publishes`);
+      else if (!own || sitePath === index) problems.push(`${where}.featured: "${file}" is not a post of this stream`);
+    }
+  }
+  return problems;
 }
 
 /** The rule written for a folder, found ignoring case as every rule is matched; the site default for `""`. */

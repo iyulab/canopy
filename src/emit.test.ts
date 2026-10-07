@@ -235,6 +235,31 @@ describe("emitSite", () => {
     expect(third).toContain('<a rel="prev" href="2.html">Newer posts</a><span>Page 3 of 3</span></nav>');
   });
 
+  it("puts a stream's featured posts atop the first page of its list, out of the dated pages", async () => {
+    const layout = { dirs: { blog: { profile: "stream" as const, pageSize: 2, featured: ["blog/a.md"] } } };
+    const documents = ["a", "b", "c", "d"].map((name, i) => ({
+      path: `blog/${name}.md`,
+      content: `---
+date: 2026-10-0${i + 1}
+---
+# ${name.toUpperCase()}
+`,
+    }));
+    const files = emitSite(await build({ documents, layout }), { layout, siteTitle: "Site" });
+    const at = (path: string) => files.find((file) => file.path === path)?.contents ?? "";
+    expect(files.map((file) => file.path)).not.toContain("blog/page/3.html");
+    expect(at("blog/index.html")).toContain(
+      '<ul class="canopy-listing"><li class="canopy-featured"><a class="canopy-listing-title" href="a.html">A</a>',
+    );
+    expect(at("blog/index.html")).toMatch(/href="a.html">A<\/a>.*href="d.html">D<\/a>.*href="c.html">C<\/a>/s);
+    expect(at("blog/index.html")).toContain("<span>Page 1 of 2</span>");
+    expect(at("blog/page/2.html")).toContain('href="../b.html">B</a>');
+    expect(at("blog/page/2.html")).not.toContain("canopy-featured");
+    // Every other post leads to it first.
+    expect(at("blog/c.html")).toContain('<aside class="canopy-read-next"><h2>Read next</h2><ul><li><a href="a.html">A</a>');
+    expect(at("blog/a.html")).toContain("<h2>Related posts</h2>");
+  });
+
   it("writes a stream's list of tags and a page for each tag, listing only its posts", async () => {
     const layout = { dirs: { blog: { profile: "stream" as const, title: "Blog" } } };
     const documents = [

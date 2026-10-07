@@ -19,7 +19,7 @@ import { bundleUsesKatex, KATEX_STYLESHEET } from "./katex.js";
 import { katexDirOfRenderer } from "./katex-assets.js";
 import { inCanopyLayer } from "./stylesheets.js";
 import { type OutputOwner, outputCollisions } from "./output-paths.js";
-import { type Layout, layoutFragments, parseLayout } from "./layout.js";
+import { featuredProblems, type Layout, layoutFragments, parseLayout } from "./layout.js";
 import { fragmentControls, fragmentProblems, pageSlotProblems } from "./regions.js";
 import { parseFrontmatter } from "./frontmatter.js";
 import { toSitePath } from "./site-path.js";
@@ -245,6 +245,12 @@ export async function runBuild(argv: string[]): Promise<void> {
     sitePath: toSitePath(doc.path),
     frontmatter: parseFrontmatter(doc.content).data,
   }));
+  const badFeatured = featuredProblems(layout, listing.pages);
+  if (badFeatured.length > 0) {
+    for (const problem of badFeatured) console.error(`--layout ${args.layoutPath}: ${problem}`);
+    process.exitCode = 1;
+    return;
+  }
   const badTags = tagProblems(layout, tagged);
   if (badTags.length > 0) {
     for (const { sitePath, message } of badTags) console.error(`canopy: ${sitePath}: ${message}`);

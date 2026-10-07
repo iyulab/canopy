@@ -176,6 +176,16 @@ const LIST_COMMAND_FLAGS = {
   boolean: { "--json": "json" },
 } as const;
 
+/** Every option each command accepts — what the usage text and the README have to cover. */
+export const COMMAND_OPTIONS: Readonly<Record<"build" | "list", readonly string[]>> = {
+  build: optionsOf(BUILD_FLAGS),
+  list: optionsOf(LIST_COMMAND_FLAGS),
+};
+
+function optionsOf(table: FlagTable<string, string, string>): string[] {
+  return [...Object.keys(table.value), ...Object.keys(table.list), ...Object.keys(table.boolean)];
+}
+
 type Scanned<V extends string, L extends string, B extends string> =
   | {
       ok: true;

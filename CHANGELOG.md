@@ -36,6 +36,10 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
   `data-theme` and `<meta name="color-scheme">` from the start, so the palette, code highlighting
   and a stylesheet's own dark block apply for every reader regardless of system preference, and
   no theme toggle is drawn (a `theme-toggle` slot shows nothing, with a build warning).
+- **A file named by its day is dated.** `2026-10-03-launch.md` (or `2026-10-03.md`) gets that day
+  wherever a page's date counts — the date under its title, `article:published_time`, the
+  `Article` data, a stream's order and byline, a listing, a feed — when its frontmatter names no
+  `date:`. `date:` wins when both are present. Exports `pageDate` (the rule) and `fileNameDate`.
 - `fragmentControls(html)`: the control slots a fragment places, for a caller checking a site.
 - Hook `.canopy-table`: the box each table in an article scrolls inside.
 

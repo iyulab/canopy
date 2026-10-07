@@ -314,7 +314,7 @@ export async function runBuild(argv: string[]): Promise<void> {
   // feed.xml looks like canopy ignoring the flag.
   for (const dir of new Set(args.feeds.map(normalizeFeedDir))) {
     if (datedPagesUnder(bundle.pages, dir).length === 0) {
-      console.warn(`--feed ${dir || "."}: no page there names a date:, so no feed is written`);
+      console.warn(`--feed ${dir || "."}: no page there is dated (a date: or a file named by its day), so no feed is written`);
     }
   }
 

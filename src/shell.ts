@@ -5,7 +5,7 @@ import { ancestorPath, flattenNav, subtreeContains, type NavNode } from "./navig
 import { htmlToText } from "./html-text.js";
 import { fileUrl, pageUrl, relativeHref } from "./site-path.js";
 import { isOutlineUseful, type OutlineItem } from "./outline.js";
-import { formatPageDate, frontmatterDate } from "./page-date.js";
+import { formatPageDate, frontmatterDate, pageDate } from "./page-date.js";
 import { declaredTitle, pageName } from "./title.js";
 import { readingMinutes } from "./reading-time.js";
 import { type ControlSlot, fragmentControls, pageSlotText, renderFragment } from "./regions.js";
@@ -439,10 +439,10 @@ function renderSocialMeta(
   );
 
   // Open Graph's article vocabulary: when the page says it was published and
-  // when it last changed. Both come from the page's own frontmatter and nowhere
-  // else — canopy keeps no history, and a date it inferred would be a guess
-  // presented as the author's claim.
-  const published = frontmatterDate(page.frontmatter.date);
+  // when it last changed. Both are the author's own statements — frontmatter,
+  // or a file named by its day — and nothing else: canopy keeps no history, and
+  // a date it inferred would be a guess presented as the author's claim.
+  const published = pageDate(page);
   const modified = frontmatterDate(page.frontmatter.updated);
   if (published !== undefined) {
     tags.push(`<meta property="article:published_time" content="${escapeHtml(published)}">`);
@@ -498,7 +498,7 @@ function renderSocialMeta(
 /**
  * schema.org `Article` structured data for a dated page — how a search engine
  * tells an article (a headline, a publication date, an author) from an undated
- * reference page. Written only when the page names its `date:`: without one
+ * reference page. Written only when the page is dated (`pageDate`): without one
  * there is no article to describe, and every other page keeps the metadata it
  * already had.
  *
@@ -584,7 +584,7 @@ function renderListing(
             ? `<span class="canopy-listing-title">${label}</span>`
             : `<a class="canopy-listing-title" href="${escapeHtml(relativeHref(page.sitePath, node.sitePath))}">${label}</a>`;
         const entry = node.sitePath === undefined ? undefined : bySitePath.get(node.sitePath);
-        const published = frontmatterDate(entry?.frontmatter.date);
+        const published = entry === undefined ? undefined : pageDate(entry);
         const date =
           published === undefined
             ? ""
@@ -623,8 +623,9 @@ function afterTitle(html: string, markup: string): string {
  * page chrome — the search index and every other reader of the body text never
  * see it as something the author wrote in the document.
  */
-function withPageDate(html: string, frontmatter: Record<string, unknown>, lang: string): string {
-  const published = frontmatterDate(frontmatter.date);
+function withPageDate(page: RenderedPage, lang: string): string {
+  const { html } = page;
+  const published = pageDate(page);
   if (published === undefined) return html;
   return afterTitle(
     html,
@@ -659,7 +660,7 @@ function streamOpening(
   const lead =
     typeof own === "string" && own.trim() !== "" ? `<p class="canopy-lead">${escapeHtml(own.trim())}</p>` : "";
   if (isStreamIndex(page, pageLayout)) return afterTitle(page.html, lead);
-  const published = frontmatterDate(page.frontmatter.date);
+  const published = pageDate(page);
   const date =
     published === undefined
       ? ""
@@ -937,7 +938,7 @@ export function renderPage(
     : `<aside class="canopy-sidebar"><details class="canopy-nav" open><summary aria-label="${escapeHtml(strings.siteNav)}"></summary><nav>${renderNavList(navigation, page.sitePath)}</nav></details></aside>\n`;
   const body = stream
     ? streamOpening(page, pageLayout, lang, strings)
-    : withPageDate(page.html, page.frontmatter, lang);
+    : withPageDate(page, lang);
   const around = stream
     ? ""
     : `${renderOutline(page.outline, strings.onThisPage)}\n${renderBacklinks(page.backlinks, page.sitePath, strings.backlinks)}\n${renderPageNav(navigation, page.sitePath, strings.pageNav)}\n`;

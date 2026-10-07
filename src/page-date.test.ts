@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatPageDate, frontmatterDate } from "./page-date.js";
+import { fileNameDate, formatPageDate, frontmatterDate, pageDate } from "./page-date.js";
 
 describe("frontmatterDate", () => {
   it("keeps a date-only value date-only", () => {
@@ -23,6 +23,36 @@ describe("frontmatterDate", () => {
     for (const value of ["2026-02-30", "2026-13-01", "28/09/2026", "2026-09-28 later", "2026-09-28T25:00", "", 20260928, null, undefined]) {
       expect(frontmatterDate(value)).toBeUndefined();
     }
+  });
+});
+
+describe("fileNameDate", () => {
+  it("reads the day a file name begins with", () => {
+    expect(fileNameDate("blog/2026-10-03-ap-vs-rpn.md")).toBe("2026-10-03");
+    expect(fileNameDate("notes/2026-10-03.md")).toBe("2026-10-03");
+    expect(fileNameDate("2026-10-03_launch.md")).toBe("2026-10-03");
+  });
+
+  it("finds no date in a name that does not begin with a real day", () => {
+    expect(fileNameDate("blog/launch-2026-10-03.md")).toBeUndefined();
+    expect(fileNameDate("blog/2026-02-30-leap.md")).toBeUndefined();
+    expect(fileNameDate("blog/20261003-x.md")).toBeUndefined();
+    expect(fileNameDate("blog/2026-10-031.md")).toBeUndefined();
+    expect(fileNameDate("2026-10-03-folder/page.md")).toBeUndefined();
+  });
+});
+
+describe("pageDate", () => {
+  it("takes the frontmatter date first, then the file name's day", () => {
+    expect(pageDate({ sourcePath: "2026-10-03-a.md", frontmatter: { date: "2026-10-05T09:00:00+09:00" } })).toBe(
+      "2026-10-05T09:00:00+09:00",
+    );
+    expect(pageDate({ sourcePath: "2026-10-03-a.md", frontmatter: {} })).toBe("2026-10-03");
+    expect(pageDate({ sourcePath: "a.md", frontmatter: {} })).toBeUndefined();
+  });
+
+  it("falls back to the file name when the frontmatter date is not a date", () => {
+    expect(pageDate({ sourcePath: "2026-10-03-a.md", frontmatter: { date: "soon" } })).toBe("2026-10-03");
   });
 });
 

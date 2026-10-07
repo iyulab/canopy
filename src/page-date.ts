@@ -1,10 +1,12 @@
 /**
- * Dates a page states about itself in its frontmatter — `date:` (when it was
- * published) and `updated:` (when it last changed in substance).
+ * Dates a page states about itself — `date:` (when it was published) and
+ * `updated:` (when it last changed in substance) in its frontmatter, or a
+ * publish day its file name begins with.
  *
- * One rule for what counts as a date, so every reader of the same frontmatter
- * — the shell's visible date, the `<head>` tags, a caller's sitemap or check —
- * agrees on which pages are dated and what their dates are.
+ * One rule for what counts as a date, so every reader of the same page — the
+ * shell's visible date, the `<head>` tags, a stream's order, a feed, a
+ * caller's sitemap or check — agrees on which pages are dated and what their
+ * dates are.
  */
 
 /** `YYYY-MM-DD`, optionally followed by a time and an offset (ISO 8601 / RFC 3339). */
@@ -45,6 +47,35 @@ export function frontmatterDate(value: unknown): string | undefined {
     return undefined;
   }
   return text.replace(" ", "T");
+}
+
+/** A file name's leading day: `2026-10-03-launch.md`, `2026-10-03.md`. */
+const FILE_NAME_DAY = /^(\d{4}-\d{2}-\d{2})(?:[-_ .]|$)/;
+
+/**
+ * The publish day a page's file name begins with, or `undefined`.
+ *
+ * Naming a post by its day (`2026-10-03-launch.md`) is how many blogs keep
+ * their folder in order and their date visible in the URL; that name is the
+ * author's own statement of the day, as much as a `date:` line is. A leading
+ * day that does not exist (`2026-02-30-…`) is not a date, the same rule
+ * `frontmatterDate` applies.
+ */
+export function fileNameDate(sourcePath: string): string | undefined {
+  const stem = sourcePath.replace(/\\/g, "/").split("/").pop()?.replace(/\.md$/i, "") ?? "";
+  const match = FILE_NAME_DAY.exec(stem);
+  return match === null ? undefined : frontmatterDate(match[1]);
+}
+
+/**
+ * When a page was published: its `date:`, or else the day its file name
+ * begins with. `date:` wins when both are there — it can carry a time, and it
+ * is the one line an author edits to re-date a post without renaming it (a
+ * renamed file is a changed URL). A caller checking a site can compare the
+ * two with `frontmatterDate` and `fileNameDate` and report a disagreement.
+ */
+export function pageDate(page: { sourcePath: string; frontmatter: Record<string, unknown> }): string | undefined {
+  return frontmatterDate(page.frontmatter.date) ?? fileNameDate(page.sourcePath);
 }
 
 /**

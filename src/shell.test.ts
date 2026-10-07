@@ -834,6 +834,16 @@ describe("dated pages", () => {
   const dated = (frontmatter: Record<string, unknown>, html = "<h1>Launch</h1><p>Body</p>") =>
     page({ frontmatter, html });
 
+  it("dates a page whose file is named by its day, everywhere a date shows", () => {
+    const html = renderPage(
+      page({ sourcePath: "notes/2026-10-03-launch.md", frontmatter: {}, html: "<h1>Launch</h1><p>Body</p>" }),
+      nav,
+    );
+    expect(article(html)).toContain('<p class="canopy-date"><time datetime="2026-10-03">October 3, 2026</time></p>');
+    expect(head(html)).toContain('<meta property="article:published_time" content="2026-10-03">');
+    expect(ld(html)?.datePublished).toBe("2026-10-03");
+  });
+
   it("leaves an undated page exactly as it was", () => {
     const html = renderPage(page({ frontmatter: { updated: "2026-09-29" } }), nav, {
       siteUrl: "https://example.org/docs",

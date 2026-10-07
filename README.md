@@ -76,7 +76,7 @@ npx canopy build <vault-dir> [out-dir] [options]
 - `--feed <dir>` — publish an Atom feed of the dated pages beneath a vault folder at
   `<dir>/feed.xml` (`.` for the whole site), newest first, and link it from that folder's pages
   (`<link rel="alternate" type="application/atom+xml">`) so browsers and feed readers find it.
-  Repeatable; needs `--site-url`. Entries are pages that name a `date:` (see *Dated pages*), apart
+  Repeatable; needs `--site-url`. Entries are dated pages (see *Dated pages*), apart
   from the folder's own index page; a folder with none gets no feed and a warning.
 - `--color-scheme <light|dark>` — for a site that has only one colour scheme: every page is drawn
   in it whatever the reader's system prefers (`data-theme` on `<html>`, plus
@@ -321,6 +321,12 @@ updated: 2026-10-01       # optional: when it last changed in substance
 author: Jane Doe          # optional: a person's name
 ---
 ```
+
+A file named by its day — `2026-09-28-launch.md`, or `2026-09-28.md` — is dated that day without
+a `date:` line, the way most blog generators read such names. When both are there, `date:` wins
+(it can carry a time, and re-dating a post should not mean renaming its URL); `pageDate`,
+`frontmatterDate` and `fileNameDate` let a checker compare the two. A leading day that does not
+exist (`2026-02-30-…`) is not a date.
 
 - The date appears under the page's `h1` as a `<time datetime>` (`.canopy-date`), spelled for the
   site language (`--lang`) — the day the author wrote, never re-read in another timezone.

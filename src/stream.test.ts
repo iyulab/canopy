@@ -13,6 +13,16 @@ const dated = (sitePath: string, date: unknown): RenderedPage => ({
 });
 
 describe("streamOrder", () => {
+  it("dates a page named by its day as if it said so in its frontmatter", () => {
+    const named = { ...dated("b/2026-02-01-feb.html", undefined), sourcePath: "b/2026-02-01-feb.md" };
+    const pages = [dated("b/jan.html", "2026-01-01"), named, dated("b/mar.html", "2026-03-01")];
+    expect(pages.sort(streamOrder).map((page) => page.sitePath)).toEqual([
+      "b/mar.html",
+      "b/2026-02-01-feb.html",
+      "b/jan.html",
+    ]);
+  });
+
   it("puts the newest day first, then the later time that day, then undated pages by path", () => {
     const pages = [
       dated("b/undated.html", undefined),

@@ -19,7 +19,7 @@ export type {
 } from "./contract.js";
 export { toSitePath, relativeHref, pageUrl, fileUrl } from "./site-path.js";
 export { parseFrontmatter } from "./frontmatter.js";
-export { frontmatterDate, formatPageDate } from "./page-date.js";
+export { frontmatterDate, fileNameDate, pageDate, formatPageDate } from "./page-date.js";
 export { renderMarkdown, renderDocument } from "./render.js";
 export { buildNavigation } from "./navigation.js";
 export type { NavEntry, NavNode } from "./navigation.js";

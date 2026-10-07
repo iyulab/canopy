@@ -1,7 +1,7 @@
 import type { RenderedPage } from "./contract.js";
 import { type Layout, resolvePageLayout, streamDirs, streamIndexPath } from "./layout.js";
 import { flattenNav, type NavNode } from "./navigation.js";
-import { frontmatterDate } from "./page-date.js";
+import { pageDate } from "./page-date.js";
 import { escapeHtml } from "./shell.js";
 import { declaredTitle, pageName } from "./title.js";
 
@@ -42,8 +42,8 @@ export function syntheticStreamPages(layout: Layout | undefined, sitePaths: read
  * dates) come last, by path, since nothing says where else they belong.
  */
 export function streamOrder(a: RenderedPage, b: RenderedPage): number {
-  const da = frontmatterDate(a.frontmatter.date);
-  const db = frontmatterDate(b.frontmatter.date);
+  const da = pageDate(a);
+  const db = pageDate(b);
   if (da === undefined || db === undefined) {
     if (da !== db) return da === undefined ? 1 : -1;
     return a.sitePath.localeCompare(b.sitePath);

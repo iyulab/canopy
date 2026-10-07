@@ -1,6 +1,6 @@
 import type { RenderedPage } from "./contract.js";
 import type { NavNode } from "./navigation.js";
-import { frontmatterDate } from "./page-date.js";
+import { frontmatterDate, pageDate } from "./page-date.js";
 import { pageTitle } from "./shell.js";
 import { fileUrl, pageUrl } from "./site-path.js";
 
@@ -37,15 +37,15 @@ function isUnder(sitePath: string, dir: string): boolean {
 }
 
 /**
- * The pages a folder's feed lists: every page beneath it that names its
- * `date:`, newest first — except the page that fronts the folder, which
+ * The pages a folder's feed lists: every page beneath it that is dated
+ * (`pageDate`), newest first — except the page that fronts the folder, which
  * describes the series rather than being one of its entries.
  */
 export function datedPagesUnder(pages: readonly RenderedPage[], dir: string): RenderedPage[] {
   const front = indexSitePath(dir).toLowerCase();
   return pages
     .filter((page) => isUnder(page.sitePath, dir) && page.sitePath.toLowerCase() !== front)
-    .map((page) => ({ page, at: atomDate(frontmatterDate(page.frontmatter.date)) }))
+    .map((page) => ({ page, at: atomDate(pageDate(page)) }))
     .filter((entry): entry is { page: RenderedPage; at: string } => entry.at !== undefined)
     .sort(
       (a, b) =>
@@ -142,7 +142,7 @@ export function renderFeed(
 
   const rendered = entries.map((page) => {
     const url = pageUrl(options.siteUrl, page.sitePath);
-    const published = atomDate(frontmatterDate(page.frontmatter.date)) as string;
+    const published = atomDate(pageDate(page)) as string;
     const updated = atomDate(frontmatterDate(page.frontmatter.updated)) ?? published;
     const author = nonEmpty(page.frontmatter.author);
     const summary = nonEmpty(page.frontmatter.description);

@@ -247,7 +247,7 @@ export async function runBuild(argv: string[]): Promise<void> {
   }));
   const badTags = tagProblems(layout, tagged);
   if (badTags.length > 0) {
-    for (const problem of badTags) console.error(`canopy: ${problem}`);
+    for (const { sitePath, message } of badTags) console.error(`canopy: ${sitePath}: ${message}`);
     process.exitCode = 1;
     return;
   }

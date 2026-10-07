@@ -949,6 +949,25 @@ body {
 .canopy-tag-index { font-size: 1em; }
 .canopy-tag-count { color: var(--text-muted); font-size: 0.85em; }
 .canopy-tag-index-link { margin-top: var(--sp-6); font-size: 0.95em; }
+/* What to read after a page, at the article's end: set apart by a rule, titled
+   small and muted like the linked references, each entry its title, date and
+   summary in the voice of the stream's list. */
+.canopy-read-next {
+  margin: var(--sp-8) 0 0;
+  padding-top: var(--sp-6);
+  border-top: 1px solid var(--border);
+}
+.canopy-content .canopy-read-next h2 {
+  margin: 0 0 var(--sp-3);
+  font-size: 1em;
+  letter-spacing: 0;
+  color: var(--text-muted);
+}
+.canopy-content .canopy-read-next ul { list-style: none; padding-left: 0; margin: 0; }
+.canopy-content .canopy-read-next li + li { margin-top: var(--sp-3); }
+.canopy-read-next a { font-weight: var(--font-weight-semibold); }
+.canopy-read-next time { margin-left: var(--sp-2); color: var(--text-muted); font-size: 0.9em; }
+.canopy-content .canopy-read-next p { margin: var(--sp-1) 0 0; color: var(--text-muted); font-size: 0.95em; }
 /* The way between the pages of a stream's list: newer on the left, where this
    page is in the middle, older on the right. */
 .canopy-pagination {

@@ -1,6 +1,6 @@
-import type { RenderedPage } from "./contract.js";
+import type { PageProblem, RenderedPage } from "./contract.js";
 import { DEFAULT_PAGE_SIZE, folderRule, type Layout, resolvePageLayout, streamDirs } from "./layout.js";
-import { pageDate } from "./page-date.js";
+import { newestFirst } from "./page-date.js";
 
 /**
  * Tags on a stream's posts, and the pages a build writes for them: one listing
@@ -60,12 +60,6 @@ export function pageTags(frontmatter: Readonly<Record<string, unknown>>): string
   return tags;
 }
 
-function newestFirst(a: TaggedPage, b: TaggedPage): number {
-  const da = pageDate(a) ?? "";
-  const db = pageDate(b) ?? "";
-  return db.localeCompare(da) || a.sitePath.localeCompare(b.sitePath);
-}
-
 /**
  * The tags of one stream's posts, gathered by slug and sorted by it. Spellings
  * that share a slug are one tag, shown the way most of its posts spell it —
@@ -120,10 +114,10 @@ export function tagPageCount(layout: Layout | undefined, dir: string, tag: Strea
 }
 
 /** Each stream folder's posts — the pages its rule covers, its index aside — in the folder's own spelling. */
-export function streamPosts(
+export function streamPosts<Page extends TaggedPage>(
   layout: Layout | undefined,
-  pages: readonly TaggedPage[],
-): { dir: string; posts: TaggedPage[] }[] {
+  pages: readonly Page[],
+): { dir: string; posts: Page[] }[] {
   return streamDirs(layout).map((rule) => {
     const posts = pages.filter((page) => {
       const own = resolvePageLayout(layout, page.sitePath).streamDir;
@@ -154,19 +148,16 @@ export function streamTagPaths(layout: Layout | undefined, pages: readonly Tagge
   });
 }
 
-/** Tags on a stream's posts that can have no page of their own, as messages naming the post. */
-export function tagProblems(layout: Layout | undefined, pages: readonly TaggedPage[]): string[] {
-  const problems: string[] = [];
+/** Tags on a stream's posts that can have no page of their own, by the post. */
+export function tagProblems(layout: Layout | undefined, pages: readonly TaggedPage[]): PageProblem[] {
+  const problems: PageProblem[] = [];
   for (const { dir, posts } of streamPosts(layout, pages)) {
     for (const page of posts) {
       for (const name of pageTags(page.frontmatter)) {
         const slug = tagSlug(name);
-        if (slug === "") problems.push(`${page.sitePath}: tag "${name}" has no letters or digits to name its page`);
-        else if (slug === "index") {
-          problems.push(
-            `${page.sitePath}: tag "${name}" would be written at ${tagIndexPath(dir)}, the list of all tags`,
-          );
-        }
+        const problem = (message: string) => problems.push({ sitePath: page.sitePath, message });
+        if (slug === "") problem(`tag "${name}" has no letters or digits to name its page`);
+        else if (slug === "index") problem(`tag "${name}" would be written at ${tagIndexPath(dir)}, the list of all tags`);
       }
     }
   }

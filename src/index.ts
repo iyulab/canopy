@@ -18,14 +18,15 @@ export type {
   SiteBundle,
   OutputFile,
   Backlink,
+  PageProblem,
 } from "./contract.js";
 export { toSitePath, relativeHref, pageUrl, fileUrl } from "./site-path.js";
 export { parseFrontmatter } from "./frontmatter.js";
-export { frontmatterDate, fileNameDate, pageDate, formatPageDate } from "./page-date.js";
+export { frontmatterDate, fileNameDate, newestFirst, pageDate, formatPageDate } from "./page-date.js";
 export { renderMarkdown, renderDocument } from "./render.js";
 export { buildNavigation } from "./navigation.js";
 export type { NavEntry, NavNode } from "./navigation.js";
-export { buildLinkIndex } from "./links.js";
+export { buildLinkIndex, type LinkIndex } from "./links.js";
 export {
   isExternalUrl,
   parseLinkUrl,
@@ -92,6 +93,15 @@ export {
   type OutputPlan,
 } from "./output-paths.js";
 export { readingMinutes } from "./reading-time.js";
+export {
+  pickReadNext,
+  READ_NEXT_SLOTS,
+  readNextProblems,
+  readNextValues,
+  relatedPosts,
+  resolveReadNext,
+  type ReadNext,
+} from "./read-next.js";
 export {
   pageTags,
   streamTagPaths,

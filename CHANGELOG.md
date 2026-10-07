@@ -10,7 +10,20 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
 ## [Unreleased]
 
+Upgrading: a stream post now ends with what to read next (`.canopy-read-next`) — style or hide it
+with that hook. `tagProblems` returns `{ sitePath, message }` objects instead of strings.
+
 ### Added
+
+- What to read next: a page's `readNext:` (a path written as a markdown link from the page, or a
+  `"[[wikilink]]"`; one, or a list) closes the article as a list (`.canopy-read-next`) of each named
+  page with its date and summary, on any page. A stream's post always has the list, filled to three
+  with the posts sharing its rarer tags or linked with it (`ln(N / df)` per shared tag, 1 for a
+  link either way), then the stream's newest. Titled by `strings.readNext` ("Read next") when the
+  author named any, `strings.related` ("Related posts") otherwise. Exported: `pickReadNext`,
+  `relatedPosts`, `resolveReadNext`, `readNextValues`, `readNextProblems` (a value naming no page,
+  by the page), `READ_NEXT_SLOTS`, and the `LinkIndex` type.
+- `newestFirst`, the order of a stream's posts, and the `PageProblem` type are exported.
 
 - A tag's page is read a page at a time, like the stream's own list: past the stream rule's
   `pageSize` posts it continues on `<folder>/tags/<slug>/page/2.html` …, each page ending with the
@@ -20,6 +33,8 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
 ### Changed
 
+- `tagProblems` returns `PageProblem` objects (`{ sitePath, message }`, the message without the
+  path) — a checker reports each by its page without parsing the text.
 - The link to the list of a stream's tags (`.canopy-tag-index-link`) is on the first page of a
   tag's list only, as it is on the first page of the stream's list; later pages lead back through
   the pagination.

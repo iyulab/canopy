@@ -10,6 +10,7 @@ import {
   streamListingPage,
   streamPagePaths,
 } from "./layout.js";
+import { buildLinkIndex, type LinkIndex } from "./links.js";
 import { isExternalUrl } from "./markdown-link.js";
 import { ancestorPath, flattenNav, subtreeContains, type NavNode } from "./navigation.js";
 import { htmlToText } from "./html-text.js";
@@ -18,6 +19,7 @@ import { isOutlineUseful, type OutlineItem } from "./outline.js";
 import { formatPageDate, frontmatterDate, pageDate } from "./page-date.js";
 import { declaredTitle, pageName } from "./title.js";
 import { pageTags, streamPosts, streamTags, tagIndexPath, tagPageCount, tagPagePath, tagSlug } from "./tags.js";
+import { pickReadNext } from "./read-next.js";
 import { readingMinutes } from "./reading-time.js";
 import { type ControlSlot, pageSlotText, renderFragment } from "./regions.js";
 
@@ -191,6 +193,10 @@ export interface ShellOptions {
     olderPosts?: string;
     /** A stream post's tags' label, and the title of the stream's list of tags. */
     tags?: string;
+    /** Over what to read after a page, when its author named any of it (`readNext:`). */
+    readNext?: string;
+    /** Over what to read after a stream post, when all of it was found rather than named. */
+    related?: string;
   };
 }
 
@@ -215,6 +221,8 @@ const DEFAULT_STRINGS = {
   newerPosts: "Newer posts",
   olderPosts: "Older posts",
   tags: "Tags",
+  readNext: "Read next",
+  related: "Related posts",
 } as const;
 
 type ShellStrings = Record<keyof typeof DEFAULT_STRINGS, string>;
@@ -718,6 +726,53 @@ function renderListing(
       ? renderTagIndexLink(page.sitePath, pageLayout.streamDir, options, strings)
       : "";
   return `<ul class="canopy-listing">${items(entries)}</ul>${pager}${toTags}`;
+}
+
+/** One link index per site, however many of its pages are drawn. */
+const linkIndexes = new WeakMap<readonly RenderedPage[], LinkIndex>();
+
+function siteLinkIndex(pages: readonly RenderedPage[]): LinkIndex {
+  let index = linkIndexes.get(pages);
+  if (index === undefined) {
+    index = buildLinkIndex(pages.map((candidate) => candidate.sitePath));
+    linkIndexes.set(pages, index);
+  }
+  return index;
+}
+
+/**
+ * What to read after this page (see read-next.ts), at its end: each entry
+ * named and dated as the stream's list names and dates it, with its summary.
+ * Titled `readNext` when the author chose any of it, `related` when all of it
+ * was found.
+ */
+function renderReadNext(
+  page: RenderedPage,
+  navigation: NavNode[],
+  options: ShellOptions,
+  lang: string,
+  strings: ShellStrings,
+): string {
+  if (page.sourcePath === "") return "";
+  const pages = options.sitePages ?? [];
+  const { sitePaths, chosen } = pickReadNext(page, pages, options.layout, siteLinkIndex(pages));
+  if (sitePaths.length === 0) return "";
+  const labels = new Map(flattenNav(navigation).map((entry) => [entry.sitePath, entry.label]));
+  const bySitePath = new Map(pages.map((candidate) => [candidate.sitePath, candidate]));
+  const items = sitePaths.map((sitePath) => {
+    const entry = bySitePath.get(sitePath);
+    const label = labels.get(sitePath) ?? (entry === undefined ? sitePath : pageTitle(entry));
+    const published = entry === undefined ? undefined : pageDate(entry);
+    const date =
+      published === undefined
+        ? ""
+        : ` <time datetime="${escapeHtml(published)}">${escapeHtml(formatPageDate(published, lang))}</time>`;
+    const own = entry?.frontmatter.description;
+    const summary = typeof own === "string" && own.trim() !== "" ? `<p>${escapeHtml(own.trim())}</p>` : "";
+    return `<li><a href="${escapeHtml(relativeHref(page.sitePath, sitePath))}">${escapeHtml(label)}</a>${date}${summary}</li>`;
+  });
+  const heading = escapeHtml(chosen ? strings.readNext : strings.related);
+  return `<aside class="canopy-read-next"><h2>${heading}</h2><ul>${items.join("")}</ul></aside>`;
 }
 
 /**
@@ -1289,7 +1344,7 @@ ${descriptionTag}${social}${feedTags}${icon}${links}${script}${head}
 ${skip}${header}
 <div class="canopy-layout">
 ${sidebar}<main class="canopy-main" id="${MAIN_ID}">
-<article class="canopy-content">${before}${body}${renderListing(page, navigation, options, lang, pageLayout, strings)}${postTags}${after}</article>
+<article class="canopy-content">${before}${body}${renderListing(page, navigation, options, lang, pageLayout, strings)}${postTags}${renderReadNext(page, navigation, options, lang, strings)}${after}</article>
 ${around}</main>
 </div>
 ${footer === "" ? "" : `${footer}\n`}</body>

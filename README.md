@@ -96,7 +96,8 @@ npx canopy build <vault-dir> [out-dir] [options]
   link every page opens with, past the header and navigation to the content), `newerPost` and
   `olderPost` (over the links at a stream post's end), `pageOf` (with `{n}` and `{total}`),
   `newerPosts` and `olderPosts` (between the pages of a stream's list), `tags` (a stream post's tags,
-  and the title of a stream's list of tags). No
+  and the title of a stream's list of tags), `readNext` and `related` (over what to read after a
+  page — see [What to read next](#what-to-read-next)). No
   built-in translation table — the same reasoning `--home-label` already follows: this text has
   to be written in the site's own language, and canopy has no way to guess it. Keys left out
   keep their English default.
@@ -360,6 +361,29 @@ A value that names no real day (`2026-02-30`, `28/09/2026`) is not a date, and t
 undated. Canopy reads dates only from frontmatter — it keeps no history, so it never infers one.
 `frontmatterDate()` is exported, so a tool reading the same frontmatter (a sitemap, a
 checker) recognizes exactly the dates canopy does. Undated pages are unchanged.
+
+### What to read next
+
+A page can name what to read after it — on any page, in any profile, in the order written:
+
+```yaml
+---
+readNext:
+  - install.md          # a path, written as a markdown link from this page
+  - "[[configuration]]" # or a wikilink, quoted
+---
+```
+
+They close the article as a short list (`.canopy-read-next`), each entry with its name, date and
+own `description:`, under "Read next". Every one named is shown. A value that names no page of
+the site is left out; `readNextProblems` names each one, for a checker to report.
+
+A stream's post (`--layout`, see [docs/THEMING.md](docs/THEMING.md#profiles)) always has the list,
+filled to three: what its author named, then the posts most like it, then the stream's newest. A
+post is like another by the tags they share — each adding `ln(N / df)`, so a tag few posts carry
+counts for more and one on every post adds nothing — and by a link from either to the other
+(adding 1); ties go to the post published nearer. With nothing named, the list is titled "Related
+posts". `pickReadNext`, `relatedPosts` and `resolveReadNext` are exported.
 
 ### Markdown support
 

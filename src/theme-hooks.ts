@@ -52,6 +52,7 @@ export const THEME_HOOKS = Object.freeze([
   "canopy-tag-index",
   "canopy-tag-count",
   "canopy-tag-index-link",
+  "canopy-read-next",
   "canopy-table",
   "callout",
   "callout-note",

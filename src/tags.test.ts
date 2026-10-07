@@ -95,8 +95,8 @@ describe("tag paths", () => {
   it("finds a tag that has no page to be listed on", () => {
     const pages = [post("blog/a.html", "2026-10-01", ["/?#", "Index", "ok"])];
     expect(tagProblems(layout, pages)).toEqual([
-      'blog/a.html: tag "/?#" has no letters or digits to name its page',
-      'blog/a.html: tag "Index" would be written at blog/tags/index.html, the list of all tags',
+      { sitePath: "blog/a.html", message: 'tag "/?#" has no letters or digits to name its page' },
+      { sitePath: "blog/a.html", message: 'tag "Index" would be written at blog/tags/index.html, the list of all tags' },
     ]);
   });
 });

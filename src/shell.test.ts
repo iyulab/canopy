@@ -1284,6 +1284,64 @@ describe("the stream profile", () => {
     });
   });
 
+  describe("what to read next", () => {
+    const older = page({
+      sourcePath: "blog/older.md",
+      sitePath: "blog/older.html",
+      frontmatter: { date: "2026-10-01", description: "Before." },
+      html: "<h1>Older</h1>",
+    });
+    const guide = page({ sourcePath: "guide/start.md", sitePath: "guide/start.html", html: "<h1>Start</h1>" });
+    const nav: NavNode[] = [
+      {
+        label: "Blog",
+        sitePath: "blog/index.html",
+        children: [
+          { label: "Post", sitePath: "blog/post.html", children: [] },
+          { label: "Older one", sitePath: "blog/older.html", children: [] },
+        ],
+      },
+      { label: "Start", sitePath: "guide/start.html", children: [] },
+    ];
+    const withOlder = { ...options, sitePages: [index, post, older, guide] };
+
+    it("closes a stream post with what to read next, named and dated as the list shows it", () => {
+      expect(renderPage(post, nav, withOlder)).toContain(
+        '<aside class="canopy-read-next"><h2>Related posts</h2><ul>' +
+          '<li><a href="older.html">Older one</a> <time datetime="2026-10-01">October 1, 2026</time><p>Before.</p></li>' +
+          "</ul></aside></article>",
+      );
+    });
+
+    it("titles it Read next once the author names any of it, and says both in the site's words", () => {
+      const named = { ...post, frontmatter: { ...post.frontmatter, readNext: "../guide/start.md" } };
+      const html = renderPage(named, nav, { ...withOlder, sitePages: [index, named, older, guide] });
+      expect(html).toContain('<h2>Read next</h2><ul><li><a href="../guide/start.html">Start</a></li><li><a href="older.html">');
+      expect(renderPage(post, nav, { ...withOlder, strings: { related: "관련 글" } })).toContain("<h2>관련 글</h2>");
+    });
+
+    it("comes before the after-article region", () => {
+      const html = renderPage(post, nav, {
+        ...withOlder,
+        layout: { dirs: { blog: { profile: "stream" as const, regions: { afterArticle: "a.html" } } } },
+        fragments: { "a.html": "<p>after</p>" },
+      });
+      expect(html).toMatch(/<\/aside><div class="canopy-after-article">/);
+    });
+
+    it("is on a manual page only when its author names something", () => {
+      expect(renderPage(guide, nav, withOlder)).not.toContain("canopy-read-next");
+      const named = { ...guide, frontmatter: { readNext: "[[post]]" } };
+      expect(renderPage(named, nav, { ...withOlder, sitePages: [index, post, older, named] })).toContain(
+        '<aside class="canopy-read-next"><h2>Read next</h2><ul><li><a href="../blog/post.html">Post</a>',
+      );
+    });
+
+    it("is not on the stream's list", () => {
+      expect(renderPage(index, nav, withOlder)).not.toContain("canopy-read-next");
+    });
+  });
+
   describe("a listing in pages", () => {
     const paged = { dirs: { blog: { profile: "stream" as const, pageSize: 2 } } };
     const post = (name: string) => ({ label: name, sitePath: `blog/${name}.html`, children: [] });

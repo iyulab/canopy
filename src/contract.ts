@@ -110,3 +110,11 @@ export interface OutputFile {
   /** UTF-8 text contents. */
   contents: string;
 }
+
+/** Something in a page that the build cannot follow, by the page it is in — for a checker to report. */
+export interface PageProblem {
+  /** Site path of the page. */
+  sitePath: string;
+  /** What is wrong, without the page's path. */
+  message: string;
+}

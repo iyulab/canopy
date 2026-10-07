@@ -78,6 +78,14 @@ export function pageDate(page: { sourcePath: string; frontmatter: Record<string,
   return frontmatterDate(page.frontmatter.date) ?? fileNameDate(page.sourcePath);
 }
 
+/** Pages in a stream's order: newest first, an undated page last, a tie by site path. */
+export function newestFirst(
+  a: { sourcePath: string; sitePath: string; frontmatter: Record<string, unknown> },
+  b: { sourcePath: string; sitePath: string; frontmatter: Record<string, unknown> },
+): number {
+  return (pageDate(b) ?? "").localeCompare(pageDate(a) ?? "") || a.sitePath.localeCompare(b.sitePath);
+}
+
 /**
  * The calendar day of an ISO date as a reader in `lang` writes it —
  * "September 28, 2026", "2026년 9월 28일".

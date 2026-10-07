@@ -147,6 +147,10 @@ pages read one at a time, newest first:
   (`.canopy-tag-index-link`). A slug is the tag
   lowercased, with spaces and `/ ? # % \` as `-`; tags with one slug are one tag, shown the way
   most of its posts spell it;
+- after a post's tags, what to read next (`.canopy-read-next`): the posts its `readNext:` names,
+  then the posts sharing its rarer tags or linked with it, then the folder's newest — three in
+  all, unless more are named. A manual page has the same list only when its `readNext:` names
+  something;
 - canopy's own top bar shows a link back to that index (`.canopy-back`) where a manual page
   shows its breadcrumb;
 - after the article, the post published before it (`.canopy-prev`) and the one after

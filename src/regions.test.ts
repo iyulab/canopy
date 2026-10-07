@@ -99,6 +99,16 @@ describe("fragmentLinks: other URL attributes", () => {
       '<img src="a.png" srcset="a.png 1x, img/b.png 2x,c.png">';
     expect(fragmentLinks(html)).toEqual(["img/p.png", "go/", "a.png", "a.png", "img/b.png", "c.png"]);
   });
+
+  // HTML ends a srcset URL at whitespace, not at a comma: a comma inside a URL
+  // is part of it, and one right after a URL ends that candidate.
+  it("keeps a comma inside a srcset URL, and ends a candidate at a comma after its URL", () => {
+    expect(fragmentLinks('<img srcset="img/a,b.png 1x, img/c.png, img/d.png 2x">')).toEqual([
+      "img/a,b.png",
+      "img/c.png",
+      "img/d.png",
+    ]);
+  });
 });
 
 describe("fragmentHref", () => {

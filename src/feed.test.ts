@@ -3,6 +3,7 @@ import type { RenderedPage } from "./contract.js";
 import { emitSite } from "./emit.js";
 import { atomDate, datedPagesUnder, feedPath, feedTitle, normalizeFeedDir, renderFeed } from "./feed.js";
 import type { NavNode } from "./navigation.js";
+import { build } from "./index.js";
 
 function page(sitePath: string, frontmatter: Record<string, unknown> = {}, html = ""): RenderedPage {
   return { sourcePath: sitePath.replace(/\.html$/, ".md"), sitePath, frontmatter, html, backlinks: [], outline: [] };
@@ -147,3 +148,18 @@ class DOMParserLike {
     this.wellFormed = ok && stack.length === 0;
   }
 }
+
+describe("a stream folder's feed", () => {
+  // The front page a stream folder gets written is a page like the folder's own
+  // would be: the feed is named after it and links to it.
+  it("is named after the index page written for the folder, and links to it", async () => {
+    const bundle = await build({
+      documents: [{ path: "news/a.md", content: "---\ndate: 2026-10-01\n---\n# A\n" }],
+      layout: { dirs: { news: { profile: "stream", title: "News" } } },
+    });
+    const files = emitSite(bundle, { ...site, feeds: ["news"] });
+    const feed = files.find((f) => f.path === "news/feed.xml")?.contents ?? "";
+    expect(feed).toContain("<title>News · Docs</title>");
+    expect(feed).toContain('<link rel="alternate" type="text/html" href="https://example.org/docs/news/"/>');
+  });
+});

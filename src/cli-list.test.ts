@@ -49,6 +49,30 @@ describe("canopy list --layout", () => {
     });
   });
 
+  // A fragment is named in the layout, so it is the build's to read, not an
+  // exclusion the author wrote — a missing one is not "an exclude that matched
+  // nothing" — and it is left out of the plain listing as of the JSON one.
+  it("neither lists a fragment nor reports a missing one as an unused exclude", async () => {
+    const root = await vault({ "a.md": "# A\n", "partials/header.html": "<header></header>" });
+    const layoutPath = path.join(root, "..", `${path.basename(root)}-layout.json`);
+    temporary.push(layoutPath);
+    await writeFile(
+      layoutPath,
+      JSON.stringify({ default: { regions: { header: "partials/header.html", footer: "partials/missing.html" } } }),
+      "utf8",
+    );
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+
+    await runList(["list", root, "--layout", layoutPath, "--json"]);
+    expect(JSON.parse(log.mock.calls[0]?.[0] as string)).toMatchObject({ pages: ["a.md"], assets: [], unusedExcludes: [] });
+
+    log.mockClear();
+    await runList(["list", root, "--layout", layoutPath]);
+    const plain = log.mock.calls.map((call) => String(call[0])).join("\n");
+    expect(plain).toContain("a.md");
+    expect(plain).not.toContain("partials/");
+  });
+
   it("reports no generated pages without a layout", async () => {
     const root = await vault({ "a.md": "# A\n" });
     const log = vi.spyOn(console, "log").mockImplementation(() => {});

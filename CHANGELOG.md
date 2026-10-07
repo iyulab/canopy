@@ -8,7 +8,7 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
-## [Unreleased]
+## [0.22.0] — 2026-10-07
 
 Upgrading: a caller of `resolveMarkdownLink` or `buildLinkIndex` passes or reads a page lookup in
 place of a yes/no test — see *Changed*. A vault whose markdown links spell a page in another letter

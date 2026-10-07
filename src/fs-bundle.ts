@@ -80,6 +80,28 @@ export async function listVault(
   };
 }
 
+/**
+ * The exclusion that keeps a build's output out of its own input.
+ *
+ * An output directory inside the vault (`canopy build . site`) would otherwise
+ * be read back in as vault files by the next build, which then publishes the
+ * previous site inside the new one — the output would depend on what ran
+ * before. Returns the vault-relative path to leave out (none when the output
+ * lies elsewhere), or `undefined` when the output *is* the vault: the site
+ * would be written over its own sources.
+ */
+export function outputExclusion(vault: string, out: string): string[] | undefined {
+  const relative = path.relative(path.resolve(vault), path.resolve(out));
+  if (relative === "") return undefined;
+  const outside = path.isAbsolute(relative) || relative === ".." || relative.startsWith(`..${path.sep}`);
+  return outside ? [] : [relative.split(path.sep).join("/")];
+}
+
+/** Why an output directory that is the vault itself is refused. */
+export function outputIsVaultMessage(out: string): string {
+  return `output directory "${out}" is the vault itself — the site would be written over its own sources`;
+}
+
 /** Read the listed markdown pages (vault-relative paths, as `listVault` gives them) into source documents. */
 export async function readDocuments(
   root: string,

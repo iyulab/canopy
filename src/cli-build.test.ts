@@ -104,6 +104,37 @@ describe("canopy build — paths canopy writes itself", { timeout: RENDERS }, ()
   });
 });
 
+describe("canopy build — an output directory inside the vault", { timeout: RENDERS }, () => {
+  // `canopy build . site` run twice: the second build must not publish the
+  // first one's output as the vault's own files, or every build nests the
+  // previous site one level deeper and the output depends on what ran before.
+  it("does not read its own output back in as vault files", async () => {
+    const { root } = await vault({ "index.md": "# Home\n", "img/logo.svg": "<svg/>" });
+    const source = path.join(root, "vault");
+    const out = path.join(source, "site");
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+
+    await runBuild(["build", source, out]);
+    await runBuild(["build", source, out]);
+
+    expect(process.exitCode).toBeUndefined();
+    expect(await readdir(out)).not.toContain("site");
+    expect(log.mock.calls.at(-1)?.[0]).toContain("1 page(s), 1 asset(s)");
+  });
+
+  it("refuses to write the site into the vault itself", async () => {
+    const { root } = await vault({ "index.md": "# Home\n" });
+    const source = path.join(root, "vault");
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await runBuild(["build", source, source]);
+
+    expect(process.exitCode).toBe(1);
+    expect(error.mock.calls[0]?.[0]).toContain("is the vault itself");
+    expect(await readdir(source)).toEqual(["index.md"]);
+  });
+});
+
 describe("canopy build --site-stylesheet", { timeout: RENDERS }, () => {
   // A stylesheet that lives in the vault is published where it is, so a
   // relative url() inside it resolves exactly as its author wrote it.

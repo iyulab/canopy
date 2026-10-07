@@ -83,7 +83,7 @@ export type BuildArgs =
 
 export const USAGE = [
   "Usage: canopy build <vault-dir> [out-dir] [options]",
-  "       canopy list <vault-dir> [--exclude <pattern>]... [--layout <path>] [--json]",
+  "       canopy list <vault-dir> [--exclude <pattern>]... [--layout <path>] [--out <dir>] [--json]",
   "",
   "build publishes the vault as a site; list prints what build would publish, one",
   "vault-relative path per line, without building. list --json prints",
@@ -171,7 +171,7 @@ interface FlagTable<V extends string, L extends string, B extends string> {
 
 const BUILD_FLAGS = { value: VALUE_FLAGS, list: LIST_FLAGS, boolean: {} } as const;
 const LIST_COMMAND_FLAGS = {
-  value: { "--layout": "layoutPath" },
+  value: { "--layout": "layoutPath", "--out": "out" },
   list: { "--exclude": "exclude" },
   boolean: { "--json": "json" },
 } as const;
@@ -239,7 +239,7 @@ function scanArgs<V extends string, L extends string, B extends string>(
 
 /** A parsed `canopy list` invocation, or the reason it could not be parsed. */
 export type ListArgs =
-  | { ok: true; vault: string; exclude: string[]; json: boolean; layoutPath?: string }
+  | { ok: true; vault: string; exclude: string[]; json: boolean; layoutPath?: string; out?: string }
   | { ok: false; error: string };
 
 export function parseListArgs(argv: string[]): ListArgs {
@@ -259,6 +259,7 @@ export function parseListArgs(argv: string[]): ListArgs {
     exclude: scanned.lists.exclude,
     json: scanned.flags.has("json"),
     layoutPath: scanned.single.layoutPath,
+    out: scanned.single.out,
   };
 }
 

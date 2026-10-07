@@ -1,6 +1,6 @@
 import path from "node:path";
 import { readFile } from "node:fs/promises";
-import { listVault } from "./fs-bundle.js";
+import { listVault, outputExclusion, outputIsVaultMessage } from "./fs-bundle.js";
 import { parseListArgs } from "./cli-args.js";
 import { type Layout, layoutFragments, parseLayout, syntheticIndexPaths } from "./layout.js";
 import { toSitePath } from "./site-path.js";
@@ -15,6 +15,8 @@ import { toSitePath } from "./site-path.js";
  * a layout names are read, not published, so they leave the listing; and the
  * index pages a build writes for stream folders appear as `generated` (site
  * paths, not vault files), so a caller checking links can see they will exist.
+ * Given the output directory, the build's output is left out as the build
+ * leaves it out of its own input.
  */
 export async function runList(argv: string[]): Promise<void> {
   const args = parseListArgs(argv);
@@ -33,11 +35,21 @@ export async function runList(argv: string[]): Promise<void> {
       return;
     }
   }
+  // Given where the build will write, the build's own output is left out as the
+  // build leaves it out — and it may not exist yet, which is no unused exclude.
+  const ownOutput = args.out === undefined ? [] : outputExclusion(args.vault, args.out);
+  if (ownOutput === undefined) {
+    console.error(outputIsVaultMessage(args.out ?? ""));
+    process.exitCode = 1;
+    return;
+  }
   const fragments = layoutFragments(layout).map((fragment) => fragment.path);
-  const listing = await listVault(path.resolve(args.vault), [...args.exclude, ...fragments]);
+  const listing = await listVault(path.resolve(args.vault), [...args.exclude, ...fragments, ...ownOutput]);
   // A fragment that is missing is the build's to report, with the region it
   // was meant for; here it is not an exclusion the caller wrote.
-  const unusedExcludes = listing.unusedExcludes.filter((pattern) => !fragments.includes(pattern));
+  const unusedExcludes = listing.unusedExcludes.filter(
+    (pattern) => !fragments.includes(pattern) && !ownOutput.includes(pattern),
+  );
   if (args.json) {
     const generated = syntheticIndexPaths(layout, listing.pages.map(toSitePath));
     console.log(JSON.stringify({ pages: listing.pages, assets: listing.assets, unusedExcludes, generated }));

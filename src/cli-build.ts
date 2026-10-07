@@ -6,7 +6,14 @@ import { build } from "./index.js";
 import { emitSite } from "./emit.js";
 import { datedPagesUnder, normalizeFeedDir } from "./feed.js";
 import { parseNavSpec, type NavSpec } from "./nav-spec.js";
-import { listVault, readDocuments, writeFiles, copyFiles } from "./fs-bundle.js";
+import {
+  copyFiles,
+  listVault,
+  outputExclusion,
+  outputIsVaultMessage,
+  readDocuments,
+  writeFiles,
+} from "./fs-bundle.js";
 import { parseBuildArgs } from "./cli-args.js";
 import { bundleUsesKatex, KATEX_STYLESHEET } from "./katex.js";
 import { katexDirOfRenderer } from "./katex-assets.js";
@@ -138,6 +145,14 @@ export async function runBuild(argv: string[]): Promise<void> {
   const vault = path.resolve(args.vault);
   const outDir = path.resolve(args.out);
 
+  // The output is never input (see `outputExclusion`).
+  const ownOutput = outputExclusion(vault, outDir);
+  if (ownOutput === undefined) {
+    console.error(outputIsVaultMessage(args.out));
+    process.exitCode = 1;
+    return;
+  }
+
   // The layout and every fragment it names are read and checked before
   // anything else, so a slot that cannot be filled fails the build naming the
   // file — not halfway through writing the site.
@@ -212,7 +227,7 @@ export async function runBuild(argv: string[]): Promise<void> {
   // One walk of the vault answers this, the pages rendered, and the assets
   // copied, so the three cannot disagree about what the site publishes.
   // A fragment is read into the pages it fills, not published beside them.
-  const listing = await listVault(vault, [...args.exclude, ...Object.keys(fragments)]);
+  const listing = await listVault(vault, [...args.exclude, ...Object.keys(fragments), ...ownOutput]);
   const published = [...listing.pages, ...listing.assets];
   // canopy writes its own files into the same tree the vault's are copied to;
   // a vault file at one of those paths would replace canopy's or be replaced by

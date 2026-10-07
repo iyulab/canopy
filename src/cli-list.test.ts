@@ -90,3 +90,39 @@ describe("canopy list --layout", () => {
     expect(error.mock.calls[0]?.[0]).toContain("default.profile: must be one of manual, stream");
   });
 });
+
+describe("canopy list --out", () => {
+  // The answer is the build's, and a build never reads its own output back in.
+  it("leaves the build's output directory out when it lies inside the vault", async () => {
+    const root = await vault({ "index.md": "# Home\n", "site/index.html": "<p>a previous build</p>" });
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+
+    await runList(["list", root, "--out", path.join(root, "site"), "--json"]);
+
+    expect(process.exitCode).toBeUndefined();
+    expect(JSON.parse(String(log.mock.calls[0]?.[0]))).toMatchObject({
+      pages: ["index.md"],
+      assets: [],
+      unusedExcludes: [],
+    });
+  });
+
+  it("is not an unused exclude when the output directory does not exist yet", async () => {
+    const root = await vault({ "index.md": "# Home\n" });
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+
+    await runList(["list", root, "--out", path.join(root, "site"), "--json"]);
+
+    expect(JSON.parse(String(log.mock.calls[0]?.[0])).unusedExcludes).toEqual([]);
+  });
+
+  it("refuses an output directory that is the vault itself", async () => {
+    const root = await vault({ "index.md": "# Home\n" });
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await runList(["list", root, "--out", root]);
+
+    expect(process.exitCode).toBe(1);
+    expect(error.mock.calls[0]?.[0]).toContain("is the vault itself");
+  });
+});

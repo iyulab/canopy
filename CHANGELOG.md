@@ -8,6 +8,23 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [Unreleased]
+
+Upgrading: nothing to do. A caller that runs `canopy list` before a build can pass the build's output
+directory as `--out` to get the build's exact view.
+
+### Fixed
+
+- `canopy build <vault> <out>` with the output directory inside the vault (`canopy build . site`)
+  no longer reads a previous build's output back in as vault files. Every build published the
+  previous site one folder deeper (`site/site/…`), so the output depended on what ran before.
+- `canopy build` refuses the vault itself as the output directory, which would write the site over
+  its sources.
+
+### Added
+
+- `canopy list --out <dir>`: the listing leaves out the build's output directory as the build does.
+
 ## [0.22.1] — 2026-10-07
 
 Upgrading: nothing to do. A folder link to a folder with an index page is now written as that page

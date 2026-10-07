@@ -54,7 +54,9 @@ npx canopy build <vault-dir> [out-dir] [options]
 ```
 
 - `<vault-dir>` — the folder of markdown notes to publish.
-- `[out-dir]` — where to write the site bundle (defaults to `./site`).
+- `[out-dir]` — where to write the site bundle (defaults to `./site`). It may lie inside the vault
+  (`canopy build . site`): the build never reads its own output back in as vault files. The vault
+  itself is refused as the output.
 - `--site-title <title>` — override the site title (defaults to the vault folder name).
 - `--site-description <text>` — fill `<meta name="description">` and `og:description`, used by
   link previews and search results. A page whose frontmatter has its own `description:` uses
@@ -148,7 +150,7 @@ question for a caller checking a site before it builds.
 ### Listing what a build publishes
 
 ```sh
-canopy list <vault-dir> [--exclude <pattern>]... [--json]
+canopy list <vault-dir> [--exclude <pattern>]... [--layout <path>] [--out <dir>] [--json]
 ```
 
 Prints the vault-relative path of every file `build` would publish with the same `--exclude`
@@ -159,6 +161,9 @@ A place-naming pattern that matched nothing (`_archive` where the folder is real
 standing rule rather than a claim that something is there. Neither is a pattern naming a dot-file,
 a dot-folder or `node_modules`: those are never published anyway, so the pattern is redundant
 rather than wrong.
+
+`--out <dir>` names where the build will write, so an output directory inside the vault is left out
+of the listing as the build leaves it out of its input — whether or not it exists yet.
 
 `--json` prints one object instead: `{"pages": [...], "assets": [...], "unusedExcludes": [...]}`,
 where `pages` are the markdown files `build` renders and `assets` everything it copies as-is.

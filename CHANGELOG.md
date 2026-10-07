@@ -8,7 +8,10 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
-## [Unreleased]
+## [0.24.0] — 2026-10-07
+
+Upgrading: nothing to do. Stream pages gain an author, a cover and links to the neighbouring posts
+where the frontmatter and the stream give them; manual pages are unchanged.
 
 ### Added
 

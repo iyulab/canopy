@@ -8,7 +8,7 @@ import { isOutlineUseful, type OutlineItem } from "./outline.js";
 import { formatPageDate, frontmatterDate, pageDate } from "./page-date.js";
 import { declaredTitle, pageName } from "./title.js";
 import { readingMinutes } from "./reading-time.js";
-import { type ControlSlot, fragmentControls, pageSlotText, renderFragment } from "./regions.js";
+import { type ControlSlot, pageSlotText, renderFragment } from "./regions.js";
 
 /** Options controlling the site shell wrapped around each page. */
 export interface ShellOptions {
@@ -674,6 +674,11 @@ function streamOpening(
  * bar is assembled from, and what a fragment's control slots are replaced by.
  * One renderer for both, so a control placed in a site's own header is the
  * same markup, with the same hooks, as the one in canopy's top bar.
+ *
+ * Each control is drawn the first time the page asks for it, and once: a page
+ * whose header has no language slot never works out its other editions, and a
+ * stream page, whose way back is its list, never walks the tree for a
+ * breadcrumb.
  */
 function renderControls(
   page: RenderedPage,
@@ -681,7 +686,7 @@ function renderControls(
   options: ShellOptions,
   strings: ShellStrings,
   pageLayout: PageLayout,
-): Record<ControlSlot, string> {
+): (name: ControlSlot) => string {
   const logo =
     options.logoPath === undefined
       ? ""
@@ -744,15 +749,24 @@ function renderControls(
   // tree — to the page's own content (WCAG 2.4.1). The target is a fixed id,
   // part of the public contract, so a site's own link can point at it too.
   const skipLink = `<a class="canopy-skip-link" href="#${MAIN_ID}">${escapeHtml(strings.skipToContent)}</a>`;
-  return {
-    "site-title": siteTitle,
-    home: homeLink,
-    back: renderBack(page, options, pageLayout),
-    breadcrumb: renderBreadcrumb(navigation, page.sitePath, strings.breadcrumb),
-    language: renderLanguage(page, options, strings.language),
-    search,
-    "theme-toggle": themeToggle,
-    "skip-link": skipLink,
+  const draw: Record<ControlSlot, () => string> = {
+    "site-title": () => siteTitle,
+    home: () => homeLink,
+    back: () => renderBack(page, options, pageLayout),
+    breadcrumb: () => renderBreadcrumb(navigation, page.sitePath, strings.breadcrumb),
+    language: () => renderLanguage(page, options, strings.language),
+    search: () => search,
+    "theme-toggle": () => themeToggle,
+    "skip-link": () => skipLink,
+  };
+  const drawn = new Map<ControlSlot, string>();
+  return (name) => {
+    let markup = drawn.get(name);
+    if (markup === undefined) {
+      markup = draw[name]();
+      drawn.set(name, markup);
+    }
+    return markup;
   };
 }
 
@@ -813,7 +827,7 @@ function renderRegion(
   page: RenderedPage,
   options: ShellOptions,
   pageLayout: PageLayout,
-  controls: Record<ControlSlot, string>,
+  control: (slot: ControlSlot) => string,
 ): string {
   const file = pageLayout.regions[name];
   if (file === undefined) return "";
@@ -821,7 +835,7 @@ function renderRegion(
   if (html === undefined) throw new Error(`region ${name}: fragment "${file}" was not supplied`);
   return renderFragment(html, {
     from: page.sitePath,
-    control: (slot) => controls[slot],
+    control,
     page: (key) => pageSlotText(page.frontmatter, key),
   }).trim();
 }
@@ -895,8 +909,14 @@ export function renderPage(
   }
 
   const pageLayout = resolvePageLayout(options.layout, page.sitePath);
-  const controls = renderControls(page, navigation, options, strings, pageLayout);
-  const region = (name: RegionName): string => renderRegion(name, page, options, pageLayout, controls);
+  const control = renderControls(page, navigation, options, strings, pageLayout);
+  // The controls this page's fragments place, noted as they are rendered.
+  const placed = new Set<ControlSlot>();
+  const region = (name: RegionName): string =>
+    renderRegion(name, page, options, pageLayout, (slot) => {
+      placed.add(slot);
+      return control(slot);
+    });
 
   // Like the theme toggle, breadcrumb rides along only when the topbar
   // already exists for another reason — it never manufactures one by itself,
@@ -914,23 +934,22 @@ export function renderPage(
   const stream = pageLayout.profile === "stream";
   // A stream page's way back is its list, not a trail through a tree it does
   // not show; the bar exists when it has that to hold, like anything else.
-  const trail = stream ? controls.back : controls.breadcrumb;
-  const topbar =
-    controls["site-title"] === "" && controls.home === "" && controls.search === "" && (!stream || trail === "")
+  const topbar = (): string => {
+    const trail = control(stream ? "back" : "breadcrumb");
+    return control("site-title") === "" && control("home") === "" && control("search") === "" && (!stream || trail === "")
       ? ""
-      : `<header class="canopy-topbar">${controls["site-title"]}${trail}${controls.home}<div class="canopy-topbar-controls">${controls.search}${controls["theme-toggle"]}</div></header>`;
+      : `<header class="canopy-topbar">${control("site-title")}${trail}${control("home")}<div class="canopy-topbar-controls">${control("search")}${control("theme-toggle")}</div></header>`;
+  };
   // A header fragment replaces the top bar outright — the site's own markup,
   // with canopy's controls only where its slots put them (see regions.ts).
-  const header = pageLayout.regions.header === undefined ? topbar : region("header");
+  const header = pageLayout.regions.header === undefined ? topbar() : region("header");
   const before = wrapRegion("canopy-before-article", region("beforeArticle"));
   const after = wrapRegion("canopy-after-article", region("afterArticle"));
   const footer = region("footer");
+  const head = region("head");
   // First in the body, so it is the first thing a keyboard reaches — unless a
-  // fragment on this page places it itself, inside the site's own markup.
-  const skipPlaced = Object.values(pageLayout.regions).some(
-    (file) => file !== undefined && fragmentControls(options.fragments?.[file] ?? "").includes("skip-link"),
-  );
-  const skip = skipPlaced ? "" : `${controls["skip-link"]}\n`;
+  // fragment on this page placed it itself, inside the site's own markup.
+  const skip = placed.has("skip-link") ? "" : `${control("skip-link")}\n`;
   // A stream shows no tree: the whole tree on every page of a long stream is
   // quadratic weight for navigation a reader of one post does not use.
   const sidebar = stream
@@ -955,7 +974,7 @@ export function renderPage(
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="canopy">
 ${schemeMeta}<title>${escapeHtml(docTitle)}</title>
-${descriptionTag}${social}${feedTags}${icon}${links}${script}${region("head")}
+${descriptionTag}${social}${feedTags}${icon}${links}${script}${head}
 </head>
 <body>
 ${skip}${header}

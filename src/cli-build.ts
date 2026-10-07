@@ -170,6 +170,13 @@ export async function runBuild(argv: string[]): Promise<void> {
       }
       fragments[fragment.path] = html;
     }
+    // A whole-site stream with no front page of its own gets one written, and
+    // that page is the site's contents page in a stream's shape: without a
+    // title of its own it is named as the contents page is.
+    const indexTitle = args.strings?.indexTitle;
+    if (layout.default?.profile === "stream" && layout.default.title === undefined && indexTitle !== undefined) {
+      layout = { ...layout, default: { ...layout.default, title: indexTitle } };
+    }
   }
 
   // Carried like --script: canopy never interprets a caller's CSS, only writes

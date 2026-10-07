@@ -1167,6 +1167,16 @@ describe("the back control", () => {
     expect(renderPage(post, nav, options)).toContain('<a class="canopy-back" href="index.html">Blog</a>');
   });
 
+  // The way back is reason enough for canopy's own bar on a stream page, as a
+  // breadcrumb is not on a manual one: a reader of one post needs the list.
+  it("puts canopy's top bar on a stream page for the way back alone", () => {
+    const html = renderPage(post, nav, { layout: { dirs: { blog: { profile: "stream" as const } } }, sitePages: [blogIndex, post] });
+    expect(html).toContain('<header class="canopy-topbar"><a class="canopy-back" href="index.html">Blog</a>');
+    expect(renderPage(blogIndex, nav, { layout: { dirs: { blog: { profile: "stream" as const } } }, sitePages: [blogIndex, post] })).not.toContain(
+      "canopy-topbar",
+    );
+  });
+
   it("is empty on the stream's own index and on a manual page", () => {
     expect(renderPage(blogIndex, nav, options)).not.toContain("canopy-back");
     expect(renderPage(page(), nav, { ...options, layout: { default: { regions: { header: "h.html" } } } })).not.toContain(

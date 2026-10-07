@@ -18,6 +18,9 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 - A stream folder named in a layout rule in another letter case than the folder itself (`"BLOG"`
   for `blog/`) gets its index page, and every link back to it, in the folder's own case. Both used
   the rule's spelling, which leads nowhere on a host that tells the two apart.
+- The front page written for a whole-site stream (`--layout` with `default.profile: "stream"` and no
+  root index) takes `--strings`' `indexTitle` when the layout gives it no `title`, as the contents
+  page does. It was always "Contents".
 
 ## [0.21.0] — 2026-10-07
 

@@ -120,6 +120,63 @@ describe("a build with stream folders", () => {
     expect(bundle.navigation[0]?.children.map((node) => node.label)).toEqual(["B", "Alpha"]);
   });
 
+  // A subfolder of a stream is not a second level of the list: its own index is
+  // one more post, and what was under it moves up beside it.
+  it("makes a subfolder's index page one post of the stream, its pages beside it", async () => {
+    const bundle = await build({
+      documents: [
+        { path: "blog/index.md", content: "# Blog\n" },
+        { path: "blog/series/index.md", content: "---\ndate: 2026-02-01\n---\n# Series\n" },
+        { path: "blog/series/part-1.md", content: "---\ndate: 2026-03-01\n---\n# Part 1\n" },
+        { path: "blog/a.md", content: "---\ndate: 2026-01-01\n---\n# A\n" },
+      ],
+      layout: { dirs: { blog: { profile: "stream" } } },
+    });
+    const blog = bundle.navigation.find((node) => node.sitePath === "blog/index.html");
+    expect(blog?.children.map((node) => [node.sitePath, node.children.length])).toEqual([
+      ["blog/series/part-1.html", 0],
+      ["blog/series/index.html", 0],
+      ["blog/a.html", 0],
+    ]);
+  });
+
+  // A folder inside a stream with a profile of its own is its own matter: a
+  // manual folder keeps its tree, a stream folder is listed under its own index.
+  it("leaves a subfolder with its own profile out of the enclosing stream", async () => {
+    const bundle = await build({
+      documents: [
+        { path: "blog/index.md", content: "# Blog\n" },
+        { path: "blog/a.md", content: "---\ndate: 2026-01-01\n---\n# A\n" },
+        { path: "blog/archive/index.md", content: "# Archive\n" },
+        { path: "blog/archive/z.md", content: "# Z\n" },
+        { path: "blog/archive/y.md", content: "# Y\n" },
+        { path: "blog/news/index.md", content: "# News\n" },
+        { path: "blog/news/old.md", content: "---\ndate: 2025-01-01\n---\n# Old\n" },
+        { path: "blog/news/new.md", content: "---\ndate: 2025-06-01\n---\n# New\n" },
+      ],
+      layout: { dirs: { blog: { profile: "stream" }, "blog/archive": { profile: "manual" }, "blog/news": { profile: "stream" } } },
+    });
+    const blog = bundle.navigation.find((node) => node.sitePath === "blog/index.html");
+    expect(blog?.children.map((node) => node.sitePath)).toEqual(["blog/a.html", "blog/archive/index.html", "blog/news/index.html"]);
+    const archive = blog?.children.find((node) => node.sitePath === "blog/archive/index.html");
+    expect(archive?.children.map((node) => node.label)).toEqual(["Y", "Z"]);
+    const news = blog?.children.find((node) => node.sitePath === "blog/news/index.html");
+    expect(news?.children.map((node) => node.label)).toEqual(["New", "Old"]);
+  });
+
+  it("leaves the tree as a navigation spec made it when the spec leaves out the stream's index", async () => {
+    const bundle = await build({
+      documents: [
+        { path: "blog/index.md", content: "# Blog\n" },
+        { path: "blog/a.md", content: "---\ndate: 2026-01-01\n---\n# A\n" },
+        { path: "blog/b.md", content: "---\ndate: 2026-02-01\n---\n# B\n" },
+      ],
+      nav: { items: [{ path: "blog/a" }, { path: "blog/b" }] },
+      layout: { dirs: { blog: { profile: "stream" } } },
+    });
+    expect(bundle.navigation.map((node) => node.sitePath)).toEqual(["blog/a.html", "blog/b.html"]);
+  });
+
   it("leaves a build with no layout exactly as it was", async () => {
     const documents = [
       { path: "blog/b.md", content: "---\ndate: 2026-03-01\n---\n# B\n" },

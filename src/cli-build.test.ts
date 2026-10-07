@@ -217,6 +217,17 @@ describe("canopy build --layout", { timeout: RENDERS }, () => {
     expect(await readFile(path.join(out, "blog", "index.html"), "utf8")).toContain("<h1>Blog</h1>");
   });
 
+  it("names a whole-site stream's written front page as the contents page is named", async () => {
+    const { root, out } = await vault({ "x.md": "---\ndate: 2026-10-03\n---\n# X\n" });
+    const layout = await layoutFile(root, { default: { profile: "stream" } });
+    vi.spyOn(console, "log").mockImplementation(() => {});
+
+    await runBuild(["build", path.join(root, "vault"), out, "--layout", layout, "--strings", '{"indexTitle":"목차"}']);
+
+    expect(process.exitCode).toBeUndefined();
+    expect(await readFile(path.join(out, "index.html"), "utf8")).toContain("<h1>목차</h1>");
+  });
+
   it("refuses a fragment with an unknown slot, naming the file", async () => {
     const { root, out } = await vault({
       "index.md": "# Home\n",

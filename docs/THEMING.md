@@ -140,9 +140,11 @@ pages read one at a time, newest first:
   in the folder, each page ending with the way to the pages beside it (`.canopy-pagination`);
 - a post's `tags:` (a list, or one string) close the post and its item in the list
   (`.canopy-tags`), each leading to the tag's page, `<folder>/tags/<slug>.html`, which lists the
-  posts carrying it; `<folder>/tags/index.html` lists every tag of the folder
-  (`.canopy-tag-index`) with how many posts carry it (`.canopy-tag-count`), and the folder's index
-  and each tag's page link to it (`.canopy-tag-index-link`). A slug is the tag
+  posts carrying it — `pageSize` to a page like the folder's list, the rest on
+  `<folder>/tags/<slug>/page/2.html` … with the same `.canopy-pagination`; `<folder>/tags/index.html`
+  lists every tag of the folder (`.canopy-tag-index`) with how many posts carry it
+  (`.canopy-tag-count`), and the first page of the folder's list and of each tag's link to it
+  (`.canopy-tag-index-link`). A slug is the tag
   lowercased, with spaces and `/ ? # % \` as `-`; tags with one slug are one tag, shown the way
   most of its posts spell it;
 - canopy's own top bar shows a link back to that index (`.canopy-back`) where a manual page

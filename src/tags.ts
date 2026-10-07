@@ -1,11 +1,12 @@
 import type { RenderedPage } from "./contract.js";
-import { type Layout, resolvePageLayout, streamDirs } from "./layout.js";
+import { DEFAULT_PAGE_SIZE, folderRule, type Layout, resolvePageLayout, streamDirs } from "./layout.js";
 import { pageDate } from "./page-date.js";
 
 /**
  * Tags on a stream's posts, and the pages a build writes for them: one listing
  * every tag of the stream (`<dir>/tags/index.html`) and one per tag listing its
- * posts (`<dir>/tags/<slug>.html`).
+ * posts (`<dir>/tags/<slug>.html`) — continued, like the stream's own list, on
+ * `<dir>/tags/<slug>/page/2.html` … once a tag has more posts than a page holds.
  *
  * Only a stream's pages are tagged. A manual page's `tags:` is left alone, so a
  * site that never asked for tag pages gets none from frontmatter it already had.
@@ -102,9 +103,20 @@ export function tagIndexPath(dir: string): string {
   return dir === "" ? "tags/index.html" : `${dir}/tags/index.html`;
 }
 
-/** The page listing one tag's posts in the stream in `dir`. */
-export function tagPagePath(dir: string, slug: string): string {
-  return dir === "" ? `tags/${slug}.html` : `${dir}/tags/${slug}.html`;
+/**
+ * A page of one tag's list in the stream in `dir`: the tag's own page for the
+ * first, `<dir>/tags/<slug>/page/<n>.html` for each later one — the stream's
+ * own `page/<n>` scheme, under the tag.
+ */
+export function tagPagePath(dir: string, slug: string, page = 1): string {
+  const tags = dir === "" ? "tags" : `${dir}/tags`;
+  return page <= 1 ? `${tags}/${slug}.html` : `${tags}/${slug}/page/${page}.html`;
+}
+
+/** How many pages one tag's list takes in the stream in `dir`: its posts, `pageSize` to a page. */
+export function tagPageCount(layout: Layout | undefined, dir: string, tag: StreamTag): number {
+  const size = folderRule(layout, dir)?.pageSize ?? DEFAULT_PAGE_SIZE;
+  return Math.max(1, Math.ceil(tag.posts.length / size));
 }
 
 /** Each stream folder's posts — the pages its rule covers, its index aside — in the folder's own spelling. */
@@ -126,13 +138,19 @@ export function streamPosts(
 
 /**
  * The pages a build writes for the stream folders' tags: each tagged stream's
- * list of tags, then a page per tag. Read from frontmatter alone, so a caller
- * that has not rendered anything names the same pages.
+ * list of tags, then every page of each tag's list. Read from frontmatter
+ * alone, so a caller that has not rendered anything names the same pages.
  */
 export function streamTagPaths(layout: Layout | undefined, pages: readonly TaggedPage[]): string[] {
   return streamPosts(layout, pages).flatMap(({ dir, posts }) => {
     const tags = streamTags(posts);
-    return tags.length === 0 ? [] : [tagIndexPath(dir), ...tags.map((tag) => tagPagePath(dir, tag.slug))];
+    if (tags.length === 0) return [];
+    return [
+      tagIndexPath(dir),
+      ...tags.flatMap((tag) =>
+        Array.from({ length: tagPageCount(layout, dir, tag) }, (_, i) => tagPagePath(dir, tag.slug, i + 1)),
+      ),
+    ];
   });
 }
 

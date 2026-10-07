@@ -17,7 +17,7 @@ import { fileUrl, pageUrl, relativeHref } from "./site-path.js";
 import { isOutlineUseful, type OutlineItem } from "./outline.js";
 import { formatPageDate, frontmatterDate, pageDate } from "./page-date.js";
 import { declaredTitle, pageName } from "./title.js";
-import { pageTags, streamPosts, streamTags, tagIndexPath, tagPagePath, tagSlug } from "./tags.js";
+import { pageTags, streamPosts, streamTags, tagIndexPath, tagPageCount, tagPagePath, tagSlug } from "./tags.js";
 import { readingMinutes } from "./reading-time.js";
 import { type ControlSlot, pageSlotText, renderFragment } from "./regions.js";
 
@@ -636,7 +636,7 @@ function renderListing(
   const view = streamTagView(page.sitePath, pageLayout);
   // A stream's list of tags is its own content; a tag's page lists that tag's posts.
   if (view?.kind === "index") return "";
-  const tagged = view?.kind === "tag" ? view.slug : undefined;
+  const tagged = view?.kind === "tag" ? view : undefined;
   if (page.frontmatter.listing !== true && listed === undefined && tagged === undefined) return "";
   // A later page of a stream's list is not in the tree; it lists what the
   // stream's index fronts.
@@ -659,15 +659,23 @@ function renderListing(
   if (tagged !== undefined) {
     entries = entries.filter((node) => {
       const entry = node.sitePath === undefined ? undefined : bySitePath.get(node.sitePath);
-      return entry !== undefined && pageTags(entry.frontmatter).some((name) => tagSlug(name) === tagged);
+      return entry !== undefined && pageTags(entry.frontmatter).some((name) => tagSlug(name) === tagged.slug);
     });
   }
+  // The stream's list and each tag's list are both read a page at a time.
+  const at = listed ?? tagged?.page;
   let pager = "";
-  if (listed !== undefined && indexPath !== undefined) {
-    const size = folderRule(options.layout, pageLayout.streamDir as string)?.pageSize ?? DEFAULT_PAGE_SIZE;
+  if (at !== undefined && indexPath !== undefined) {
+    const dir = pageLayout.streamDir as string;
+    const size = folderRule(options.layout, dir)?.pageSize ?? DEFAULT_PAGE_SIZE;
     const total = Math.ceil(entries.length / size);
-    entries = entries.slice((listed - 1) * size, listed * size);
-    if (total > 1) pager = renderPagination(page.sitePath, indexPath, listed, total, strings);
+    entries = entries.slice((at - 1) * size, at * size);
+    const base = indexPath.slice(0, -"index.html".length);
+    const pathOf =
+      tagged === undefined
+        ? (n: number) => (n === 1 ? indexPath : `${base}page/${n}.html`)
+        : (n: number) => tagPagePath(dir, tagged.slug, n);
+    if (total > 1) pager = renderPagination(page.sitePath, pathOf, at, total, strings);
   }
   if (entries.length === 0) return "";
 
@@ -703,23 +711,29 @@ function renderListing(
         return `<li>${cover}${name}${date}${minutes}${summary}${tags}${nested}</li>`;
       })
       .join("");
-  // The stream's first page and each tag's page lead to the list of all its
-  // tags — nothing else links there.
+  // The first page of the stream's list and of each tag's lead to the list of
+  // all its tags — nothing else links there; a later page continues the one before.
   const toTags =
-    (listed === 1 || tagged !== undefined) && pageLayout.streamDir !== undefined
+    (listed === 1 || tagged?.page === 1) && pageLayout.streamDir !== undefined
       ? renderTagIndexLink(page.sitePath, pageLayout.streamDir, options, strings)
       : "";
   return `<ul class="canopy-listing">${items(entries)}</ul>${pager}${toTags}`;
 }
 
 /**
- * The way between the pages of a stream's list: back to the page with newer
- * posts, where this one is, on to the page with older ones. `rel` follows the
- * pages' own order, which is the list's — newest first.
+ * The way between the pages of a list — a stream's, or one tag's: back to the
+ * page with newer posts, where this one is, on to the page with older ones
+ * (`pathOf` names the list's `n`th page). `rel` follows the pages' own order,
+ * which is the list's — newest first.
  */
-function renderPagination(from: string, indexPath: string, at: number, total: number, strings: ShellStrings): string {
-  const base = indexPath.slice(0, -"index.html".length);
-  const href = (n: number) => escapeHtml(relativeHref(from, n === 1 ? indexPath : `${base}page/${n}.html`));
+function renderPagination(
+  from: string,
+  pathOf: (n: number) => string,
+  at: number,
+  total: number,
+  strings: ShellStrings,
+): string {
+  const href = (n: number) => escapeHtml(relativeHref(from, pathOf(n)));
   const where = strings.pageOf.replace("{n}", String(at)).replace("{total}", String(total));
   return (
     `<nav class="canopy-pagination" aria-label="${escapeHtml(strings.pageNav)}">` +
@@ -731,21 +745,25 @@ function renderPagination(from: string, indexPath: string, at: number, total: nu
 }
 
 /**
- * Which of a stream's tag pages a path is: the list of all its tags, a tag's
- * page (by slug), or neither.
+ * Which of a stream's tag pages a path is: the list of all its tags, a page of
+ * a tag's list (by slug, and which page — 1 for `<slug>.html`, `n` for
+ * `<slug>/page/<n>.html`), or neither.
  */
 function streamTagView(
   sitePath: string,
   pageLayout: PageLayout,
-): { kind: "index" } | { kind: "tag"; slug: string } | undefined {
+): { kind: "index" } | { kind: "tag"; slug: string; page: number } | undefined {
   if (pageLayout.streamDir === undefined) return undefined;
   const key = sitePath.toLowerCase();
   const indexKey = tagIndexPath(pageLayout.streamDir).toLowerCase();
   if (key === indexKey) return { kind: "index" };
   const prefix = indexKey.slice(0, -"index.html".length);
   if (!key.startsWith(prefix) || !key.endsWith(".html")) return undefined;
-  const slug = sitePath.slice(prefix.length, -".html".length);
-  return slug === "" || slug.includes("/") ? undefined : { kind: "tag", slug };
+  const rest = sitePath.slice(prefix.length, -".html".length);
+  if (rest !== "" && !rest.includes("/")) return { kind: "tag", slug: rest, page: 1 };
+  const [, slug, number] = /^([^/]+)\/page\/([1-9][0-9]*)$/i.exec(rest) ?? [];
+  if (slug === undefined || Number(number) < 2) return undefined;
+  return { kind: "tag", slug, page: Number(number) };
 }
 
 /**
@@ -778,7 +796,8 @@ function renderTagIndexLink(from: string, dir: string, options: ShellOptions, st
 /**
  * The pages of every tagged stream's tags: the list of all its tags with how
  * many posts carry each, and a page per tag listing those posts in the
- * stream's order — drawn in the stream's shell, titled within the stream.
+ * stream's order (continued on later pages past `pageSize`, like the stream's
+ * own list) — drawn in the stream's shell, titled within the stream.
  */
 export function renderStreamTagPages(
   pages: readonly RenderedPage[],
@@ -812,7 +831,14 @@ export function renderStreamTagPages(
     files.push(
       at(listPath, strings.tags, `<h1>${escapeHtml(strings.tags)}</h1><ul class="canopy-tags canopy-tag-index">${list}</ul>`),
     );
-    for (const tag of tags) files.push(at(tagPagePath(dir, tag.slug), tag.name, `<h1>${escapeHtml(tag.name)}</h1>`));
+    for (const tag of tags) {
+      const total = tagPageCount(options.layout, dir, tag);
+      for (let n = 1; n <= total; n++) {
+        const where = strings.pageOf.replace("{n}", String(n)).replace("{total}", String(total));
+        const title = n === 1 ? tag.name : `${tag.name} · ${where}`;
+        files.push(at(tagPagePath(dir, tag.slug, n), title, `<h1>${escapeHtml(tag.name)}</h1>`));
+      }
+    }
   }
   return files;
 }

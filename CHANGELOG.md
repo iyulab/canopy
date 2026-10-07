@@ -8,6 +8,22 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [Unreleased]
+
+### Added
+
+- A tag's page is read a page at a time, like the stream's own list: past the stream rule's
+  `pageSize` posts it continues on `<folder>/tags/<slug>/page/2.html` …, each page ending with the
+  same `.canopy-pagination` and titled "<tag> · Page n of N". `streamTagPaths` and `canopy list
+  --json`'s `generated` name those pages; `tagPagePath` takes the page number, and `tagPageCount`
+  says how many a tag takes.
+
+### Changed
+
+- The link to the list of a stream's tags (`.canopy-tag-index-link`) is on the first page of a
+  tag's list only, as it is on the first page of the stream's list; later pages lead back through
+  the pagination.
+
 ## [0.26.0] — 2026-10-07
 
 Upgrading: a stream post's `tags:` now show and get pages under `<folder>/tags/`. A tag that can have

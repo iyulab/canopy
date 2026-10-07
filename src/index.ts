@@ -97,6 +97,7 @@ export {
   streamTagPaths,
   streamTags,
   tagIndexPath,
+  tagPageCount,
   tagPagePath,
   tagProblems,
   tagSlug,

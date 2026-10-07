@@ -256,4 +256,48 @@ describe("emitSite", () => {
     expect(design).not.toContain('href="../c.html"');
     expect(design).not.toContain("canopy-byline");
   });
+
+  it("continues a tag's page on later pages once its posts outnumber pageSize", async () => {
+    const layout = { dirs: { blog: { profile: "stream" as const, title: "Blog", pageSize: 2 } } };
+    const documents = ["a", "b", "c", "d", "e"].map((name, i) => ({
+      path: `blog/${name}.md`,
+      content: `---
+date: 2026-10-0${i + 1}
+tags: [Design]
+---
+# ${name.toUpperCase()}
+`,
+    }));
+    const files = emitSite(await build({ documents, layout }), { layout, siteTitle: "Site" });
+    const at = (path: string) => files.find((file) => file.path === path)?.contents ?? "";
+    const paths = files.map((file) => file.path);
+    expect(paths).toContain("blog/tags/design/page/2.html");
+    expect(paths).toContain("blog/tags/design/page/3.html");
+    expect(paths).not.toContain("blog/tags/design/page/4.html");
+
+    const first = at("blog/tags/design.html");
+    expect(first).toContain('<a class="canopy-listing-title" href="../e.html">E</a>');
+    expect(first).toContain('<a class="canopy-listing-title" href="../d.html">D</a>');
+    expect(first).not.toContain('href="../c.html"');
+    expect(first).toContain(
+      '<nav class="canopy-pagination" aria-label="Page navigation">' +
+        '<span>Page 1 of 3</span><a rel="next" href="design/page/2.html">Older posts</a></nav>',
+    );
+    expect(first).toContain('<p class="canopy-tag-index-link"><a href="index.html">Tags</a></p>');
+
+    const second = at("blog/tags/design/page/2.html");
+    expect(second).toContain("<title>Design · Page 2 of 3 · Blog · Site</title>");
+    expect(second).toContain("<h1>Design</h1>");
+    expect(second).toContain('<a class="canopy-listing-title" href="../../../c.html">C</a>');
+    expect(second).toContain('<a class="canopy-listing-title" href="../../../b.html">B</a>');
+    expect(second).not.toContain('href="../../../a.html"');
+    expect(second).toContain(
+      '<a rel="prev" href="../../design.html">Newer posts</a><span>Page 2 of 3</span>' +
+        '<a rel="next" href="3.html">Older posts</a></nav>',
+    );
+    // A later page continues the tag's list; the way to every tag is on its first.
+    expect(second).not.toContain("canopy-tag-index-link");
+    // A post's tag still leads to the tag's first page.
+    expect(second).toContain('<ul class="canopy-tags" aria-label="Tags"><li><a href="../../design.html">Design</a></li></ul>');
+  });
 });

@@ -60,6 +60,9 @@ describe("tag paths", () => {
     expect(tagIndexPath("blog")).toBe("blog/tags/index.html");
     expect(tagIndexPath("")).toBe("tags/index.html");
     expect(tagPagePath("blog", "release-notes")).toBe("blog/tags/release-notes.html");
+    expect(tagPagePath("blog", "release-notes", 1)).toBe("blog/tags/release-notes.html");
+    expect(tagPagePath("blog", "release-notes", 2)).toBe("blog/tags/release-notes/page/2.html");
+    expect(tagPagePath("", "design", 3)).toBe("tags/design/page/3.html");
   });
 
   it("names the pages a build writes for a stream's tags, and none for a manual page's", () => {
@@ -73,6 +76,20 @@ describe("tag paths", () => {
       "blog/tags/notes.html",
     ]);
     expect(streamTagPaths(layout, [post("blog/a.html", "2026-10-01", undefined)])).toEqual([]);
+  });
+
+  it("names a tag's later pages when its posts outnumber the stream's pageSize", () => {
+    const paged = { dirs: { Blog: { profile: "stream" as const, pageSize: 2 } } };
+    const pages = ["a", "b", "c", "d", "e"].map((name, i) =>
+      post(`blog/${name}.html`, `2026-10-0${i + 1}`, i < 2 ? ["Design", "Notes"] : ["Design"]),
+    );
+    expect(streamTagPaths(paged, pages)).toEqual([
+      "blog/tags/index.html",
+      "blog/tags/design.html",
+      "blog/tags/design/page/2.html",
+      "blog/tags/design/page/3.html",
+      "blog/tags/notes.html",
+    ]);
   });
 
   it("finds a tag that has no page to be listed on", () => {

@@ -444,7 +444,8 @@ for it.
   folder has none).
 - `title` — the title of that written index page.
 - `pageSize` — on a `stream` rule, how many posts the folder's index lists (default 10); the rest
-  continue on `<folder>/page/2.html`, `page/3.html` …, each linking to the pages beside it.
+  continue on `<folder>/page/2.html`, `page/3.html` …, each linking to the pages beside it. A
+  tag's page is read the same way, continuing on `<folder>/tags/<slug>/page/2.html` ….
 - `regions` — `head`, `header`, `beforeArticle`, `afterArticle`, `footer`, each a vault path of
   an HTML fragment, or `""` to turn off one a shorter folder set. Fragments are read, not
   published. `header` and `footer` replace canopy's own with the fragment's markup; canopy's

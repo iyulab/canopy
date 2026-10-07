@@ -239,11 +239,6 @@ export function syntheticIndexPaths(layout: Layout | undefined, sitePaths: reado
 }
 
 /**
- * A rule's folder as the site's own paths spell it. A rule matches its folder
- * ignoring case; the folder's pages say how it is actually written. A folder
- * with no pages has nothing to go by, and keeps the rule's spelling.
- */
-/**
  * The pages a stream folder's listing continues on past its index —
  * `<dir>/page/2.html`, `<dir>/page/3.html` … — one for every `pageSize` posts
  * after the first page's. Counted from paths alone (which pages the folder's
@@ -285,6 +280,11 @@ export function streamListingPage(sitePath: string, pageLayout: PageLayout): num
   return page >= 2 ? page : undefined;
 }
 
+/**
+ * A rule's folder as the site's own paths spell it. A rule matches its folder
+ * ignoring case; the folder's pages say how it is actually written. A folder
+ * with no pages has nothing to go by, and keeps the rule's spelling.
+ */
 function inSiteCase(dir: string, sitePaths: readonly string[]): string {
   if (dir === "") return dir;
   const prefix = `${dir.toLowerCase()}/`;

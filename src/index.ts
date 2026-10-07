@@ -119,7 +119,7 @@ export async function build(tree: SourceTree): Promise<SiteBundle> {
         doc.content,
         {
           resolve: (target) => index.resolve(target),
-          isPage: (candidate) => index.has(candidate),
+          page: (candidate) => index.page(candidate),
           fromSitePath: sitePath,
         },
         tree.rehypePlugins,

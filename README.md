@@ -274,7 +274,8 @@ the renderer calls, so a checker that validates links without rendering gives th
 rather than its own: `isExternalUrl` (left exactly as written), `parseLinkUrl` (path vs.
 query/fragment), `decodeLinkPath` (percent-decoding, per segment), `resolveRelative` (`..`
 against the linking page, `undefined` above the vault root), and `resolveMarkdownLink`, which
-combines them into the published target.
+combines them into the published target given a lookup that answers a site path with the page
+there in the build's spelling (`buildLinkIndex(...).page`).
 
 ---
 
@@ -366,8 +367,11 @@ checker) recognizes exactly the dates canopy does. Undated pages are unchanged.
   with a backlink graph. Unresolved links degrade to plain text.
 - Markdown links to other notes (`[text](note.md)`, including the reference-style
   `[text][id]` form) resolve the same way, relative to the linking document, and count in the
-  backlink graph. Absolute URLs, root-absolute paths (`/help/x.png`), bare fragments, and
-  targets that were not published are left exactly as written.
+  backlink graph. Both match a page ignoring letter case and are written as the page is spelled
+  (`[x](Guide/Install.md)` → `guide/install.html`), so a host that tells case apart still serves
+  them. Files that are not pages (images, PDFs) keep the link's own spelling. Absolute URLs,
+  root-absolute paths (`/help/x.png`), bare fragments, and targets that were not published are
+  left exactly as written.
 - Raw HTML is sanitized: safe authoring tags survive, scripts and injection vectors are stripped.
 
 #### Math: a conservative subset of remark-math

@@ -16,7 +16,7 @@ import type { WikiContext } from "./remark-wikilink.js";
  * as references.
  *
  * The context is the same one wikilinks read, but this plugin uses only its
- * `isPage`/`fromSitePath`: markdown link targets are *paths* relative to the
+ * `page`/`fromSitePath`: markdown link targets are *paths* relative to the
  * document, not tree-wide names, so `WikiContext.resolve` is deliberately not
  * consulted here (see `LinkIndex.has`).
  *
@@ -26,23 +26,23 @@ import type { WikiContext } from "./remark-wikilink.js";
 export default function remarkMarkdownLink() {
   return (tree: Root, file: VFile): void => {
     const ctx = file.data.wiki as WikiContext | undefined;
-    if (ctx?.isPage === undefined) {
+    if (ctx?.page === undefined) {
       return;
     }
-    const { fromSitePath, isPage } = ctx;
+    const { fromSitePath, page } = ctx;
     const outgoing = new Set<string>(
       Array.isArray(file.data.wikiLinks) ? (file.data.wikiLinks as string[]) : [],
     );
 
     const rewrite = (node: Link | Definition): void => {
-      const resolved = resolveMarkdownLink(fromSitePath, node.url, isPage);
+      const resolved = resolveMarkdownLink(fromSitePath, node.url, page);
       if (resolved === undefined) {
         return;
       }
       const { suffix } = parseLinkUrl(node.url);
       node.url = relativeHref(fromSitePath, resolved) + suffix;
       // Assets are not pages, so they are not references between documents.
-      if (/\.html$/i.test(resolved) && resolved !== fromSitePath) {
+      if (page(resolved) === resolved && resolved !== fromSitePath) {
         outgoing.add(resolved);
       }
     };

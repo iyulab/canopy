@@ -16,11 +16,11 @@ export interface WikiContext {
   /** Resolve a wikilink target to a site path, or undefined when unresolved. */
   resolve(target: string): string | undefined;
   /**
-   * True when a site path is a page in this build. Used by markdown-link
-   * rewriting, which addresses documents by path rather than by name — see
-   * `LinkIndex.has` for why the two must not share `resolve`.
+   * The page at a site path, in the build's spelling, or undefined. Used by
+   * markdown-link rewriting, which addresses documents by path rather than by
+   * name — see `LinkIndex.page` for why the two must not share `resolve`.
    */
-  isPage(sitePath: string): boolean;
+  page(sitePath: string): string | undefined;
   /** Site path of the document being rendered, for relative hrefs. */
   fromSitePath: string;
 }

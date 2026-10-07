@@ -72,49 +72,73 @@ describe("resolveMarkdownLink", () => {
     "guide/orders/list.html",
     "guide/settings/logo.png",
   ]);
-  const isPage = (p: string) => pages.has(p);
+  // The build's own spelling of a page, matched ignoring case — what `LinkIndex.page` answers.
+  const spelling = (paths: Set<string>) => (p: string) =>
+    [...paths].find((candidate) => candidate.toLowerCase() === p.toLowerCase());
+  const page = spelling(pages);
   const from = "guide/settings/api.html";
 
   it("rewrites a .md link to its published page", () => {
-    expect(resolveMarkdownLink(from, "diagnostics.md", isPage)).toBe(
+    expect(resolveMarkdownLink(from, "diagnostics.md", page)).toBe(
       "guide/settings/diagnostics.html",
     );
-    expect(resolveMarkdownLink(from, "../orders/list.md", isPage)).toBe(
+    expect(resolveMarkdownLink(from, "../orders/list.md", page)).toBe(
       "guide/orders/list.html",
     );
   });
 
+  it("writes a page link in the page's own spelling, not the link's", () => {
+    // Matching ignores case, so the link reaches the page; the href must then be
+    // the page's, or a host that tells letter case apart serves nothing at it.
+    expect(resolveMarkdownLink(from, "Diagnostics.md", page)).toBe(
+      "guide/settings/diagnostics.html",
+    );
+    expect(resolveMarkdownLink(from, "../Orders/List", page)).toBe("guide/orders/list.html");
+    expect(resolveMarkdownLink(from, "../ORDERS/list.html", page)).toBe(
+      "guide/orders/list.html",
+    );
+  });
+
+  it("passes an .html path that is not a page through as written", () => {
+    // A hand-written HTML file mirrored like any other asset.
+    expect(resolveMarkdownLink(from, "Embed.html", page)).toBe("guide/settings/Embed.html");
+  });
+
   it("leaves external and root-absolute URLs untouched", () => {
     for (const url of ["https://example.com/a.md", "/help/x.md", "#top", "mailto:a@b.c"]) {
-      expect(resolveMarkdownLink(from, url, isPage), url).toBeUndefined();
+      expect(resolveMarkdownLink(from, url, page), url).toBeUndefined();
     }
   });
 
   it("leaves a .md link alone when that page was not published", () => {
     // Rewriting would produce a confident-looking URL that 404s; the original
     // at least points at something the author can recognize.
-    expect(resolveMarkdownLink(from, "missing.md", isPage)).toBeUndefined();
+    expect(resolveMarkdownLink(from, "missing.md", page)).toBeUndefined();
   });
 
   it("resolves an extension-less link only when it names a real page", () => {
-    expect(resolveMarkdownLink(from, "./diagnostics", isPage)).toBe(
+    expect(resolveMarkdownLink(from, "./diagnostics", page)).toBe(
       "guide/settings/diagnostics.html",
     );
-    expect(resolveMarkdownLink(from, "./nothing-here", isPage)).toBeUndefined();
+    expect(resolveMarkdownLink(from, "./nothing-here", page)).toBeUndefined();
   });
 
   it("passes asset paths through unchanged", () => {
     // Assets are mirrored into the site at the same path, so the resolved path
     // is already correct — and is returned whether or not it was published, since
     // canopy copies assets it was given rather than deciding they are pages.
-    expect(resolveMarkdownLink(from, "logo.png", isPage)).toBe("guide/settings/logo.png");
-    expect(resolveMarkdownLink(from, "../orders/chart.svg", isPage)).toBe(
+    expect(resolveMarkdownLink(from, "logo.png", page)).toBe("guide/settings/logo.png");
+    expect(resolveMarkdownLink(from, "../orders/chart.svg", page)).toBe(
       "guide/orders/chart.svg",
+    );
+    // Assets are not matched against anything, so their spelling is the author's.
+    expect(resolveMarkdownLink(from, "../Orders/Chart.svg", page)).toBe(
+      "guide/Orders/Chart.svg",
     );
   });
 
   it("leaves a link that escapes the vault untouched", () => {
-    expect(resolveMarkdownLink("index.html", "../outside.md", isPage)).toBeUndefined();
+    expect(resolveMarkdownLink("index.html", "../outside.md", page)).toBeUndefined();
   });
 
   // Editors write the encoded form when a path contains a space, and canopy
@@ -126,30 +150,30 @@ describe("resolveMarkdownLink", () => {
       "현황 및 통계/chart.png",
       "a b/target.html",
     ]);
-    const hasPage = (p: string) => encodedPages.has(p);
+    const encodedPage = spelling(encodedPages);
 
     it("resolves a target whose directory was encoded", () => {
-      expect(resolveMarkdownLink("src.html", "a%20b/target.md", hasPage)).toBe(
+      expect(resolveMarkdownLink("src.html", "a%20b/target.md", encodedPage)).toBe(
         "a b/target.html",
       );
     });
 
     it("resolves the same target written with angle brackets", () => {
       // The two spellings address one file; they must land on one page.
-      expect(resolveMarkdownLink("src.html", "a b/target.md", hasPage)).toBe(
+      expect(resolveMarkdownLink("src.html", "a b/target.md", encodedPage)).toBe(
         "a b/target.html",
       );
     });
 
     it("resolves an encoded non-ASCII directory", () => {
       const url = "../%ED%98%84%ED%99%A9%20%EB%B0%8F%20%ED%86%B5%EA%B3%84/daily.md";
-      expect(resolveMarkdownLink("guide/api.html", url, hasPage)).toBe(
+      expect(resolveMarkdownLink("guide/api.html", url, encodedPage)).toBe(
         "현황 및 통계/daily.html",
       );
     });
 
     it("resolves an encoded asset path", () => {
-      expect(resolveMarkdownLink("guide/api.html", "../%ED%98%84%ED%99%A9%20%EB%B0%8F%20%ED%86%B5%EA%B3%84/chart.png", hasPage)).toBe(
+      expect(resolveMarkdownLink("guide/api.html", "../%ED%98%84%ED%99%A9%20%EB%B0%8F%20%ED%86%B5%EA%B3%84/chart.png", encodedPage)).toBe(
         "현황 및 통계/chart.png",
       );
     });
@@ -157,17 +181,17 @@ describe("resolveMarkdownLink", () => {
     it("leaves a malformed escape exactly as written", () => {
       // decodeURIComponent throws on "%zz"; guessing at a repair would invent a
       // target the author never wrote.
-      expect(resolveMarkdownLink("src.html", "a%zzb/target.md", hasPage)).toBeUndefined();
+      expect(resolveMarkdownLink("src.html", "a%zzb/target.md", encodedPage)).toBeUndefined();
     });
 
     it("does not let an encoded slash become a path separator", () => {
       // "%2F" is a literal slash *inside* a name, not a directory boundary —
       // decoding it into one would address a different file than the author did.
-      expect(resolveMarkdownLink("src.html", "a%2Fb/target.md", hasPage)).toBeUndefined();
+      expect(resolveMarkdownLink("src.html", "a%2Fb/target.md", encodedPage)).toBeUndefined();
     });
 
     it("keeps the fragment untouched", () => {
-      expect(resolveMarkdownLink("src.html", "a%20b/target.md#설정", hasPage)).toBe(
+      expect(resolveMarkdownLink("src.html", "a%20b/target.md#설정", encodedPage)).toBe(
         "a b/target.html",
       );
     });

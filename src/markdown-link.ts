@@ -113,20 +113,29 @@ export function resolveRelative(fromSitePath: string, target: string): string | 
  * The site path a markdown link should point at, or `undefined` to leave the
  * link untouched.
  *
- * `isPage` reports whether a candidate site path exists in this build. It is
- * consulted for *every* rewrite, including `.md` targets: a link to a file that
- * was never published is better left as written than rewritten into a URL that
- * 404s under a different name.
+ * `page` answers a candidate site path with the page this build publishes
+ * there — matched ignoring case, returned in the build's own spelling — or
+ * `undefined`. A link that reaches a page is written in the page's spelling,
+ * as a wikilink is, since the letters the author typed may lead nowhere on a
+ * host that tells letter case apart.
+ *
+ * It is consulted for *every* page candidate, including `.md` targets: a link
+ * to a file that was never published is better left as written than rewritten
+ * into a URL that 404s under a different name.
  *
  * Extension-less targets (`[x](./notes)`) are resolved only when they name a
  * real page. Authors use them for both documents and non-markdown assets, and
  * inventing an `.html` target for something that does not exist would turn a
  * visibly-wrong link into a plausible-looking broken one.
+ *
+ * Any other target with an extension is an asset, mirrored into the site at
+ * its own path — including an `.html` file that is not a page. Assets are not
+ * matched against anything, so they keep the author's spelling.
  */
 export function resolveMarkdownLink(
   fromSitePath: string,
   url: string,
-  isPage: (sitePath: string) => boolean,
+  page: (sitePath: string) => string | undefined,
 ): string | undefined {
   if (isExternalUrl(url)) {
     return undefined;
@@ -146,11 +155,11 @@ export function resolveMarkdownLink(
     return undefined;
   }
 
-  const candidate = /\.md$/i.test(resolved)
-    ? resolved.replace(/\.md$/i, ".html")
-    : /\.[^/]+$/.test(resolved)
-      ? resolved // an asset (image, pdf, …) — mirrored into the site as-is
-      : `${resolved}.html`;
-
-  return isPage(candidate) || candidate === resolved ? candidate : undefined;
+  if (/\.md$/i.test(resolved)) {
+    return page(resolved.replace(/\.md$/i, ".html"));
+  }
+  if (/\.[^/]+$/.test(resolved)) {
+    return page(resolved) ?? resolved;
+  }
+  return page(`${resolved}.html`);
 }

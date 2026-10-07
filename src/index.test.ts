@@ -194,6 +194,26 @@ describe("build", () => {
     ]);
   });
 
+  it("writes a markdown link that matched its page ignoring case as the page is spelled", async () => {
+    const bundle = await build({
+      documents: [
+        {
+          path: "index.md",
+          content: "---\ntitle: Home\n---\n[a](Guide/Install.md) [b](GUIDE/install.md#top)",
+        },
+        { path: "guide/install.md", content: "# Install" },
+      ],
+    });
+    const home = bundle.pages.find((p) => p.sitePath === "index.html");
+    const hrefs = [...(home?.html ?? "").matchAll(/href="([^"]*)"/g)].map((m) => m[1]);
+    // Same as `[[Guide/Install]]` writes it: the page the link reached, not the
+    // letters the author typed, which lead nowhere on a case-sensitive host.
+    expect(hrefs).toEqual(["guide/install.html", "guide/install.html#top"]);
+    // And the reference reaches the page's backlinks, which are keyed by its spelling.
+    const install = bundle.pages.find((p) => p.sitePath === "guide/install.html");
+    expect(install?.backlinks.map((b) => b.sitePath)).toEqual(["index.html"]);
+  });
+
   it("leaves links that point outside the vault untouched", async () => {
     const bundle = await build({
       documents: [

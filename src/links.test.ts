@@ -26,4 +26,12 @@ describe("buildLinkIndex", () => {
     const deeper = buildLinkIndex(["z/note.html", "a/note.html"]);
     expect(deeper.resolve("note")).toBe("a/note.html"); // tie -> lexicographic
   });
+
+  it("answers a page path with the build's own spelling of it, matched ignoring case", () => {
+    const index = buildLinkIndex(["guide/install.html", "Notes/Idea.html"]);
+    expect(index.page("guide/install.html")).toBe("guide/install.html");
+    expect(index.page("Guide/Install.html")).toBe("guide/install.html");
+    expect(index.page("notes/idea.html")).toBe("Notes/Idea.html");
+    expect(index.page("guide/missing.html")).toBeUndefined();
+  });
 });

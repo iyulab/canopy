@@ -8,6 +8,26 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [Unreleased]
+
+Upgrading: a caller of `resolveMarkdownLink` or `buildLinkIndex` passes or reads a page lookup in
+place of a yes/no test — see *Changed*. A vault whose markdown links spell a page in another letter
+case than its file now gets working links; nothing to do.
+
+### Fixed
+
+- A markdown link that reaches a page only by ignoring letter case (`[x](Guide/Install.md)` for
+  `guide/install.md`) is written as the page is spelled (`guide/install.html`), as a wikilink to
+  the same page already was. It kept the link's spelling, which leads nowhere on a host that tells
+  letter case apart — and the page did not list the linking page among its backlinks.
+
+### Changed
+
+- `LinkIndex.has(sitePath): boolean` is now `LinkIndex.page(sitePath): string | undefined`, the page
+  at that path in the build's own spelling. `resolveMarkdownLink`'s third argument is the same
+  lookup, and the result is in that spelling. An `.html` target that names a page is matched the
+  same way; one that does not is passed through as an asset, as before.
+
 ## [0.21.1] — 2026-10-07
 
 Upgrading: nothing to do. `resolvePageLayout().streamDir` now spells the folder as the page's own

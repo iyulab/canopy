@@ -8,7 +8,7 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
-## [Unreleased]
+## [0.27.0] — 2026-10-07
 
 Upgrading: a stream post now ends with what to read next (`.canopy-read-next`) — style or hide it
 with that hook. `tagProblems` returns `{ sitePath, message }` objects instead of strings.

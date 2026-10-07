@@ -645,6 +645,26 @@ body {
 }
 .canopy-content code { font-family: var(--font-monospace); }
 .canopy-content table { border-collapse: collapse; }
+/* A table scrolls sideways inside its own box (rehype-table-scroll.ts) rather
+   than widening the page, with the same scroll-shadow pair as a code block
+   above. The cover pair is the page background here, not Shiki's, since a
+   table sits on the page itself; it follows the colour scheme through the
+   token. The table inside keeps its own display and loses only its margin,
+   which the box now carries. */
+.canopy-content .canopy-table {
+  margin: var(--sp-4) 0;
+  overflow-x: auto;
+  background-image:
+    linear-gradient(to right, var(--bg-primary) 60%, transparent),
+    linear-gradient(to left, var(--bg-primary) 60%, transparent),
+    linear-gradient(to right, rgba(0, 0, 0, 0.15), transparent),
+    linear-gradient(to left, rgba(0, 0, 0, 0.15), transparent);
+  background-repeat: no-repeat;
+  background-size: var(--sp-6) 100%, var(--sp-6) 100%, var(--sp-2) 100%, var(--sp-2) 100%;
+  background-position: 0 0, 100% 0, 0 0, 100% 0;
+  background-attachment: local, local, scroll, scroll;
+}
+.canopy-content .canopy-table > table { margin: 0; }
 .canopy-content th, .canopy-content td {
   border: 1px solid var(--border);
   padding: var(--sp-2) var(--sp-3);

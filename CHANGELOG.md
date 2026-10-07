@@ -21,8 +21,13 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 - A `--exclude` pattern naming a dot-file, a dot-folder or something under `node_modules` is no
   longer reported as matching nothing: those paths are never published, so the pattern is
   redundant, not a mistake.
+- **A table wider than the screen scrolls within itself** instead of pushing the whole page
+  sideways. Each table sits in a `.canopy-table` box that scrolls horizontally, with the same
+  edge shadow a wide code block has; the table itself keeps its display and semantics.
 
 ### Added
+
+- Hook `.canopy-table`: the box each table in an article scrolls inside.
 
 - `outputCollisions(published, plan)`: the published files that would land on a path canopy
   writes, with what it writes there — the build's own check, for a caller checking a site first.

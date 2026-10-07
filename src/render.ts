@@ -7,6 +7,7 @@ import remarkMath from "remark-math";
 import remarkRehype from "remark-rehype";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
+import rehypeTableScroll from "./rehype-table-scroll.js";
 import rehypeSlug from "rehype-slug";
 import rehypeKatex from "rehype-katex";
 import rehypeShikiFromHighlighter from "@shikijs/rehype/core";
@@ -148,6 +149,8 @@ const buildProcessor = async (rehypePlugins: PluggableList) =>
   // rehype-slug runs *after* sanitize so heading ids are not clobbered with a
   // "user-content-" prefix; this keeps `[[note#heading]]` fragments matching.
   .use(rehypeSlug)
+  // Each table scrolls inside its own box rather than widening the page.
+  .use(rehypeTableScroll)
   // A caller's rehype plugins (see the pipeline comment above for why exactly
   // here): trusted like katex/shiki because they run after sanitize, and
   // ahead of a caller-owned language tag because they run before Shiki.

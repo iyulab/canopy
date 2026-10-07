@@ -44,6 +44,8 @@ async function emittedHtml(): Promise<string[]> {
           "> [!danger]\n> d",
           "",
           "> [!quote]\n> q",
+          "",
+          "| a | b |\n|---|---|\n| 1 | 2 |",
         ].join("\n"),
       },
       { path: "guide/configure.md", content: "# Configure\n\nBack to [[guide/install]].\n" },

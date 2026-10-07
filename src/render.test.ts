@@ -26,6 +26,21 @@ describe("renderMarkdown", () => {
     expect(html).toContain("<td>1</td>");
   });
 
+  it("puts each table, written in markdown or HTML, in a box of its own that scrolls sideways", async () => {
+    const html = await renderMarkdown(
+      "| a | b |\n| - | - |\n| 1 | 2 |\n\n<table><tr><td>raw</td></tr></table>\n",
+    );
+    expect(html).toContain('<div class="canopy-table"><table>');
+    expect(html.match(/<div class="canopy-table"><table>/g)).toHaveLength(2);
+    expect(html.match(/<\/table><\/div>/g)).toHaveLength(2);
+  });
+
+  it("leaves an author's own class=\"canopy-table\" to the sanitizer rather than trusting it", async () => {
+    const html = await renderMarkdown('<div class="canopy-table"><table><tr><td>x</td></tr></table></div>\n');
+    // sanitize strips the author's class, so the table still gets canopy's one box, not two.
+    expect(html.match(/class="canopy-table"/g)).toHaveLength(1);
+  });
+
   it("renders GFM strikethrough and task lists", async () => {
     const html = await renderMarkdown("~~gone~~\n\n- [x] done\n- [ ] todo");
     expect(html).toContain("<del>gone</del>");

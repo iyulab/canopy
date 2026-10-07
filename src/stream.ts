@@ -1,5 +1,5 @@
 import type { RenderedPage } from "./contract.js";
-import { type Layout, resolvePageLayout, streamDirs, streamIndexPath } from "./layout.js";
+import { folderRule, type Layout, resolvePageLayout, streamDirs, streamIndexPath } from "./layout.js";
 import { flattenNav, type NavNode } from "./navigation.js";
 import { pageDate } from "./page-date.js";
 import { escapeHtml } from "./shell.js";
@@ -23,7 +23,7 @@ import { declaredTitle, pageName } from "./title.js";
 export function syntheticStreamPages(layout: Layout | undefined, sitePaths: readonly string[]): RenderedPage[] {
   return sitePaths.map((sitePath) => {
     const dir = sitePath === "index.html" ? "" : sitePath.slice(0, -"/index.html".length);
-    const rule = dir === "" ? layout?.default : layout?.dirs?.[dir];
+    const rule = folderRule(layout, dir);
     const title = rule?.title ?? (dir.split("/").pop() || "Contents");
     return {
       sourcePath: "",
@@ -74,7 +74,8 @@ function orderStream(
   const members = pages
     .filter(
       (page) =>
-        page.sitePath.toLowerCase() !== indexPath && resolvePageLayout(layout, page.sitePath).streamDir === dir,
+        page.sitePath.toLowerCase() !== indexPath &&
+        resolvePageLayout(layout, page.sitePath).streamDir?.toLowerCase() === dir.toLowerCase(),
     )
     .sort(streamOrder);
   if (members.length === 0) return nodes;

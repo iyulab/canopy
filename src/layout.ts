@@ -162,7 +162,8 @@ export interface PageLayout {
   profile: Profile;
   /**
    * The folder whose stream this page belongs to — the folder of the rule that
-   * set its profile, `""` for the site default — or `undefined` for a manual page.
+   * set its profile, spelled as in the page's own path, `""` for the site
+   * default — or `undefined` for a manual page.
    */
   streamDir: string | undefined;
   /** Region → fragment path. A region turned off with `""` is absent. */
@@ -187,7 +188,9 @@ export function resolvePageLayout(layout: Layout | undefined, sitePath: string):
   for (const name of REGIONS) {
     if (regions[name] === "") delete regions[name];
   }
-  return { profile, streamDir: profile === "stream" ? from : undefined, regions };
+  // In the page's own case: the rule matched its folder ignoring case, and a
+  // path canopy writes from this has to lead to the folder as it is.
+  return { profile, streamDir: profile === "stream" ? sitePath.slice(0, from.length) : undefined, regions };
 }
 
 /** Folders whose own rule makes them a stream, sorted; `""` when the site default does. */
@@ -213,8 +216,27 @@ export function streamIndexPath(dir: string): string {
 export function syntheticIndexPaths(layout: Layout | undefined, sitePaths: readonly string[]): string[] {
   const have = new Set(sitePaths.map((sitePath) => sitePath.toLowerCase()));
   return streamDirs(layout)
-    .map(streamIndexPath)
+    .map((dir) => streamIndexPath(inSiteCase(dir, sitePaths)))
     .filter((sitePath) => !have.has(sitePath.toLowerCase()));
+}
+
+/**
+ * A rule's folder as the site's own paths spell it. A rule matches its folder
+ * ignoring case; the folder's pages say how it is actually written. A folder
+ * with no pages has nothing to go by, and keeps the rule's spelling.
+ */
+function inSiteCase(dir: string, sitePaths: readonly string[]): string {
+  if (dir === "") return dir;
+  const prefix = `${dir.toLowerCase()}/`;
+  const page = sitePaths.find((sitePath) => sitePath.toLowerCase().startsWith(prefix));
+  return page === undefined ? dir : page.slice(0, dir.length);
+}
+
+/** The rule written for a folder, found ignoring case as every rule is matched; the site default for `""`. */
+export function folderRule(layout: Layout | undefined, dir: string): LayoutRule | undefined {
+  if (dir === "") return layout?.default;
+  const key = dir.toLowerCase();
+  return Object.entries(layout?.dirs ?? {}).find(([candidate]) => candidate.toLowerCase() === key)?.[1];
 }
 
 /**

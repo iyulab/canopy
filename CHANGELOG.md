@@ -15,6 +15,9 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 - A stream page's reading time counts every Han ideograph and kana by the character, as it
   already did for the common blocks: ideographs outside the Basic Multilingual Plane (CJK
   extension B and later), the iteration mark `々` and half-width katakana were counted as words.
+- A stream folder named in a layout rule in another letter case than the folder itself (`"BLOG"`
+  for `blog/`) gets its index page, and every link back to it, in the folder's own case. Both used
+  the rule's spelling, which leads nowhere on a host that tells the two apart.
 
 ## [0.21.0] — 2026-10-07
 

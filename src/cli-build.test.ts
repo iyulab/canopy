@@ -196,6 +196,27 @@ describe("canopy build --layout", { timeout: RENDERS }, () => {
     await expect(readFile(path.join(out, "partials", "header.html"), "utf8")).rejects.toThrow();
   });
 
+  it("writes a stream's index in its folder's case when the rule names the folder in another", async () => {
+    const { root, out } = await vault({
+      "index.md": "# Home\n",
+      "blog/post.md": "---\ndate: 2026-10-03\n---\n# Post\n",
+      "partials/header.html": '<header class="host"><canopy-slot name="back"></canopy-slot></header>',
+    });
+    const layout = await layoutFile(root, {
+      dirs: { BLOG: { profile: "stream", title: "Blog", regions: { header: "partials/header.html" } } },
+    });
+    vi.spyOn(console, "log").mockImplementation(() => {});
+
+    await runBuild(["build", path.join(root, "vault"), out, "--layout", layout]);
+
+    expect(process.exitCode).toBeUndefined();
+    expect(await readdir(out)).toContain("blog");
+    expect(await readdir(out)).not.toContain("BLOG");
+    const post = await readFile(path.join(out, "blog", "post.html"), "utf8");
+    expect(post).toContain('<header class="host"><a class="canopy-back" href="index.html">Blog</a></header>');
+    expect(await readFile(path.join(out, "blog", "index.html"), "utf8")).toContain("<h1>Blog</h1>");
+  });
+
   it("refuses a fragment with an unknown slot, naming the file", async () => {
     const { root, out } = await vault({
       "index.md": "# Home\n",

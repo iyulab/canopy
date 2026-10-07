@@ -95,7 +95,7 @@ describe("resolvePageLayout", () => {
   });
 
   it("places a folder's own index page inside the folder, matching case-insensitively", () => {
-    expect(resolvePageLayout(layout, "Blog/index.html").streamDir).toBe("blog");
+    expect(resolvePageLayout(layout, "Blog/index.html").streamDir).toBe("Blog");
     expect(resolvePageLayout(layout, "blogroll.html").profile).toBe("manual");
   });
 
@@ -125,6 +125,16 @@ describe("stream folders", () => {
       "news/index.html",
     ]);
     expect(syntheticIndexPaths(layout, ["INDEX.html", "news/Index.html"])).toEqual([]);
+  });
+
+  // A folder is matched ignoring case, so a rule written "News" covers news/;
+  // a path canopy writes for it is in the folder's own case, or it would lead
+  // nowhere on a host that tells the two apart.
+  it("names a stream folder's paths in the folder's own case, not the rule's", () => {
+    const shouting: Layout = { dirs: { NEWS: { profile: "stream" } } };
+    expect(syntheticIndexPaths(shouting, ["index.html", "news/a.html"])).toEqual(["news/index.html"]);
+    expect(syntheticIndexPaths(shouting, ["index.html"])).toEqual(["NEWS/index.html"]);
+    expect(resolvePageLayout(shouting, "news/a.html").streamDir).toBe("news");
   });
 });
 

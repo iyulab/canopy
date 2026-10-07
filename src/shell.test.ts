@@ -1252,6 +1252,59 @@ describe("the stream profile", () => {
     );
   });
 
+  describe("author and cover", () => {
+    const covered = {
+      ...post,
+      frontmatter: { ...post.frontmatter, author: " Ada Lovelace ", image: "img/Cover Art.png" },
+    };
+    const coveredOptions = { ...options, sitePages: [index, covered] };
+
+    it("names the author first in the byline", () => {
+      expect(renderPage(covered, streamNav, coveredOptions)).toContain(
+        '<p class="canopy-byline"><span class="canopy-author">Ada Lovelace</span>' +
+          '<time class="canopy-date" datetime="2026-10-03">',
+      );
+    });
+
+    it("shows the cover after the byline and before the contents, addressed from the page", () => {
+      expect(renderPage(covered, streamNav, coveredOptions)).toContain(
+        '<span class="canopy-reading-time">1 min read</span></p>' +
+          '<img class="canopy-cover" src="../img/Cover%20Art.png" alt=""><details class="canopy-toc" open>',
+      );
+    });
+
+    it("uses an absolute or root-absolute cover as written", () => {
+      for (const image of ["https://cdn.example.com/c.png", "/media/c.png"]) {
+        const html = renderPage(
+          { ...covered, frontmatter: { ...covered.frontmatter, image } },
+          streamNav,
+          coveredOptions,
+        );
+        expect(html).toContain(`<img class="canopy-cover" src="${image}" alt="">`);
+      }
+    });
+
+    it("puts the cover atop each listing item that has one", () => {
+      expect(renderPage(index, streamNav, coveredOptions)).toContain(
+        '<ul class="canopy-listing"><li><img class="canopy-cover" src="../img/Cover%20Art.png" alt="" loading="lazy">' +
+          '<a class="canopy-listing-title" href="post.html">Post</a>',
+      );
+    });
+
+    it("leaves a page without them as it was, and a manual page without either", () => {
+      const html = renderPage(post, streamNav, options);
+      expect(html).not.toContain("canopy-author");
+      expect(html).not.toContain("canopy-cover");
+      const manual = renderPage(
+        { ...covered, sourcePath: "guide/a.md", sitePath: "guide/a.html" },
+        [{ label: "A", sitePath: "guide/a.html", children: [] }],
+        { sitePages: [covered] },
+      );
+      expect(manual).not.toContain("canopy-author");
+      expect(manual).not.toContain('class="canopy-cover"');
+    });
+  });
+
   it("keeps a manual listing exactly as it was", () => {
     const manualIndex = { ...index, frontmatter: { listing: true } };
     const html = renderPage(manualIndex, streamNav, { sitePages: [manualIndex, post] });

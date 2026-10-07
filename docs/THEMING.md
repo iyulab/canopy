@@ -99,7 +99,7 @@ changelog. Select on them freely.
 |---|---|
 | Top bar and controls | `.canopy-topbar` `.canopy-topbar-controls` `.canopy-site-title` `.canopy-logo` `.canopy-home` `.canopy-home-external` `.canopy-back` `.canopy-breadcrumb` `.canopy-language` `.canopy-search` `.canopy-theme-toggle` `.canopy-skip-link` |
 | Layout and navigation | `.canopy-layout` `.canopy-sidebar` `.canopy-nav` `.canopy-nav-group` `.canopy-main` |
-| Article | `.canopy-content` `.canopy-contents` `.canopy-before-article` `.canopy-after-article` `.canopy-lead` `.canopy-byline` `.canopy-date` `.canopy-reading-time` `.canopy-toc` `.canopy-listing` `.canopy-listing-title` `.canopy-table` |
+| Article | `.canopy-content` `.canopy-contents` `.canopy-before-article` `.canopy-after-article` `.canopy-lead` `.canopy-byline` `.canopy-author` `.canopy-date` `.canopy-reading-time` `.canopy-cover` `.canopy-toc` `.canopy-listing` `.canopy-listing-title` `.canopy-table` |
 | Callouts | `.callout` `.callout-note` `.callout-tip` `.callout-warning` `.callout-danger` `.callout-quote` `.callout-title` |
 | Around the article | `.canopy-outline` `.canopy-backlinks` `.canopy-page-nav` `.canopy-prev` `.canopy-next` |
 
@@ -130,11 +130,12 @@ pages read one at a time, newest first:
 
 - no sidebar tree, and no outline column — the page is one centered column;
 - after the title, the page's `description:` as a lead (`.canopy-lead`), then a byline
-  (`.canopy-byline`) with the date (`.canopy-date`) and the reading time
-  (`.canopy-reading-time`), then the contents, open, in a disclosure (`.canopy-toc`, holding
-  the same `.canopy-outline` list);
-- the folder's index page lists the folder's pages newest first (`.canopy-listing`), with date,
-  reading time and summary — canopy writes that index page when the folder has none;
+  (`.canopy-byline`) with the page's `author:` (`.canopy-author`), the date (`.canopy-date`) and
+  the reading time (`.canopy-reading-time`), then the page's `image:` as its cover
+  (`.canopy-cover`), then the contents, open, in a disclosure (`.canopy-toc`, holding the same
+  `.canopy-outline` list);
+- the folder's index page lists the folder's pages newest first (`.canopy-listing`), with cover,
+  date, reading time and summary — canopy writes that index page when the folder has none;
 - canopy's own top bar shows a link back to that index (`.canopy-back`) where a manual page
   shows its breadcrumb.
 

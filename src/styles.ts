@@ -895,6 +895,20 @@ body {
    rule above would shrink and offset it a second time. */
 .canopy-byline .canopy-date { margin: 0; font-size: inherit; }
 .canopy-byline > * + *::before { content: "·"; margin: 0 var(--sp-2); }
+/* A post's cover (its \`image:\`): full width under the byline; on a stream's
+   listing, atop each card at one shape so the list reads as a column. */
+.canopy-cover {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0 0 var(--sp-6);
+  border-radius: var(--radius-m);
+}
+.canopy-listing .canopy-cover {
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  margin: 0 0 var(--sp-2);
+}
 .canopy-listing .canopy-reading-time { font-size: 0.9em; color: var(--text-muted); }
 .canopy-listing .canopy-reading-time::before { content: "·"; margin: 0 var(--sp-2); }
 .canopy-toc {

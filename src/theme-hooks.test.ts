@@ -74,7 +74,8 @@ async function emittedHtml(): Promise<string[]> {
     documents: [
       {
         path: "blog/post.md",
-        content: "---\ndate: 2026-10-03\ndescription: Lead.\n---\n# Post\n\n## One\n\na\n\n## Two\n\nb\n",
+        content:
+          "---\ndate: 2026-10-03\ndescription: Lead.\nauthor: Ada\nimage: cover.png\n---\n# Post\n\n## One\n\na\n\n## Two\n\nb\n",
       },
     ],
     layout: streamLayout,

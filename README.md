@@ -340,6 +340,9 @@ exist (`2026-02-30-…`) is not a date.
 - A schema.org `Article` block (`<script type="application/ld+json">` — data, not a script) gives
   search engines the headline, description, dates, language and author; its `image` and `url`
   appear when they can be absolute (`--site-url`).
+- In a stream folder (`--layout`, see [docs/THEMING.md](docs/THEMING.md#profiles)) the byline also
+  names the `author:` (`.canopy-author`), and the page's `image:` — the picture link previews
+  show — is its cover under the byline and on the folder's listing (`.canopy-cover`).
 
 A page that fronts others — a folder's `index.md`, typically, over a series of dated pages — can
 list them with `listing: true` in its frontmatter: after its own content comes a list of the pages

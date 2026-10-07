@@ -599,7 +599,10 @@ function renderListing(
           pageLayout.profile === "stream" && entry !== undefined
             ? ` <span class="canopy-reading-time">${escapeHtml(readingTime(entry.html, lang, strings.readingTime))}</span>`
             : "";
-        return `<li>${name}${date}${minutes}${summary}${nested}</li>`;
+        // A stream's cards carry their posts' covers; a manual listing stays as it was.
+        const cover =
+          pageLayout.profile === "stream" && entry !== undefined ? renderCover(entry, page.sitePath, true) : "";
+        return `<li>${cover}${name}${date}${minutes}${summary}${nested}</li>`;
       })
       .join("");
   return `<ul class="canopy-listing">${items(entries)}</ul>`;
@@ -665,8 +668,33 @@ function streamOpening(
     published === undefined
       ? ""
       : `<time class="canopy-date" datetime="${escapeHtml(published)}">${escapeHtml(formatPageDate(published, lang))}</time>`;
-  const byline = `<p class="canopy-byline">${date}<span class="canopy-reading-time">${escapeHtml(readingTime(page.html, lang, strings.readingTime))}</span></p>`;
-  return afterTitle(page.html, `${lead}${byline}${renderToc(page.outline, strings.onThisPage)}`);
+  const author = textField(page.frontmatter.author);
+  const by = author === undefined ? "" : `<span class="canopy-author">${escapeHtml(author)}</span>`;
+  const byline = `<p class="canopy-byline">${by}${date}<span class="canopy-reading-time">${escapeHtml(readingTime(page.html, lang, strings.readingTime))}</span></p>`;
+  const cover = renderCover(page, page.sitePath, false);
+  return afterTitle(page.html, `${lead}${byline}${cover}${renderToc(page.outline, strings.onThisPage)}`);
+}
+
+/** A frontmatter value that is a non-empty string, trimmed — or undefined. */
+function textField(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() !== "" ? value.trim() : undefined;
+}
+
+/**
+ * A page's cover — its frontmatter `image:`, the same picture link previews
+ * show — as an image addressed from the page it appears on (`from`).
+ *
+ * A site path is relative to the site root, as for `og:image`, so it is
+ * rewritten relative to `from`; an absolute or root-absolute URL is the
+ * author's to choose and is used as written. The cover sits beside the title
+ * that says what it shows, so it carries no text of its own (`alt=""`). In a
+ * listing it is one of many below the fold: `lazy` lets the browser wait.
+ */
+function renderCover(page: RenderedPage, from: string, lazy: boolean): string {
+  const image = textField(page.frontmatter.image);
+  if (image === undefined) return "";
+  const src = isExternalUrl(image) ? image : relativeHref(from, image.replace(/^\.\//, ""));
+  return `<img class="canopy-cover" src="${escapeHtml(src)}" alt=""${lazy ? ' loading="lazy"' : ""}>`;
 }
 
 /**

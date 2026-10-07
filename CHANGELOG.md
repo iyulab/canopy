@@ -8,7 +8,7 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
-## [Unreleased]
+## [0.25.0] — 2026-10-07
 
 Upgrading: a stream folder with more than ten posts now lists the newest ten on its index and the
 rest on `<folder>/page/2.html` on — set the rule's `pageSize` for another count. A vault page at one

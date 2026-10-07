@@ -674,6 +674,17 @@ function renderListing(
     entries = navigation.filter((node) => node !== self);
   }
   const bySitePath = new Map((options.sitePages ?? []).map((p) => [p.sitePath, p]));
+  // A stream's list is its posts — the pages its rule covers, as `streamPagePaths`
+  // counts them. A folder under a rule of its own beside them is not one, and
+  // listing it would put more on the list than its pages were counted for.
+  if (indexPath !== undefined) {
+    const own = (pageLayout.streamDir as string).toLowerCase();
+    entries = entries.filter(
+      (node) =>
+        node.sitePath !== undefined &&
+        resolvePageLayout(options.layout, node.sitePath).streamDir?.toLowerCase() === own,
+    );
+  }
   if (tagged !== undefined) {
     entries = entries.filter((node) => {
       const entry = node.sitePath === undefined ? undefined : bySitePath.get(node.sitePath);

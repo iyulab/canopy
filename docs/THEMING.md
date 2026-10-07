@@ -134,7 +134,8 @@ pages read one at a time, newest first:
   the reading time (`.canopy-reading-time`), then the page's `image:` as its cover
   (`.canopy-cover`), then the contents, open, in a disclosure (`.canopy-toc`, holding the same
   `.canopy-outline` list);
-- the folder's index page lists the folder's pages newest first (`.canopy-listing`), with cover,
+- the folder's index page lists the folder's posts newest first (`.canopy-listing`) — the pages its
+  rule covers; a folder inside it under a rule of its own is not one of them — with cover,
   date, reading time and summary — canopy writes that index page when the folder has none. Ten
   posts to a page (the rule's `pageSize`): the rest continue on `page/2.html`, `page/3.html` …
   in the folder, each page ending with the way to the pages beside it (`.canopy-pagination`). The

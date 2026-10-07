@@ -235,6 +235,25 @@ describe("emitSite", () => {
     expect(third).toContain('<a rel="prev" href="2.html">Newer posts</a><span>Page 3 of 3</span></nav>');
   });
 
+  it("lists only the stream's own posts, so its pages and its list agree", async () => {
+    // A folder under its own rule inside the stream is not one of its posts.
+    const layout = {
+      dirs: { blog: { profile: "stream" as const, pageSize: 2 }, "blog/docs": { profile: "manual" as const } },
+    };
+    const documents = [
+      { path: "blog/a.md", content: "---\ndate: 2026-10-01\n---\n# A\n" },
+      { path: "blog/b.md", content: "---\ndate: 2026-10-02\n---\n# B\n" },
+      { path: "blog/docs/guide.md", content: "# Guide\n" },
+    ];
+    const files = emitSite(await build({ documents, layout }), { layout, siteTitle: "Site" });
+    const index = files.find((file) => file.path === "blog/index.html")?.contents ?? "";
+    expect(files.map((file) => file.path)).not.toContain("blog/page/2.html");
+    expect(index).not.toContain("canopy-pagination");
+    expect(index).not.toContain("Guide");
+    expect(index).toContain('href="b.html">B</a>');
+    expect(index).toContain('href="a.html">A</a>');
+  });
+
   it("puts a stream's featured posts atop the first page of its list, out of the dated pages", async () => {
     const layout = { dirs: { blog: { profile: "stream" as const, pageSize: 2, featured: ["blog/a.md"] } } };
     const documents = ["a", "b", "c", "d"].map((name, i) => ({

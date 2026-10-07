@@ -8,6 +8,15 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [0.28.4] — 2026-10-07
+
+### Fixed
+
+- A stream folder holding a folder under a rule of its own (a `manual` folder inside a blog) listed
+  that folder on its list as well as its posts, while its pages were counted from the posts alone:
+  the list could run one entry past its last page, with "Page 1 of 2" linking to a page that was
+  never written. A stream's list is now its posts only, the ones its pages are counted from.
+
 ## [0.28.3] — 2026-10-07
 
 ### Fixed

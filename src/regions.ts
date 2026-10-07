@@ -33,6 +33,7 @@ export const CONTROL_SLOTS = [
   "language",
   "search",
   "theme-toggle",
+  "skip-link",
 ] as const;
 export type ControlSlot = (typeof CONTROL_SLOTS)[number];
 
@@ -121,6 +122,17 @@ export function pageSlotKeys(html: string): string[] {
     if (key !== "" && !keys.includes(key)) keys.push(key);
   }
   return keys;
+}
+
+/** The control slots a fragment places, each once, in document order. */
+export function fragmentControls(html: string): ControlSlot[] {
+  const found: ControlSlot[] = [];
+  for (const [element] of elements(parse(html).children)) {
+    if (element.tagName !== SLOT_TAG) continue;
+    const name = slotName(element);
+    if (isControlSlot(name) && !found.includes(name)) found.push(name);
+  }
+  return found;
 }
 
 /** The attributes whose value is one URL. */

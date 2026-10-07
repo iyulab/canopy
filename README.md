@@ -85,7 +85,9 @@ npx canopy build <vault-dir> [out-dir] [options]
   it.
 - `--strings <json>` — a JSON object overriding the reader chrome's own text: `search`,
   `toggleTheme`, `siteNav`, `pageNav`, `onThisPage`, `indexTitle` (the auto-generated contents
-  page's title/heading), `backlinks` (a page's "linked references" section heading). No
+  page's title/heading), `backlinks` (a page's "linked references" section heading),
+  `breadcrumb`, `language`, `readingTime` (with `{n}` for the minutes), `skipToContent` (the
+  link every page opens with, past the header and navigation to the content). No
   built-in translation table — the same reasoning `--home-label` already follows: this text has
   to be written in the site's own language, and canopy has no way to guess it. Keys left out
   keep their English default.

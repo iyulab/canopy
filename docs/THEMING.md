@@ -91,7 +91,7 @@ changelog. Select on them freely.
 
 | Region | Hooks |
 |---|---|
-| Top bar and controls | `.canopy-topbar` `.canopy-topbar-controls` `.canopy-site-title` `.canopy-logo` `.canopy-home` `.canopy-home-external` `.canopy-back` `.canopy-breadcrumb` `.canopy-language` `.canopy-search` `.canopy-theme-toggle` |
+| Top bar and controls | `.canopy-topbar` `.canopy-topbar-controls` `.canopy-site-title` `.canopy-logo` `.canopy-home` `.canopy-home-external` `.canopy-back` `.canopy-breadcrumb` `.canopy-language` `.canopy-search` `.canopy-theme-toggle` `.canopy-skip-link` |
 | Layout and navigation | `.canopy-layout` `.canopy-sidebar` `.canopy-nav` `.canopy-nav-group` `.canopy-main` |
 | Article | `.canopy-content` `.canopy-contents` `.canopy-before-article` `.canopy-after-article` `.canopy-lead` `.canopy-byline` `.canopy-date` `.canopy-reading-time` `.canopy-toc` `.canopy-listing` `.canopy-listing-title` `.canopy-table` |
 | Callouts | `.callout` `.callout-note` `.callout-tip` `.callout-warning` `.callout-danger` `.callout-quote` `.callout-title` |
@@ -100,6 +100,12 @@ changelog. Select on them freely.
 State is read from standard attributes, not classes: `aria-current="page"` on the current page's
 link, `[open]` on a disclosure, `[hidden]` on a control no script has revealed.
 `<html data-canopy-profile="manual">` or `"stream"` says which profile drew the page.
+Every page's `<main>` carries `id="canopy-main"` — a stable target for a link of a site's own.
+
+Every page opens with a skip link (`.canopy-skip-link`) to `#canopy-main`, hidden until a keyboard
+reaches it. A header fragment that places the `skip-link` slot gets it there instead, inside the
+site's own markup, and the page does not open with a second one. Its text is the `skipToContent`
+string.
 
 ```css
 /* A wider article and no sidebar — plain selectors, no specificity to match.
@@ -166,6 +172,7 @@ the slot reaches the browser:
 | `language` | This page in the site's other language editions (`.canopy-language`) |
 | `search` | The search form (`.canopy-search`) |
 | `theme-toggle` | The theme toggle (`.canopy-theme-toggle`) |
+| `skip-link` | The link past the header and navigation to the page's content (`.canopy-skip-link`) |
 | `page:<key>` | The page's own frontmatter text for `<key>`, escaped; the slot's content when the page has none |
 
 A control slot that has nothing to show on a page (no alternates for `language`, a manual page

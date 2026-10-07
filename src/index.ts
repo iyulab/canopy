@@ -40,7 +40,7 @@ export {
   type NavSpecItem,
   type AppliedNav,
 } from "./nav-spec.js";
-export { renderPage, pageTitle, renderContentsPage, languageName, type ShellOptions } from "./shell.js";
+export { renderPage, pageTitle, renderContentsPage, languageName, MAIN_ID, type ShellOptions } from "./shell.js";
 export { extractOutline, extractFirstHeading, isOutlineUseful, type OutlineItem } from "./outline.js";
 export { declaredTitle, pageName, isIndexStem } from "./title.js";
 export {
@@ -62,6 +62,7 @@ export {
 export {
   CONTROL_SLOTS,
   FragmentError,
+  fragmentControls,
   fragmentHref,
   fragmentLinks,
   fragmentProblems,

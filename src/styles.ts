@@ -644,6 +644,30 @@ body {
   background-attachment: local, local, scroll, scroll;
 }
 .canopy-content code { font-family: var(--font-monospace); }
+/* The skip link (shell.ts): out of sight until a keyboard reaches it — it is
+   the first thing in the page — then shown over the page's top-left corner.
+   Clipped rather than moved off-screen, so a right-to-left page does not
+   grow a horizontal scroll toward it. Kept in a site's own header when a
+   fragment places it there; the site can restyle it by this class. */
+.canopy-skip-link:not(:focus) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.canopy-skip-link:focus {
+  position: absolute;
+  top: var(--sp-2);
+  left: var(--sp-2);
+  z-index: 100;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radius-m);
+  background: var(--bg-primary);
+  color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent);
+}
 .canopy-content table { border-collapse: collapse; }
 /* A table scrolls sideways inside its own box (rehype-table-scroll.ts) rather
    than widening the page, with the same scroll-shadow pair as a code block

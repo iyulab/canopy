@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { RenderedPage } from "./contract.js";
 import {
   FragmentError,
+  fragmentControls,
   fragmentHref,
   fragmentLinks,
   fragmentProblems,
@@ -25,7 +26,7 @@ describe("fragmentProblems", () => {
   it("names an unknown slot and the slots there are", () => {
     expect(fragmentProblems('<canopy-slot name="sidebar"></canopy-slot>', "header")).toEqual([
       'unknown slot "sidebar" — slots are site-title, home, back, breadcrumb, language, search, ' +
-        "theme-toggle, or page:<frontmatter key>",
+        "theme-toggle, skip-link, or page:<frontmatter key>",
     ]);
   });
 
@@ -74,6 +75,14 @@ describe("pageSlotKeys and fragmentLinks", () => {
       '<p><canopy-slot name="page:cta">x</canopy-slot><canopy-slot name="page:cta"></canopy-slot>' +
       '<canopy-slot name="page:author"></canopy-slot><canopy-slot name="home"></canopy-slot></p>';
     expect(pageSlotKeys(html)).toEqual(["cta", "author"]);
+  });
+
+  it("lists each control slot a fragment places once, in order, leaving page slots out", () => {
+    const html =
+      '<header><canopy-slot name="search"></canopy-slot><canopy-slot name="page:cta"></canopy-slot>' +
+      '<canopy-slot name="home"></canopy-slot><canopy-slot name="search"></canopy-slot>' +
+      '<canopy-slot name="nonsense"></canopy-slot></header>';
+    expect(fragmentControls(html)).toEqual(["search", "home"]);
   });
 
   it("lists every href and src, in order", () => {

@@ -281,13 +281,13 @@ describe("renderPage", () => {
   it("marks the sidebar link to the page being rendered as the current one", () => {
     // `page()`'s sitePath is "notes/idea.html", which `nav` also names.
     const html = renderPage(page(), nav);
-    const sidebar = html.slice(html.indexOf("canopy-sidebar"), html.indexOf("canopy-main"));
+    const sidebar = html.slice(html.indexOf("canopy-sidebar"), html.indexOf("<main"));
     expect(sidebar).toContain('<a href="idea.html" aria-current="page">idea</a>');
   });
 
   it("leaves every other sidebar link unmarked", () => {
     const html = renderPage(page(), nav);
-    const sidebar = html.slice(html.indexOf("canopy-sidebar"), html.indexOf("canopy-main"));
+    const sidebar = html.slice(html.indexOf("canopy-sidebar"), html.indexOf("<main"));
     expect(sidebar).toContain('<a href="../index.html">Home</a>');
   });
 
@@ -1053,6 +1053,38 @@ describe("profiles, regions and slots", () => {
   });
 });
 
+describe("the skip link", () => {
+  it("opens every page's body, pointing at the page's main content", () => {
+    const html = renderPage(page(), nav, { siteTitle: "Site" });
+    expect(html).toContain('<body>\n<a class="canopy-skip-link" href="#canopy-main">Skip to content</a>\n<header');
+    expect(html).toContain('<main class="canopy-main" id="canopy-main">');
+  });
+
+  it("comes before a site's own header too, and speaks the site's language when told", () => {
+    const html = renderPage(page(), nav, {
+      strings: { skipToContent: "본문 바로가기" },
+      layout: { default: { regions: { header: "h.html" } } },
+      fragments: { "h.html": '<header class="host"><a href="index.html">Host</a></header>' },
+    });
+    expect(html).toContain(
+      '<body>\n<a class="canopy-skip-link" href="#canopy-main">본문 바로가기</a>\n<header class="host">',
+    );
+  });
+
+  it("moves into a fragment that places it, and is not repeated at the top", () => {
+    const html = renderPage(page(), nav, {
+      layout: { default: { regions: { header: "h.html" } } },
+      fragments: {
+        "h.html": '<header class="host"><canopy-slot name="skip-link"></canopy-slot><a href="index.html">Host</a></header>',
+      },
+    });
+    expect(html).toContain(
+      '<body>\n<header class="host"><a class="canopy-skip-link" href="#canopy-main">Skip to content</a>',
+    );
+    expect(html.match(/canopy-skip-link/g)).toHaveLength(1);
+  });
+});
+
 describe("the language control", () => {
   const options = {
     lang: "en",
@@ -1134,7 +1166,7 @@ describe("the stream profile", () => {
     expect(html).not.toContain("canopy-sidebar");
     expect(html).not.toContain("canopy-backlinks");
     expect(html).not.toContain("canopy-page-nav");
-    expect(html).toContain('<main class="canopy-main">\n<article class="canopy-content">');
+    expect(html).toContain('<main class="canopy-main" id="canopy-main">\n<article class="canopy-content">');
     expect(html).toContain("</article>\n</main>");
   });
 

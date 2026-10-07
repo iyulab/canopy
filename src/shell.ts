@@ -8,7 +8,7 @@ import { isOutlineUseful, type OutlineItem } from "./outline.js";
 import { formatPageDate, frontmatterDate } from "./page-date.js";
 import { declaredTitle, pageName } from "./title.js";
 import { readingMinutes } from "./reading-time.js";
-import { type ControlSlot, pageSlotText, renderFragment } from "./regions.js";
+import { type ControlSlot, fragmentControls, pageSlotText, renderFragment } from "./regions.js";
 
 /** Options controlling the site shell wrapped around each page. */
 export interface ShellOptions {
@@ -158,8 +158,13 @@ export interface ShellOptions {
     language?: string;
     /** A stream page's reading time, with `{n}` where the minutes go. */
     readingTime?: string;
+    /** The link that skips past the page's repeated header and navigation to its main content. */
+    skipToContent?: string;
   };
 }
+
+/** The id of every page's `<main>`: the skip link's target, and a stable one a site's own link can use. */
+export const MAIN_ID = "canopy-main";
 
 const DEFAULT_STRINGS = {
   search: "Search",
@@ -172,6 +177,7 @@ const DEFAULT_STRINGS = {
   breadcrumb: "Breadcrumb",
   language: "Languages",
   readingTime: "{n} min read",
+  skipToContent: "Skip to content",
 } as const;
 
 type ShellStrings = Record<keyof typeof DEFAULT_STRINGS, string>;
@@ -719,6 +725,10 @@ function renderControls(
   // reader of an otherwise chrome-free site a visible padded bar (see
   // .canopy-topbar) — but a fragment can place it anywhere with a slot.
   const themeToggle = `<button type="button" class="canopy-theme-toggle" hidden aria-label="${escapeHtml(strings.toggleTheme)}"></button>`;
+  // Past every block repeated on each page — top bar or site header, sidebar
+  // tree — to the page's own content (WCAG 2.4.1). The target is a fixed id,
+  // part of the public contract, so a site's own link can point at it too.
+  const skipLink = `<a class="canopy-skip-link" href="#${MAIN_ID}">${escapeHtml(strings.skipToContent)}</a>`;
   return {
     "site-title": siteTitle,
     home: homeLink,
@@ -727,6 +737,7 @@ function renderControls(
     language: renderLanguage(page, options, strings.language),
     search,
     "theme-toggle": themeToggle,
+    "skip-link": skipLink,
   };
 }
 
@@ -899,6 +910,12 @@ export function renderPage(
   const before = wrapRegion("canopy-before-article", region("beforeArticle"));
   const after = wrapRegion("canopy-after-article", region("afterArticle"));
   const footer = region("footer");
+  // First in the body, so it is the first thing a keyboard reaches — unless a
+  // fragment on this page places it itself, inside the site's own markup.
+  const skipPlaced = Object.values(pageLayout.regions).some(
+    (file) => file !== undefined && fragmentControls(options.fragments?.[file] ?? "").includes("skip-link"),
+  );
+  const skip = skipPlaced ? "" : `${controls["skip-link"]}\n`;
   // A stream shows no tree: the whole tree on every page of a long stream is
   // quadratic weight for navigation a reader of one post does not use.
   const sidebar = stream
@@ -921,9 +938,9 @@ export function renderPage(
 ${descriptionTag}${social}${feedTags}${icon}${links}${script}${region("head")}
 </head>
 <body>
-${header}
+${skip}${header}
 <div class="canopy-layout">
-${sidebar}<main class="canopy-main">
+${sidebar}<main class="canopy-main" id="${MAIN_ID}">
 <article class="canopy-content">${before}${body}${renderListing(page, navigation, options, lang, pageLayout, strings)}${after}</article>
 ${around}</main>
 </div>

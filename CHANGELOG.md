@@ -27,6 +27,12 @@ of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
 ### Added
 
+- **A skip link on every page.** Each page opens with a link past its header and navigation to
+  the content (`.canopy-skip-link`, hidden until a keyboard reaches it), and every `<main>` has
+  `id="canopy-main"` — a stable target for a site's own link too. A header fragment can place
+  it with the new `skip-link` slot; the page then does not open with a second one. Text:
+  `--strings` key `skipToContent`.
+- `fragmentControls(html)`: the control slots a fragment places, for a caller checking a site.
 - Hook `.canopy-table`: the box each table in an article scrolls inside.
 
 - `outputCollisions(published, plan)`: the published files that would land on a path canopy

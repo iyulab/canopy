@@ -26,6 +26,7 @@ export const THEME_HOOKS = Object.freeze([
   "canopy-language",
   "canopy-search",
   "canopy-theme-toggle",
+  "canopy-skip-link",
   // Layout and navigation
   "canopy-layout",
   "canopy-sidebar",

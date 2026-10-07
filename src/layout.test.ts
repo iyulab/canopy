@@ -216,9 +216,9 @@ describe("a stream's listing in pages", () => {
       dirs: { blog: { profile: "stream", featured: ["blog/a.md", "blog/gone.md", "guide/x.md", "blog/index.md"] } },
     };
     expect(featuredProblems(layout, ["blog/A.md", "blog/index.md", "guide/x.md"])).toEqual([
-      'dirs.blog.featured: "blog/gone.md" is not a page this site publishes',
-      'dirs.blog.featured: "guide/x.md" is not a post of this stream',
-      'dirs.blog.featured: "blog/index.md" is not a post of this stream',
+      { dir: "blog", path: "blog/gone.md", message: "is not a page this site publishes" },
+      { dir: "blog", path: "guide/x.md", message: "is not a post of this stream" },
+      { dir: "blog", path: "blog/index.md", message: "is not a post of this stream" },
     ]);
   });
 

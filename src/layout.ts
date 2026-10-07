@@ -326,21 +326,31 @@ export function streamFeatured(layout: Layout | undefined, dir: string): string[
   return (folderRule(layout, dir)?.featured ?? []).map(toSitePath);
 }
 
+/** A `featured` entry that names no post of its stream. */
+export interface FeaturedProblem {
+  /** The stream folder whose rule has the entry, as the layout keys it; `""` for the site default. */
+  dir: string;
+  /** The entry, as the rule gives it. */
+  path: string;
+  /** What is wrong with it, without the entry or the rule. */
+  message: string;
+}
+
 /**
  * Featured entries that name no post of their stream — a file the site does not
- * publish, or one outside the folder, or its index — as messages naming the rule.
+ * publish, or one outside the folder, or its index — by the rule and the entry,
+ * so a caller can name either in its own terms.
  */
-export function featuredProblems(layout: Layout | undefined, sourcePaths: readonly string[]): string[] {
-  const problems: string[] = [];
+export function featuredProblems(layout: Layout | undefined, sourcePaths: readonly string[]): FeaturedProblem[] {
+  const problems: FeaturedProblem[] = [];
   for (const dir of streamDirs(layout)) {
-    const where = dir === "" ? "default" : `dirs.${dir}`;
     const index = streamIndexPath(dir).toLowerCase();
     for (const file of folderRule(layout, dir)?.featured ?? []) {
       const sitePath = toSitePath(file).toLowerCase();
       const published = sourcePaths.some((source) => source.toLowerCase() === file.toLowerCase());
       const own = resolvePageLayout(layout, sitePath).streamDir?.toLowerCase() === dir.toLowerCase();
-      if (!published) problems.push(`${where}.featured: "${file}" is not a page this site publishes`);
-      else if (!own || sitePath === index) problems.push(`${where}.featured: "${file}" is not a post of this stream`);
+      if (!published) problems.push({ dir, path: file, message: "is not a page this site publishes" });
+      else if (!own || sitePath === index) problems.push({ dir, path: file, message: "is not a post of this stream" });
     }
   }
   return problems;

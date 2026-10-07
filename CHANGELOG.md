@@ -8,6 +8,15 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [Unreleased]
+
+### Changed
+
+- `featuredProblems` returns `FeaturedProblem` objects (`{ dir, path, message }` — the stream
+  folder as the layout keys it, the entry, and what is wrong) instead of messages that named the
+  layout's own keys, so a caller that writes the layout from its own configuration reports each in
+  that configuration's terms.
+
 ## [0.27.0] — 2026-10-07
 
 Upgrading: a stream post now ends with what to read next (`.canopy-read-next`) — style or hide it

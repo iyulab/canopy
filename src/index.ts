@@ -61,6 +61,7 @@ export {
   LayoutError,
   PROFILES,
   REGIONS,
+  type FeaturedProblem,
   type Layout,
   type LayoutRule,
   type PageLayout,

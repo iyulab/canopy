@@ -247,7 +247,10 @@ export async function runBuild(argv: string[]): Promise<void> {
   }));
   const badFeatured = featuredProblems(layout, listing.pages);
   if (badFeatured.length > 0) {
-    for (const problem of badFeatured) console.error(`--layout ${args.layoutPath}: ${problem}`);
+    for (const { dir, path: file, message } of badFeatured) {
+      const where = dir === "" ? "default" : `dirs.${dir}`;
+      console.error(`--layout ${args.layoutPath}: ${where}.featured: "${file}" ${message}`);
+    }
     process.exitCode = 1;
     return;
   }

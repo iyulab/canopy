@@ -33,3 +33,7 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      # Installs the packed tarball into an empty project and builds math there: what holds in this
+      # repository's install but not in a consumer's (root-only npm overrides, a file left out of
+      # `files`) is invisible to the suite above.
+      - run: npm run smoke:consumer

@@ -35,9 +35,11 @@ npm run check   # type-check (tsc)
 npm run lint    # Biome
 npm test        # vitest
 npm run build   # emit dist/
+npm run smoke:consumer   # install the packed tarball into an empty project and build math there
 ```
 
-All four should pass before you open a pull request.
+All five should pass before you open a pull request. The last one needs `npm run build` first and
+catches what holds in this repository's install but not in a consumer's.
 
 ## Conventions
 

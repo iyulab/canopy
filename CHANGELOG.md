@@ -8,6 +8,19 @@ what changed in the rendering, the CLI surface, or the theming vocabulary is wha
 plan their upgrades around. Entries describe changes in canopy's own terms — never in terms
 of a particular consuming project (see [docs/SCOPE.md](docs/SCOPE.md)).
 
+## [Unreleased]
+
+### Fixed
+
+- **Math renders with canopy's own KaTeX in every installation.** Formulas were written by the KaTeX
+  that rehype-katex depends on (`^0.16`), and the `overrides` entry meant to pin canopy's `^0.18.7`
+  is read by npm from the installing project only — so every project that installed canopy rendered
+  its math with KaTeX 0.16 (and its stylesheet came from the same copy only because canopy looked it
+  up through rehype-katex). Canopy now renders math itself, with its own `katex` dependency, and ships
+  that copy's stylesheet and fonts; rehype-katex and the `overrides` entry are gone. Markup is
+  unchanged in shape — `katex`, `katex-display` and `katex-error` spans, as before — and a
+  ```` ```math ```` fence still renders as display math. Upgrading: nothing to do.
+
 ## [0.28.4] — 2026-10-07
 
 ### Fixed

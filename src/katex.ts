@@ -9,7 +9,7 @@ import type { SiteBundle } from "./contract.js";
 export const KATEX_STYLESHEET = "assets/katex.css";
 
 /**
- * Marker that rehype-katex stamps on every rendered formula: inline math is
+ * Marker that KaTeX stamps on every rendered formula: inline math is
  * wrapped in `<span class="katex">`, display math in
  * `<span class="katex-display"><span class="katex">…`, and even a render
  * failure carries `<span class="katex-error" …>` — all of which start with

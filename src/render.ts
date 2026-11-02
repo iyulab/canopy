@@ -9,11 +9,11 @@ import rehypeRaw from "rehype-raw";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import rehypeTableScroll from "./rehype-table-scroll.js";
 import rehypeSlug from "rehype-slug";
-import rehypeKatex from "rehype-katex";
 import rehypeShikiFromHighlighter from "@shikijs/rehype/core";
 import { createHighlighter } from "shiki";
 import rehypeStringify from "rehype-stringify";
 import { parseFrontmatter } from "./frontmatter.js";
+import rehypeMath from "./rehype-math.js";
 import remarkMathSubset from "./remark-math-subset.js";
 import remarkCallout from "./remark-callout.js";
 import remarkWikiLink, { type WikiContext } from "./remark-wikilink.js";
@@ -27,7 +27,7 @@ import rehypeHeadingId from "./rehype-heading-id.js";
  * - Raw embedded HTML is preserved (rehype-raw) but sanitized
  *   (rehype-sanitize) so safe authoring tags survive while scripts and other
  *   injection vectors are stripped.
- * - KaTeX (rehype-katex) and syntax highlighting (rehype-shiki) run *after*
+ * - KaTeX (rehype-math, over this package's own katex) and syntax highlighting (rehype-shiki) run *after*
  *   sanitize: their output is trusted (generated from parsed math/code, never
  *   from user raw HTML), so it is not stripped. The markers they consume
  *   (`math-inline`/`math-display` classes, `language-*` on code) pass through
@@ -45,7 +45,7 @@ import rehypeHeadingId from "./rehype-heading-id.js";
  *   anything running before it is stripped down to the default schema —
  *   verified live with rehype-declart's actual SVG output, which came back
  *   as bare text when placed before sanitize and intact when placed after.
- *   The trust argument is the same one that already places rehype-katex and
+ *   The trust argument is the same one that already places the math renderer and
  *   the Shiki plugin after sanitize (see above): output built from a fenced
  *   block's own parsed content, not from a user's raw HTML, is safe to emit
  *   unsanitized. A caller plugin sits at that same trust level or it
@@ -155,7 +155,7 @@ const buildProcessor = async (rehypePlugins: PluggableList) =>
   // here): trusted like katex/shiki because they run after sanitize, and
   // ahead of a caller-owned language tag because they run before Shiki.
   .use(rehypePlugins)
-  .use(rehypeKatex)
+  .use(rehypeMath)
   // Dual theme: emits both palettes as CSS variables (--shiki-dark*) so the
   // site stylesheet can switch code blocks with the page's color scheme.
   .use(rehypeShikiFromHighlighter, await createWarmedHighlighter(), {

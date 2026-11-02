@@ -3,12 +3,10 @@ import path from "node:path";
 import { createRequire } from "node:module";
 
 /**
- * The KaTeX that actually renders the math: the one rehype-katex imports. Resolving `katex` from
- * here instead finds canopy's own dependency, which is a different copy whenever the installing
- * project does not apply canopy's `overrides` (npm reads those from the root project only) — and a
- * stylesheet from one KaTeX over markup from another misplaces formulas.
+ * The KaTeX that renders the math: this package's own, which `rehype-math.ts` imports — so its
+ * stylesheet and fonts match the markup in every installation. A stylesheet from one KaTeX over
+ * markup from another misplaces formulas.
  */
 export function katexDirOfRenderer(): string {
-  const renderer = createRequire(import.meta.resolve("rehype-katex"));
-  return path.dirname(renderer.resolve("katex/package.json"));
+  return path.dirname(createRequire(import.meta.url).resolve("katex/package.json"));
 }

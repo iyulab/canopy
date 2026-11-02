@@ -89,7 +89,7 @@ function ownsItsLines(src: string, start: number, end: number): boolean {
 /**
  * A display `math` node carrying the same `data` shape mdast-util-math
  * attaches at parse time — mdast-util-to-hast has no built-in math handler, so
- * without it the node would fall through as bare text and rehype-katex would
+ * without it the node would fall through as bare text and the math renderer would
  * never see the `math-display` marker.
  */
 function displayMathNode(span: InlineMath): MathNode {
